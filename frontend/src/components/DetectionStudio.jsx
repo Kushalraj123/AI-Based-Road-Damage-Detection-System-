@@ -165,9 +165,9 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     
     if (isPothole) {
       const vol = (len * wid * dep) / 1000000;
-      const asphaltKg = Math.max(2, Math.round(vol * 800));
-      const tackCoatLiters = parseFloat(Math.max(0.1, area * 0.25).toFixed(1));
-      const aggregateKg = Math.max(3, Math.round(vol * 500));
+      const asphaltKg = Math.max(1, Math.round(vol * 200));
+      const tackCoatLiters = parseFloat(Math.max(0.05, area * 0.1).toFixed(2));
+      const aggregateKg = Math.max(1, Math.round(vol * 150));
       return {
         asphalt: `${asphaltKg} kg Bituminous Hot-Mix`,
         binder: `${tackCoatLiters} L Emulsion Tack Coat`,
@@ -175,17 +175,17 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       };
     } else if (isAlligator) {
       const vol = (len * wid * dep) / 1000000;
-      const asphaltKg = Math.max(3, Math.round(vol * 700));
-      const tackCoatLiters = parseFloat(Math.max(0.15, area * 0.3).toFixed(1));
-      const sealantKg = Math.max(1, Math.round(area * 1.2));
+      const asphaltKg = Math.max(1, Math.round(vol * 180));
+      const tackCoatLiters = parseFloat(Math.max(0.08, area * 0.12).toFixed(2));
+      const sealantKg = Math.max(0.5, Math.round(area * 0.4));
       return {
         asphalt: `${asphaltKg} kg Dense Bituminous Macadam`,
         binder: `${tackCoatLiters} L CSS-1h Tack Emulsion`,
         sealant: `${sealantKg} kg Crack Sealant Compound`
       };
     } else {
-      const tackCoatLiters = parseFloat(Math.max(0.05, area * 0.15).toFixed(2));
-      const sealantKg = Math.max(0.5, Math.round((len / 100) * 0.4));
+      const tackCoatLiters = parseFloat(Math.max(0.02, area * 0.05).toFixed(2));
+      const sealantKg = Math.max(0.2, Math.round((len / 100) * 0.15));
       return {
         binder: `${tackCoatLiters} L Rapid Setting Emulsion`,
         sealant: `${sealantKg} kg Hot-Applied Polymer Sealant`
@@ -340,8 +340,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             ? 'P2 — Scheduled Maintenance (7 Days)'
             : 'P3 — Routine Monitoring',
           estimatedCost: apiSeverity === 'High'
-            ? `₹${(mappedDetections.length * 1200 + 3000).toLocaleString('en-IN')} INR`
-            : `₹${(mappedDetections.length * 600 + 1500).toLocaleString('en-IN')} INR`,
+            ? `₹${(mappedDetections.length * 400 + 1000).toLocaleString('en-IN')} INR`
+            : `₹${(mappedDetections.length * 200 + 500).toLocaleString('en-IN')} INR`,
           distressCount: data.total_damage,
           detections: mappedDetections,
           location: 'Uploaded Image — GPS Coordinates Not Available',
