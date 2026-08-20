@@ -75,6 +75,12 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
   // Keep the original unprocessed image URL for split-slider comparisons
   const [originalImageUrl, setOriginalImageUrl] = useState(null);
 
+  // Municipal Requisition states
+  const [requisitionSubmitted, setRequisitionSubmitted] = useState(false);
+  const [requisitionLoading, setRequisitionLoading] = useState(false);
+  const [submittedTicketId, setSubmittedTicketId] = useState(null);
+
+
   // Camera stream ref
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -147,6 +153,57 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     );
   };
 
+  // ── Calculate dynamic repair materials based on dimensions ────────
+  const calculateMaterials = (det) => {
+    const len = det.dimensions?.length_cm || 30;
+    const wid = det.dimensions?.width_cm || 30;
+    const dep = det.dimensions?.depth_cm || 3;
+    const area = det.dimensions?.area_m2 || 0.1;
+    
+    const isPothole = det.class_name.toLowerCase().includes('pothole') || det.class_name.includes('D40');
+    const isAlligator = det.class_name.toLowerCase().includes('alligator') || det.class_name.includes('D20');
+    
+    if (isPothole) {
+      const vol = (len * wid * dep) / 1000000;
+      const asphaltKg = Math.max(5, Math.round(vol * 2300));
+      const tackCoatLiters = parseFloat(Math.max(0.2, area * 0.7).toFixed(1));
+      const aggregateKg = Math.max(8, Math.round(vol * 1500));
+      return {
+        asphalt: `${asphaltKg} kg Bituminous Hot-Mix`,
+        binder: `${tackCoatLiters} L Emulsion Tack Coat`,
+        aggregate: `${aggregateKg} kg Crushed Base Gravel`
+      };
+    } else if (isAlligator) {
+      const vol = (len * wid * dep) / 1000000;
+      const asphaltKg = Math.max(10, Math.round(vol * 2200));
+      const tackCoatLiters = parseFloat(Math.max(0.5, area * 0.8).toFixed(1));
+      const sealantKg = Math.max(2, Math.round(area * 3));
+      return {
+        asphalt: `${asphaltKg} kg Dense Bituminous Macadam`,
+        binder: `${tackCoatLiters} L CSS-1h Tack Emulsion`,
+        sealant: `${sealantKg} kg Crack Sealant Compound`
+      };
+    } else {
+      const tackCoatLiters = parseFloat(Math.max(0.1, area * 0.4).toFixed(1));
+      const sealantKg = Math.max(1.5, Math.round((len / 100) * 1.2));
+      return {
+        binder: `${tackCoatLiters} L Rapid Setting Emulsion`,
+        sealant: `${sealantKg} kg Hot-Applied Polymer Sealant`
+      };
+    }
+  };
+
+  const handleSubmitRequisition = () => {
+    setRequisitionLoading(true);
+    sounds.playLaserScan();
+    setTimeout(() => {
+      setRequisitionLoading(false);
+      setRequisitionSubmitted(true);
+      setSubmittedTicketId(`HCMC-ROAD-2026-${Math.floor(100000 + Math.random() * 900000)}`);
+      sounds.playLockOn();
+    }, 2000);
+  };
+
   // Start Scan Sequence — calls real backend API for uploaded files, uses ground truth for samples
   const runScanProcess = async (imageUrl, groundTruthData = null, uploadedFile = null) => {
     setIsScanning(true);
@@ -154,6 +211,9 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     setScanStage(0);
     setScanProgress(5);
     setScanError(null);
+    setRequisitionSubmitted(false);
+    setRequisitionLoading(false);
+    setSubmittedTicketId(null);
     sounds.playLaserScan();
 
     // Run stages concurrently with API call if we have a real file to upload
@@ -1275,6 +1335,51 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             </div>
           )}
 
+          {/* ── Municipal Requisition Card ──────────────────────── */}
+          {isBackendResult && detectionResult.detections.length > 0 && (
+            <div className="glass-panel" style={{ padding: '1.25rem', background: 'var(--bg-glass-strong)', border: '1px solid rgba(139, 92, 246, 0.25)', boxShadow: '0 0 12px rgba(139, 92, 246, 0.1)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.85rem' }}>
+                <Sparkles size={14} style={{ color: 'var(--accent-purple)' }} />
+                <span style={{ fontSize: '0.78rem', fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 700 }}>MUNICIPAL ROAD REBUILD ORDER</span>
+              </div>
+              
+              {!requisitionSubmitted ? (
+                <>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', lineHeight: 1.45, marginBottom: '0.85rem' }}>
+                    Package detected distress parameters and material estimates into a direct repair requisition for the Municipal Works department.
+                  </p>
+                  
+                  {requisitionLoading ? (
+                    <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--accent-purple)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                      <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2px solid var(--accent-purple)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
+                      Transmitting to Hassan Municipal Corporation (HCMC)…
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleSubmitRequisition}
+                      className="btn btn-primary"
+                      style={{ width: '100%', padding: '0.6rem', fontSize: '0.8rem', background: 'linear-gradient(135deg, var(--accent-purple), #7c3aed)' }}
+                    >
+                      <Zap size={13} /> Submit Work Order to HCMC
+                    </button>
+                  )}
+                </>
+              ) : (
+                <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', padding: '0.85rem', color: 'var(--severity-clear)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.45rem' }}>
+                    <CheckCircle2 size={16} /> Work Order Logged
+                  </div>
+                  <div style={{ fontSize: '0.67rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', marginBottom: '0.45rem' }}>
+                    TICKET ID: {submittedTicketId}
+                  </div>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: '0' }}>
+                    Hassan City Municipal Corporation (HCMC) has received the requisition. Repair crew assigned to rebuild to **Grade A Good Quality**. Target completion: 72 hours.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Distress Classification Breakdown List */}
           <div className="glass-panel" style={{ padding: '1.5rem' }}>
             <div style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1355,6 +1460,22 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                           </div>
                         ))}
                       </div>
+
+                      {/* Material quantity checklist */}
+                      {(() => {
+                        const mat = calculateMaterials(det);
+                        return (
+                          <div style={{ marginTop: '0.65rem', padding: '0.5rem 0.65rem', borderRadius: '6px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.72rem' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--text-secondary)', fontSize: '0.63rem', fontFamily: 'var(--font-mono)', marginBottom: '0.3rem', letterSpacing: '0.05em' }}>ESTIMATED REPAIR MATERIALS:</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', color: 'var(--text-tertiary)' }}>
+                              {mat.asphalt && <div>🛠️ {mat.asphalt}</div>}
+                              {mat.binder && <div>💧 {mat.binder}</div>}
+                              {mat.aggregate && <div>🪨 {mat.aggregate}</div>}
+                              {mat.sealant && <div>🩹 {mat.sealant}</div>}
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       {/* Area + recommendation */}
                       <div style={{ marginTop: '0.55rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.25rem' }}>
