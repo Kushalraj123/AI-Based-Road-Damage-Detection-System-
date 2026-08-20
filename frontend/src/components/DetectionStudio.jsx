@@ -340,8 +340,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             ? 'P2 — Scheduled Maintenance (7 Days)'
             : 'P3 — Routine Monitoring',
           estimatedCost: apiSeverity === 'High'
-            ? `₹${(mappedDetections.length * 80000 + 120000).toLocaleString('en-IN')} INR`
-            : `₹${(mappedDetections.length * 30000 + 50000).toLocaleString('en-IN')} INR`,
+            ? `₹${(mappedDetections.length * 3500 + 8000).toLocaleString('en-IN')} INR`
+            : `₹${(mappedDetections.length * 1800 + 4000).toLocaleString('en-IN')} INR`,
           distressCount: data.total_damage,
           detections: mappedDetections,
           location: 'Uploaded Image — GPS Coordinates Not Available',
