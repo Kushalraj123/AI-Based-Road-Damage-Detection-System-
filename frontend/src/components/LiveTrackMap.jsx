@@ -52,7 +52,7 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking, detections }
     }
   }));
 
-  /* ── init map ── */
+  /* ── init map + show user location immediately ── */
   useEffect(() => {
     if (!mapDivRef.current) return;
 
@@ -66,6 +66,53 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking, detections }
         zoomControl: true
       });
       mapRef.current = map;
+
+      // ── Show current location on load even without live tracking ──
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude: lat, longitude: lng, accuracy: acc } = pos.coords;
+            const initPos = { lat, lng };
+            setUserPos(initPos);
+            setAccuracy(Math.round(acc));
+
+            // Place blue dot marker
+            if (!userMarkerRef.current) {
+              userMarkerRef.current = new window.google.maps.Marker({
+                position: initPos,
+                map: map,
+                title: 'Your Location',
+                icon: {
+                  path: window.google.maps.SymbolPath.CIRCLE,
+                  fillColor: '#06b6d4',
+                  fillOpacity: 1.0,
+                  scale: 9,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2.5
+                }
+              });
+            }
+
+            // Accuracy circle
+            new window.google.maps.Circle({
+              strokeColor: '#06b6d4',
+              strokeOpacity: 0.35,
+              strokeWeight: 1,
+              fillColor: '#06b6d4',
+              fillOpacity: 0.08,
+              map: map,
+              center: initPos,
+              radius: acc
+            });
+
+            // Center and zoom to user
+            map.setCenter(initPos);
+            map.setZoom(15);
+          },
+          () => {},  // silently ignore if denied
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      }
     };
 
     if (window.google && window.google.maps) {
