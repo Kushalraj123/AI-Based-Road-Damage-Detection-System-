@@ -1,0 +1,10 @@
+{
+  "git-auto-push": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./scripts/git-push.ps1"
+      }
+    ]
+  }
+}
