@@ -15,9 +15,29 @@ import {
   FileText,
   Sparkles
 } from 'lucide-react';
-import L from 'leaflet';
 import { GIS_DAMAGE_POINTS, SIMULATED_SURVEY_ROUTE } from './SampleRoadsData';
 import { sounds } from './SoundEffects';
+
+// Custom sleek dark styling for Google Maps Digital Twin
+const DARK_MAP_STYLES = [
+  { elementType: "geometry", stylers: [{ color: "#1a1f2c" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#1a1f2c" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#748297" }] },
+  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#cbd5e1" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#748297" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#1e293b" }] },
+  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#475569" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#0f172a" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#1e293b" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#94a3b8" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#1e293b" }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#334155" }] },
+  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#e2e8f0" }] },
+  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#1e293b" }] },
+  { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#cbd5e1" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0b0f19" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#334155" }] }
+];
 
 export default function RoadMapView({ onInspectItem }) {
   const mapContainerRef = useRef(null);
@@ -34,36 +54,47 @@ export default function RoadMapView({ onInspectItem }) {
   const [surveyLog, setSurveyLog] = useState([]);
   const surveyTimerRef = useRef(null);
 
-  // Initialize Leaflet Map
+  // Load Google Maps API tag dynamically
   useEffect(() => {
     if (!mapContainerRef.current) return;
-    if (mapInstanceRef.current) return;
 
-    // Dark/Light tile layer based on current theme
-    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-    const tileUrl = isDark
-      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+    const initGoogleMap = () => {
+      if (mapInstanceRef.current) return;
+      
+      const map = new window.google.maps.Map(mapContainerRef.current, {
+        center: { lat: 14.8000, lng: 75.9000 }, // Karnataka State Center
+        zoom: 7,
+        styles: DARK_MAP_STYLES,
+        disableDefaultUI: false,
+        zoomControl: true,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true
+      });
 
-    const map = L.map(mapContainerRef.current, {
-      center: [37.7749, -122.4194],
-      zoom: 13,
-      zoomControl: true
-    });
+      mapInstanceRef.current = map;
+      renderMarkers(map, GIS_DAMAGE_POINTS);
+    };
 
-    L.tileLayer(tileUrl, {
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a> & OpenStreetMap',
-      maxZoom: 19
-    }).addTo(map);
-
-    mapInstanceRef.current = map;
-
-    // Render Markers
-    renderMarkers(map, GIS_DAMAGE_POINTS);
+    if (window.google && window.google.maps) {
+      initGoogleMap();
+    } else {
+      const scriptId = 'google-maps-api-script';
+      let script = document.getElementById(scriptId);
+      if (!script) {
+        script = document.createElement('script');
+        script.id = scriptId;
+        script.src = 'https://maps.googleapis.com/maps/api/js';
+        script.async = true;
+        script.defer = true;
+        document.body.appendChild(script);
+      }
+      script.addEventListener('load', initGoogleMap);
+    }
 
     return () => {
+      // Clean up map references on unmount
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
@@ -71,8 +102,10 @@ export default function RoadMapView({ onInspectItem }) {
 
   // Update Markers on Filter Change
   const renderMarkers = (map, points) => {
+    if (!window.google || !map) return;
+    
     // Clear old markers
-    markersRef.current.forEach((m) => map.removeLayer(m));
+    markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
 
     const filtered = points.filter((p) => {
@@ -93,47 +126,25 @@ export default function RoadMapView({ onInspectItem }) {
           ? '#38bdf8'
           : '#10b981';
 
-      // Custom pulsing SVG HTML Icon
-      const customIcon = L.divIcon({
-        className: 'custom-gis-pin',
-        html: `
-          <div style="
-            position: relative;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          ">
-            <div style="
-              position: absolute;
-              width: 32px;
-              height: 32px;
-              border-radius: 50%;
-              background: ${color};
-              opacity: 0.35;
-              animation: pulse-glow 2s infinite;
-            "></div>
-            <div style="
-              width: 16px;
-              height: 16px;
-              border-radius: 50%;
-              background: ${color};
-              border: 2px solid #ffffff;
-              box-shadow: 0 0 12px ${color};
-            "></div>
-          </div>
-        `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
+      // SVG styled circle marker matching Leaflet look
+      const marker = new window.google.maps.Marker({
+        position: { lat: pt.coordinates[0], lng: pt.coordinates[1] },
+        map: map,
+        title: pt.type,
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          fillColor: color,
+          fillOpacity: 0.9,
+          scale: 9,
+          strokeColor: '#ffffff',
+          strokeWeight: 2
+        }
       });
 
-      const marker = L.marker(pt.coordinates, { icon: customIcon }).addTo(map);
-
-      marker.on('click', () => {
+      marker.addListener('click', () => {
         sounds.playLockOn();
         setSelectedDamage(pt);
-        map.panTo(pt.coordinates);
+        map.panTo({ lat: pt.coordinates[0], lng: pt.coordinates[1] });
       });
 
       markersRef.current.push(marker);
@@ -148,9 +159,22 @@ export default function RoadMapView({ onInspectItem }) {
 
   // Autonomous Road Survey Simulator Loop
   const startAutonomousSurvey = () => {
+    if (!window.google) return;
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
     if (isSurveyRunning) {
-      clearInterval(surveyTimerRef.current);
+      if (surveyTimerRef.current) clearInterval(surveyTimerRef.current);
       setIsSurveyRunning(false);
+      
+      if (surveyVehicleMarkerRef.current) {
+        surveyVehicleMarkerRef.current.setMap(null);
+        surveyVehicleMarkerRef.current = null;
+      }
+      if (surveyPolylineRef.current) {
+        surveyPolylineRef.current.setMap(null);
+        surveyPolylineRef.current = null;
+      }
       return;
     }
 
@@ -160,48 +184,38 @@ export default function RoadMapView({ onInspectItem }) {
     setSurveyIndex(0);
     setSurveyLog([`[${new Date().toLocaleTimeString()}] Autonomous Survey Vehicle Alpha launched.`]);
 
-    const map = mapInstanceRef.current;
-    if (!map) return;
-
     // Draw route path
-    const routeLatLngs = SIMULATED_SURVEY_ROUTE.map((r) => [r.lat, r.lng]);
-    if (surveyPolylineRef.current) map.removeLayer(surveyPolylineRef.current);
-    surveyPolylineRef.current = L.polyline(routeLatLngs, {
-      color: '#06b6d4',
-      weight: 4,
-      dashArray: '8, 8',
-      opacity: 0.8
-    }).addTo(map);
-
-    // Vehicle icon
-    const vehicleIcon = L.divIcon({
-      className: 'survey-vehicle-icon',
-      html: `
-        <div style="
-          width: 38px;
-          height: 38px;
-          border-radius: 50%;
-          background: #06b6d4;
-          border: 3px solid #ffffff;
-          box-shadow: 0 0 20px #06b6d4;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #ffffff;
-          font-weight: 800;
-          font-size: 14px;
-        ">
-          ▲
-        </div>
-      `,
-      iconSize: [38, 38],
-      iconAnchor: [19, 19]
+    const routeCoordinates = SIMULATED_SURVEY_ROUTE.map((r) => ({ lat: r.lat, lng: r.lng }));
+    if (surveyPolylineRef.current) {
+      surveyPolylineRef.current.setMap(null);
+    }
+    
+    surveyPolylineRef.current = new window.google.maps.Polyline({
+      path: routeCoordinates,
+      geodesic: true,
+      strokeColor: '#06b6d4',
+      strokeOpacity: 0.8,
+      strokeWeight: 4,
+      map: map
     });
 
-    if (surveyVehicleMarkerRef.current) map.removeLayer(surveyVehicleMarkerRef.current);
-    surveyVehicleMarkerRef.current = L.marker([SIMULATED_SURVEY_ROUTE[0].lat, SIMULATED_SURVEY_ROUTE[0].lng], {
-      icon: vehicleIcon
-    }).addTo(map);
+    // Custom arrow icon for vehicle
+    if (surveyVehicleMarkerRef.current) {
+      surveyVehicleMarkerRef.current.setMap(null);
+    }
+
+    surveyVehicleMarkerRef.current = new window.google.maps.Marker({
+      position: routeCoordinates[0],
+      map: map,
+      icon: {
+        path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+        scale: 6,
+        fillColor: '#06b6d4',
+        fillOpacity: 1.0,
+        strokeColor: '#ffffff',
+        strokeWeight: 2
+      }
+    });
 
     surveyTimerRef.current = setInterval(() => {
       currentIdx++;
@@ -213,13 +227,26 @@ export default function RoadMapView({ onInspectItem }) {
           ...prev
         ]);
         sounds.playLockOn();
+        
+        if (surveyVehicleMarkerRef.current) {
+          surveyVehicleMarkerRef.current.setMap(null);
+          surveyVehicleMarkerRef.current = null;
+        }
+        if (surveyPolylineRef.current) {
+          surveyPolylineRef.current.setMap(null);
+          surveyPolylineRef.current = null;
+        }
         return;
       }
 
       setSurveyIndex(currentIdx);
       const wp = SIMULATED_SURVEY_ROUTE[currentIdx];
-      surveyVehicleMarkerRef.current.setLatLng([wp.lat, wp.lng]);
-      map.panTo([wp.lat, wp.lng]);
+      const nextPos = { lat: wp.lat, lng: wp.lng };
+      
+      if (surveyVehicleMarkerRef.current) {
+        surveyVehicleMarkerRef.current.setPosition(nextPos);
+      }
+      map.panTo(nextPos);
       sounds.playBeep(800 + currentIdx * 80, 0.04);
 
       setSurveyLog((prev) => [
@@ -234,6 +261,7 @@ export default function RoadMapView({ onInspectItem }) {
       if (surveyTimerRef.current) clearInterval(surveyTimerRef.current);
     };
   }, []);
+
 
   return (
     <div style={{ maxWidth: '1300px', margin: '0 auto 5rem auto', padding: '0 1rem' }}>
@@ -373,7 +401,7 @@ export default function RoadMapView({ onInspectItem }) {
             }}
           >
             <Compass size={16} />
-            <span>GIS SAN FRANCISCO GRID</span>
+            <span>GIS KARNATAKA STATE GRID</span>
           </div>
         </div>
 

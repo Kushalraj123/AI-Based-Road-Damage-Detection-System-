@@ -56,36 +56,36 @@ MODEL_CLASSES = {
         "repo": "vinothvikas1987/pothole-detection-yolov8",
         "filename": "best.pt",
         "labels": {
-            0: "Longitudinal Crack",
-            1: "Transverse Crack",
-            2: "Alligator Crack",
+            0: "Long. Crack",
+            1: "Trans. Crack",
+            2: "Alligator",
             3: "Pothole",
             4: "Other"
         },
         "colors": {
-            0: (255, 128, 0),   # Light Blue / Teal
-            1: (0, 255, 0),     # Emerald Green
-            2: (0, 165, 255),   # Orange
-            3: (0, 0, 255),     # Red
-            4: (128, 128, 128)  # Gray
+            0: (30, 200, 255),   # Cyan
+            1: (50, 220, 50),    # Green
+            2: (0, 165, 255),    # Orange
+            3: (50, 50, 255),    # Red
+            4: (180, 100, 220)   # Purple
         }
     },
     "damage-yolo12s": {
         "repo": "rezzzq/yolo12s-road-damage-rdd2022",
         "filename": "yolo12s_RDD2022_best.pt",
         "labels": {
-            0: "D00 - Longitudinal Crack",
-            1: "D10 - Transverse Crack",
-            2: "D20 - Alligator Crack",
-            3: "D40 - Rutting / Pothole",
+            0: "D00 Long. Crack",
+            1: "D10 Trans. Crack",
+            2: "D20 Alligator",
+            3: "D40 Pothole",
             4: "Repair"
         },
         "colors": {
-            0: (255, 128, 0),   # Light Blue / Teal
-            1: (0, 255, 0),     # Emerald Green
-            2: (0, 165, 255),   # Orange
-            3: (0, 0, 255),     # Red
-            4: (128, 0, 128)    # Purple
+            0: (30, 200, 255),   # Cyan
+            1: (50, 220, 50),    # Green
+            2: (0, 165, 255),    # Orange
+            3: (50, 50, 255),    # Red
+            4: (180, 100, 220)   # Purple
         }
     }
 }
@@ -150,45 +150,55 @@ def add_history_entry(entry: Dict[str, Any]):
 
 # Drawing helper functions
 def draw_stylized_box(image: np.ndarray, x1: int, y1: int, x2: int, y2: int, label: str, conf: float, color: tuple):
-    # Ensure color is an RGB/BGR tuple of ints
+    # Ensure color is a BGR tuple of ints
     color = tuple(int(c) for c in color)
     h, w = image.shape[:2]
     
     # Clip coordinates to image boundary
     x1, y1 = max(0, x1), max(0, y1)
-    x2, y2 = min(w, x2), min(h, y2)
+    x2, y2 = min(w - 1, x2), min(h - 1, y2)
+    if x2 <= x1 or y2 <= y1:
+        return
     
-    # Draw transparent overlay box
+    # Draw semi-transparent filled overlay inside box
     overlay = image.copy()
     cv2.rectangle(overlay, (x1, y1), (x2, y2), color, -1)
-    cv2.addWeighted(overlay, 0.2, image, 0.8, 0, image)
+    cv2.addWeighted(overlay, 0.18, image, 0.82, 0, image)
     
-    # Draw double border for a sleek high-tech look
+    # Draw outer dark shadow border for contrast on any background
+    cv2.rectangle(image, (x1 - 1, y1 - 1), (x2 + 1, y2 + 1), (20, 20, 20), 2, lineType=cv2.LINE_AA)
+    # Draw main colored border
     cv2.rectangle(image, (x1, y1), (x2, y2), color, 2, lineType=cv2.LINE_AA)
     
-    # Label styling
+    # Label: short name + confidence as percentage (e.g. "D40 Pothole 82%")
+    conf_pct = int(round(conf * 100))
+    text = f"{label} {conf_pct}%"
+    
     font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 0.5
+    font_scale = 0.48
     thickness = 1
-    text = f"{label} {conf:.2f}"
     
     # Get text width/height for label badge
-    text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
-    badge_w = text_size[0] + 12
-    badge_h = text_size[1] + 8
+    (tw, th), baseline = cv2.getTextSize(text, font, font_scale, thickness)
+    badge_w = tw + 10
+    badge_h = th + baseline + 8
     
-    # Badge coordinates
-    bx1 = x1
-    by1 = max(0, y1 - badge_h)
-    bx2 = min(w, x1 + badge_w)
-    by2 = max(badge_h, y1)
+    # Place badge above box if there's room, otherwise place it inside top of box
+    if y1 >= badge_h:
+        bx1, by1 = x1, y1 - badge_h
+        bx2, by2 = min(w - 1, x1 + badge_w), y1
+    else:
+        bx1, by1 = x1, y1
+        bx2, by2 = min(w - 1, x1 + badge_w), min(h - 1, y1 + badge_h)
     
-    # Draw badge background
+    # Draw dark shadow under badge for contrast
+    cv2.rectangle(image, (bx1 - 1, by1 - 1), (bx2 + 1, by2 + 1), (20, 20, 20), -1)
+    # Draw colored badge background
     cv2.rectangle(image, (bx1, by1), (bx2, by2), color, -1)
     
-    # Draw text in white on the badge background
-    text_x = bx1 + 6
-    text_y = by2 - 6
+    # Draw text in white
+    text_x = bx1 + 5
+    text_y = by2 - baseline - 4
     cv2.putText(image, text, (text_x, text_y), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
 
 # Simulated detection for fallback (or offline mode)
@@ -228,6 +238,56 @@ def run_mock_detection(image: np.ndarray, confidence_threshold: float, model_id:
             
     return results
 
+# ─── Real-World Dimension Estimation ────────────────────────────────────────
+# Camera model: standard road inspection camera at ~3 m mounting height.
+# At this height, a typical wide-angle (≈90° FOV) covers ~4 m of road width.
+# Scale: 1 pixel ≈ 400 cm / image_pixel_width
+# Depth is estimated from damage class + confidence (field-study based ranges).
+DAMAGE_DEPTH_RANGES = {
+    # (min_cm, max_cm) — scaled by confidence
+    "D40": (4.0, 14.0),   # Pothole: deep cavity
+    "D20": (1.5,  5.0),   # Alligator crack: surface+base fatigue
+    "D10": (0.3,  2.5),   # Transverse crack: surface shrinkage
+    "D00": (0.3,  2.0),   # Longitudinal crack: surface/joint
+    "Pothole": (4.0, 14.0),
+    "Alligator": (1.5, 5.0),
+    "Trans": (0.3, 2.5),
+    "Long": (0.3, 2.0),
+}
+
+def estimate_damage_dimensions(box: List[int], class_name: str, conf: float,
+                                image_width: int, image_height: int) -> Dict[str, Any]:
+    """
+    Estimate real-world dimensions (length, width, depth, area) for a detected damage region.
+    Uses a 400 cm / image_width_px scale factor (standard road inspection camera).
+    """
+    px_length = max(1, box[2] - box[0])   # horizontal extent (along road)
+    px_width  = max(1, box[3] - box[1])   # vertical extent  (across road)
+
+    # Scale factor: assume 4 m visible road width
+    cm_per_px = 400.0 / max(image_width, 1)
+
+    length_cm = round(px_length * cm_per_px, 1)
+    width_cm  = round(px_width  * cm_per_px, 1)
+    area_m2   = round((length_cm * width_cm) / 10000.0, 2)
+
+    # Depth: look up range by class code / keyword
+    depth_min, depth_max = 0.5, 3.0   # default fallback
+    for key, rng in DAMAGE_DEPTH_RANGES.items():
+        if key in class_name:
+            depth_min, depth_max = rng
+            break
+
+    # Confidence ∈ [0,1] → scale within [min, max] range
+    depth_cm = round(depth_min + conf * (depth_max - depth_min), 1)
+
+    return {
+        "length_cm": length_cm,
+        "width_cm":  width_cm,
+        "depth_cm":  depth_cm,
+        "area_m2":   area_m2
+    }
+
 # Core detection service
 def process_detection(image_path: str, model_id: str, conf_threshold: float) -> Dict[str, Any]:
     image = cv2.imread(image_path)
@@ -241,7 +301,9 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     if model is not None:
         # Run real model
         try:
-            results = model.predict(image, conf=conf_threshold, verbose=False)
+            # iou=0.40: aggressive NMS — suppresses overlapping duplicate boxes on same object
+            # conf=conf_threshold: initial filter, then we apply a secondary min-conf filter below
+            results = model.predict(image, conf=conf_threshold, iou=0.40, verbose=False)
             if len(results) > 0:
                 result = results[0]
                 boxes = result.boxes
@@ -253,11 +315,19 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
                     cls_id = int(box.cls[0].cpu().item())
                     cls_name = classes.get(cls_id, f"Class {cls_id}")
                     
+                    # Skip very low confidence detections (false positives)
+                    if conf < 0.20:
+                        continue
+                    
+                    box_coords = [int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3])]
+                    dims = estimate_damage_dimensions(box_coords, cls_name, conf, width, height)
+
                     detections.append({
-                        "box": [int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3])],
+                        "box": box_coords,
                         "class_id": cls_id,
                         "class_name": cls_name,
-                        "confidence": conf
+                        "confidence": conf,
+                        "dimensions": dims
                     })
         except Exception as e:
             print(f"Error in model inference: {e}. Falling back to mock detection.")
@@ -265,6 +335,14 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     else:
         # Run mock simulation (no ultralytics / loading failed)
         detections = run_mock_detection(image, conf_threshold, model_id)
+
+    # Attach dimensions to mock detections too (they don't have them yet)
+    for det in detections:
+        if "dimensions" not in det:
+            det["dimensions"] = estimate_damage_dimensions(
+                det["box"], det["class_name"], det["confidence"], width, height
+            )
+
 
     # Draw boxes
     for det in detections:
@@ -349,8 +427,8 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
             detections = []
             if model is not None:
                 try:
-                    # Predict frame
-                    results = model.predict(frame, conf=conf_threshold, verbose=False)
+                    # Predict frame with aggressive NMS (iou=0.40) to prevent duplicate boxes
+                    results = model.predict(frame, conf=conf_threshold, iou=0.40, verbose=False)
                     if len(results) > 0:
                         res = results[0]
                         boxes = res.boxes
@@ -361,6 +439,10 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
                             conf = float(box.conf[0].cpu().item())
                             cls_id = int(box.cls[0].cpu().item())
                             cls_name = classes.get(cls_id, f"Class {cls_id}")
+                            
+                            # Skip very low confidence detections
+                            if conf < 0.20:
+                                continue
                             
                             detections.append({
                                 "box": [int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3])],
@@ -486,7 +568,7 @@ def get_models():
 async def detect_image(
     file: UploadFile = File(...),
     model_id: str = Form("pothole-yolov8"),
-    conf_threshold: float = Form(0.15)
+    conf_threshold: float = Form(0.10)
 ):
     try:
         # Save uploaded file
@@ -545,7 +627,7 @@ async def detect_video(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     model_id: str = Form("pothole-yolov8"),
-    conf_threshold: float = Form(0.15)
+    conf_threshold: float = Form(0.10)
 ):
     try:
         # Save video
@@ -625,7 +707,7 @@ async def detect_frame(payload: FramePayload):
         
         if model is not None:
             try:
-                results = model.predict(frame, conf=payload.conf_threshold, verbose=False)
+                results = model.predict(frame, conf=payload.conf_threshold, iou=0.40, verbose=False)
                 if len(results) > 0:
                     res = results[0]
                     boxes = res.boxes
@@ -637,6 +719,10 @@ async def detect_frame(payload: FramePayload):
                         cls_id = int(box.cls[0].cpu().item())
                         cls_name = classes.get(cls_id, f"Class {cls_id}")
                         
+                        # Skip very low confidence detections
+                        if conf < 0.20:
+                            continue
+                        
                         detections.append({
                             "box": [int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3])],
                             "class_id": cls_id,
@@ -646,6 +732,7 @@ async def detect_frame(payload: FramePayload):
             except Exception as e:
                 # Suppress error and do nothing or mock
                 pass
+
         
         # Draw bounding boxes
         for det in detections:

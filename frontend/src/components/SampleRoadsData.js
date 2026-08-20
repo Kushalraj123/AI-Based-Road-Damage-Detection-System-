@@ -1,14 +1,13 @@
-// Realistic Sample Road Imagery & Ground-Truth Detections for RoadVision AI
-
+// Realistic Sample Road Imagery & Ground-Truth Detections for RoadVision AI in Karnataka, India
 export const SAMPLE_ROADS = [
   {
     id: 'sample-pothole-severe',
-    title: 'Severe Pothole Cluster — Express Corridor NH-48',
+    title: 'Severe Pothole Cluster — M.G. Road Bengaluru',
     category: 'Highways & Expressways',
-    location: 'NH-48 Highway, Milepost 14.2, Mumbai-Pune Corridor',
-    coordinates: [37.7651, -122.4042],
+    location: 'M.G. Road Corridor, Bengaluru, Karnataka',
+    coordinates: [12.9716, 77.5946],
     image: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=1200&q=80',
-    description: 'Multiple deep asphalt cavity fractures causing structural pavement depression and hazard to high-speed transit.',
+    description: 'Multiple deep asphalt cavity fractures causing structural pavement depression and hazard to local transit.',
     distressCount: 3,
     severity: 'High',
     pciScore: 42,
@@ -21,7 +20,7 @@ export const SAMPLE_ROADS = [
         class_id: 3,
         confidence: 0.968,
         severity: 'High',
-        box: [240, 320, 490, 510], // [x1, y1, x2, y2]
+        box: [240, 320, 490, 510],
         dimensions: { width: '48 cm', depth: '7.5 cm', area: '0.24 m²' },
         recommendation: 'Full-depth patch with tack coat binding.'
       },
@@ -49,10 +48,10 @@ export const SAMPLE_ROADS = [
   },
   {
     id: 'sample-alligator-crack',
-    title: 'Fatigue Alligator Cracking — Ring Road Arterial',
+    title: 'Fatigue Alligator Cracking — Gokul Road Hubballi',
     category: 'Arterial Corridors',
-    location: 'Outer Ring Road, Sector 62',
-    coordinates: [37.8095, -122.2588],
+    location: 'Gokul Road, Hubballi, Karnataka',
+    coordinates: [15.3647, 75.1240],
     image: 'https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?auto=format&fit=crop&w=1200&q=80',
     description: 'Extensive interconnected fatigue cracking in the wheel path resulting from repeated subgrade deflection.',
     distressCount: 4,
@@ -85,12 +84,12 @@ export const SAMPLE_ROADS = [
   },
   {
     id: 'sample-transverse-thermal',
-    title: 'Transverse Freeze-Thaw Joint Faulting — Hill Road Link',
-    category: 'Mountain / Ghat Route',
-    location: 'Western Ghats Highway Link MP 44',
-    coordinates: [37.4922, -122.3150],
+    title: 'Transverse Faulting — Kottara Chowki Mangaluru',
+    category: 'Arterial Corridors',
+    location: 'Kottara Chowki Flyover Access, Mangaluru, Karnataka',
+    coordinates: [12.9141, 74.8560],
     image: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=1200&q=80',
-    description: 'Perpendicular thermal contraction cracks extending across both travel lanes due to temperature gradients.',
+    description: 'Perpendicular thermal contraction cracks extending across both travel lanes due to coastal weather cycles.',
     distressCount: 2,
     severity: 'Medium',
     pciScore: 68,
@@ -111,12 +110,12 @@ export const SAMPLE_ROADS = [
   },
   {
     id: 'sample-surface-ravelling',
-    title: 'Aggregate Ravelling & Rutting — Metro Commercial Hub',
+    title: 'Aggregate Ravelling — Congress Road Belagavi',
     category: 'Commercial District',
-    location: 'Central Avenue Commercial Corridor',
-    coordinates: [37.3382, -121.8863],
+    location: 'Congress Road, Belagavi, Karnataka',
+    coordinates: [15.8497, 74.4977],
     image: 'https://images.unsplash.com/photo-1498084393753-b411b2d26b34?auto=format&fit=crop&w=1200&q=80',
-    description: 'Loss of surface aggregate binder matrix creating coarse friction loss and longitudinal wheel depressions.',
+    description: 'Loss of surface aggregate binder matrix creating coarse friction loss and heavy truck lane depressions.',
     distressCount: 2,
     severity: 'Low',
     pciScore: 78,
@@ -137,10 +136,10 @@ export const SAMPLE_ROADS = [
   },
   {
     id: 'sample-pristine-highway',
-    title: 'Newly Paved Express Lane — National Corridor 44',
+    title: 'Newly Paved Loop — Mysuru Palace Ring Rd',
     category: 'Highways & Expressways',
-    location: 'National Highway 44, MP 412',
-    coordinates: [37.4419, -122.1430],
+    location: 'Mysuru Palace Ring Rd, Mysuru, Karnataka',
+    coordinates: [12.2958, 76.6394],
     image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80',
     description: 'Optimal road condition with clear retroreflective striping and zero detected pavement distresses.',
     distressCount: 0,
@@ -152,100 +151,112 @@ export const SAMPLE_ROADS = [
   }
 ];
 
-// GIS Map Data Points for Smart-City Digital Twin
+// GIS Map Data Points across Karnataka state
 export const GIS_DAMAGE_POINTS = [
   {
     id: 'gis-1',
-    coordinates: [37.7749, -122.4194],
-    street: 'Market St & 7th Ave',
+    coordinates: [12.9716, 77.5946],
+    street: 'M.G. Road Corridor, Bengaluru',
     type: 'Pothole (D40)',
     severity: 'High',
     confidence: '96.8%',
     date: '2026-08-18 14:32',
-    inspectorUnit: 'AI-MobileSurvey-Unit 04',
+    inspectorUnit: 'KA-51-Survey-Unit 04',
     status: 'Pending Work Order',
     image: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=400&q=80'
   },
   {
     id: 'gis-2',
-    coordinates: [37.7858, -122.4064],
-    street: 'Mission St & 3rd St',
+    coordinates: [12.2958, 76.6394],
+    street: 'Mysuru Palace Ring Rd, Mysuru',
     type: 'Alligator Crack (D20)',
     severity: 'High',
     confidence: '94.2%',
     date: '2026-08-18 16:15',
-    inspectorUnit: 'AI-Dashcam Fleet #12',
+    inspectorUnit: 'KA-09-Fleet #12',
     status: 'Assigned to Crew 2',
     image: 'https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?auto=format&fit=crop&w=400&q=80'
   },
   {
     id: 'gis-3',
-    coordinates: [37.7601, -122.4350],
-    street: 'Castro St & 18th St',
+    coordinates: [12.9141, 74.8560],
+    street: 'Kottara Chowki Flyover, Mangaluru',
     type: 'Transverse Crack (D10)',
     severity: 'Medium',
     confidence: '89.5%',
     date: '2026-08-17 11:20',
-    inspectorUnit: 'AI-Survey Van #02',
+    inspectorUnit: 'KA-19-Survey Van #02',
     status: 'Scheduled',
     image: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=400&q=80'
   },
   {
     id: 'gis-4',
-    coordinates: [37.7983, -122.4074],
-    street: 'Columbus Ave & Broadway',
+    coordinates: [15.3647, 75.1240],
+    street: 'Gokul Road Arterial, Hubballi',
     type: 'Pothole (D40)',
     severity: 'Critical',
     confidence: '98.1%',
     date: '2026-08-19 08:45',
-    inspectorUnit: 'Citizen AI-Report #88',
+    inspectorUnit: 'KA-25-Citizen Report #88',
     status: 'Urgent Dispatch',
     image: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=400&q=80'
   },
   {
     id: 'gis-5',
-    coordinates: [37.7533, -122.4180],
-    street: 'Valencia St & 22nd St',
+    coordinates: [15.8497, 74.4977],
+    street: 'Congress Road, Belagavi',
     type: 'Surface Ravelling',
     severity: 'Low',
     confidence: '86.4%',
     date: '2026-08-16 15:40',
-    inspectorUnit: 'AI-MobileSurvey-Unit 01',
+    inspectorUnit: 'KA-22-Survey-Unit 01',
     status: 'Monitored',
     image: 'https://images.unsplash.com/photo-1498084393753-b411b2d26b34?auto=format&fit=crop&w=400&q=80'
   },
   {
     id: 'gis-6',
-    coordinates: [37.8024, -122.4411],
-    street: 'Marina Blvd & Scott St',
+    coordinates: [17.3297, 76.8343],
+    street: 'Super Market Rd, Kalaburagi',
     type: 'Pothole (D40)',
     severity: 'High',
     confidence: '95.3%',
     date: '2026-08-19 09:12',
-    inspectorUnit: 'AI-Survey Drone Alpha',
+    inspectorUnit: 'KA-32-Drone Alpha',
     status: 'Pending Review',
     image: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=400&q=80'
   },
   {
     id: 'gis-7',
-    coordinates: [37.7699, -122.4469],
-    street: 'Haight St & Ashbury St',
+    coordinates: [13.9299, 75.5681],
+    street: 'B.H. Road Link, Shivamogga',
     type: 'Repaired Patch',
     severity: 'Clear',
     confidence: '99.0%',
     date: '2026-08-15 13:00',
-    inspectorUnit: 'Audit Verification Bot',
+    inspectorUnit: 'KA-14-Audit Bot',
     status: 'Closed & Verified',
     image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=400&q=80'
+  },
+  {
+    id: 'gis-8',
+    coordinates: [13.0068, 76.1026],
+    street: 'B.M. Road, Old Bus Stand, Hassan',
+    type: 'Pothole (D40)',
+    severity: 'High',
+    confidence: '95.8%',
+    date: '2026-08-18 10:20',
+    inspectorUnit: 'KA-13-Survey-Unit 03',
+    status: 'Pending Work Order',
+    image: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=400&q=80'
   }
 ];
 
-// Waypoints for the Autonomous Road Survey Simulator
+// Waypoints for the Autonomous Road Survey Simulator across Karnataka state
 export const SIMULATED_SURVEY_ROUTE = [
-  { lat: 37.7983, lng: -122.4074, street: 'Columbus Ave / Broadway', event: 'Critical Pothole detected (Depth: 8.2cm)' },
-  { lat: 37.7930, lng: -122.4030, street: 'Montgomery St', event: 'Road surface scanning... clear' },
-  { lat: 37.7858, lng: -122.4064, street: 'Mission St & 3rd St', event: 'Alligator Fatigue crack detected (Area: 1.2m²)' },
-  { lat: 37.7790, lng: -122.4120, street: 'Market St & 5th St', event: 'Longitudinal joint crack detected' },
-  { lat: 37.7749, lng: -122.4194, street: 'Market St & 7th St', event: 'Severe Pothole Cluster detected' },
-  { lat: 37.7680, lng: -122.4270, street: 'Mission St & 14th St', event: 'Laser scan completed for Corridor C-12' }
+  { lat: 12.9716, lng: 77.5946, street: 'Bengaluru (NH-48)', event: 'Survey Vehicle Alpha launched from Capital' },
+  { lat: 12.2958, lng: 76.6394, street: 'Mysuru (NH-275)', event: 'Pristine road status scanned' },
+  { lat: 13.0068, lng: 76.1026, street: 'Hassan (NH-75)', event: 'Minor cracks detected' },
+  { lat: 12.9141, lng: 74.8560, street: 'Mangaluru Coast (NH-66)', event: 'Transverse faulting detected near port link' },
+  { lat: 13.9299, lng: 75.5681, street: 'Shivamogga (NH-69)', event: 'Surface ravelling clusters mapped' },
+  { lat: 15.3647, lng: 75.1240, street: 'Hubballi-Dharwad Hub', event: 'State Highway SH-1 scan complete' }
 ];

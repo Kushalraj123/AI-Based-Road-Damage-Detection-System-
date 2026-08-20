@@ -1,5 +1,298 @@
 [
     {
+        "id": "969282b3-d0e0-4a57-b40d-99b093446928",
+        "type": "image",
+        "timestamp": "2026-08-20 11:16:53",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage2.jpg",
+        "original_url": "/uploads/969282b3-d0e0-4a57-b40d-99b093446928.jpg",
+        "processed_url": "/processed/processed_969282b3-d0e0-4a57-b40d-99b093446928.jpg",
+        "total_damage": 2,
+        "severity": "High",
+        "classes_detected": [
+            "D20 Alligator",
+            "D40 Pothole"
+        ]
+    },
+    {
+        "id": "2af939d6-f2f6-4e76-a168-69a44072095c",
+        "type": "image",
+        "timestamp": "2026-08-20 11:12:51",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage2.jpg",
+        "original_url": "/uploads/2af939d6-f2f6-4e76-a168-69a44072095c.jpg",
+        "processed_url": "/processed/processed_2af939d6-f2f6-4e76-a168-69a44072095c.jpg",
+        "total_damage": 2,
+        "severity": "High",
+        "classes_detected": [
+            "D20 Alligator",
+            "D40 Pothole"
+        ]
+    },
+    {
+        "id": "5b89d37d-4ae2-4f27-8d39-71487af13c96",
+        "type": "image",
+        "timestamp": "2026-08-20 11:12:22",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage2.jpg",
+        "original_url": "/uploads/5b89d37d-4ae2-4f27-8d39-71487af13c96.jpg",
+        "processed_url": "/processed/processed_5b89d37d-4ae2-4f27-8d39-71487af13c96.jpg",
+        "total_damage": 2,
+        "severity": "High",
+        "classes_detected": [
+            "D20 Alligator",
+            "D40 Pothole"
+        ]
+    },
+    {
+        "id": "d4391cac-ee9c-4bf9-9faa-b46f01da79b3",
+        "type": "image",
+        "timestamp": "2026-08-20 11:04:05",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage2.jpg",
+        "original_url": "/uploads/d4391cac-ee9c-4bf9-9faa-b46f01da79b3.jpg",
+        "processed_url": "/processed/processed_d4391cac-ee9c-4bf9-9faa-b46f01da79b3.jpg",
+        "total_damage": 2,
+        "severity": "High",
+        "classes_detected": [
+            "D20 Alligator",
+            "D40 Pothole"
+        ]
+    },
+    {
+        "id": "6d4118c4-31f9-44fc-879f-210597a3f42d",
+        "type": "image",
+        "timestamp": "2026-08-20 11:03:43",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage2.jpg",
+        "original_url": "/uploads/6d4118c4-31f9-44fc-879f-210597a3f42d.jpg",
+        "processed_url": "/processed/processed_6d4118c4-31f9-44fc-879f-210597a3f42d.jpg",
+        "total_damage": 2,
+        "severity": "High",
+        "classes_detected": [
+            "D20 Alligator",
+            "D40 Pothole"
+        ]
+    },
+    {
+        "id": "e07d0e32-49a5-4232-96b2-fb7ebf034230",
+        "type": "image",
+        "timestamp": "2026-08-20 10:51:29",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage2.jpg",
+        "original_url": "/uploads/e07d0e32-49a5-4232-96b2-fb7ebf034230.jpg",
+        "processed_url": "/processed/processed_e07d0e32-49a5-4232-96b2-fb7ebf034230.jpg",
+        "total_damage": 2,
+        "severity": "High",
+        "classes_detected": [
+            "D20 Alligator",
+            "D40 Pothole"
+        ]
+    },
+    {
+        "id": "dc430bea-f02e-4689-b744-2ff037919ad2",
+        "type": "image",
+        "timestamp": "2026-08-20 10:45:12",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage1.jpg",
+        "original_url": "/uploads/dc430bea-f02e-4689-b744-2ff037919ad2.jpg",
+        "processed_url": "/processed/processed_dc430bea-f02e-4689-b744-2ff037919ad2.jpg",
+        "total_damage": 8,
+        "severity": "High",
+        "classes_detected": [
+            "D20 Alligator",
+            "D40 Pothole"
+        ]
+    },
+    {
+        "id": "3990196d-aa54-465a-bdd7-5045c0570e52",
+        "type": "image",
+        "timestamp": "2026-08-20 10:43:26",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage3.png",
+        "original_url": "/uploads/3990196d-aa54-465a-bdd7-5045c0570e52.png",
+        "processed_url": "/processed/processed_3990196d-aa54-465a-bdd7-5045c0570e52.png",
+        "total_damage": 9,
+        "severity": "High",
+        "classes_detected": [
+            "D40 Pothole"
+        ]
+    },
+    {
+        "id": "de956af2-552e-499b-b027-6a9b9813e04c",
+        "type": "image",
+        "timestamp": "2026-08-20 10:43:18",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage3.png",
+        "original_url": "/uploads/de956af2-552e-499b-b027-6a9b9813e04c.png",
+        "processed_url": "/processed/processed_de956af2-552e-499b-b027-6a9b9813e04c.png",
+        "total_damage": 9,
+        "severity": "High",
+        "classes_detected": [
+            "D40 Pothole"
+        ]
+    },
+    {
+        "id": "e82f7458-d9ef-4b98-bc62-c4da3d62a11e",
+        "type": "image",
+        "timestamp": "2026-08-20 10:40:08",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage3.png",
+        "original_url": "/uploads/e82f7458-d9ef-4b98-bc62-c4da3d62a11e.png",
+        "processed_url": "/processed/processed_e82f7458-d9ef-4b98-bc62-c4da3d62a11e.png",
+        "total_damage": 10,
+        "severity": "High",
+        "classes_detected": [
+            "D40 Pothole"
+        ]
+    },
+    {
+        "id": "2a5cd843-c682-48a7-a912-f5d5b3fd5693",
+        "type": "image",
+        "timestamp": "2026-08-20 10:37:08",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage3.png",
+        "original_url": "/uploads/2a5cd843-c682-48a7-a912-f5d5b3fd5693.png",
+        "processed_url": "/processed/processed_2a5cd843-c682-48a7-a912-f5d5b3fd5693.png",
+        "total_damage": 10,
+        "severity": "High",
+        "classes_detected": [
+            "D40 - Rutting / Pothole"
+        ]
+    },
+    {
+        "id": "b51c7b5d-c4e6-47d9-a098-2cf7f3c0b8c8",
+        "type": "image",
+        "timestamp": "2026-08-20 10:34:09",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage 22.jpg",
+        "original_url": "/uploads/b51c7b5d-c4e6-47d9-a098-2cf7f3c0b8c8.jpg",
+        "processed_url": "/processed/processed_b51c7b5d-c4e6-47d9-a098-2cf7f3c0b8c8.jpg",
+        "total_damage": 3,
+        "severity": "Medium",
+        "classes_detected": [
+            "D00 - Longitudinal Crack",
+            "D20 - Alligator Crack"
+        ]
+    },
+    {
+        "id": "d60a91e3-beb5-4a89-b5d0-086d1eca1a04",
+        "type": "image",
+        "timestamp": "2026-08-20 10:34:08",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage.jpg",
+        "original_url": "/uploads/d60a91e3-beb5-4a89-b5d0-086d1eca1a04.jpg",
+        "processed_url": "/processed/processed_d60a91e3-beb5-4a89-b5d0-086d1eca1a04.jpg",
+        "total_damage": 1,
+        "severity": "Medium",
+        "classes_detected": [
+            "D40 - Rutting / Pothole"
+        ]
+    },
+    {
+        "id": "97eec1f1-c387-4b02-828e-7b3f663fbeb4",
+        "type": "image",
+        "timestamp": "2026-08-20 10:31:13",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage 22.jpg",
+        "original_url": "/uploads/97eec1f1-c387-4b02-828e-7b3f663fbeb4.jpg",
+        "processed_url": "/processed/processed_97eec1f1-c387-4b02-828e-7b3f663fbeb4.jpg",
+        "total_damage": 1,
+        "severity": "Low",
+        "classes_detected": [
+            "D00 - Longitudinal Crack"
+        ]
+    },
+    {
+        "id": "bbd4f8c4-9cf7-4f0b-bfd1-66324b62d7ca",
+        "type": "image",
+        "timestamp": "2026-08-20 10:30:34",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage2.jpg",
+        "original_url": "/uploads/bbd4f8c4-9cf7-4f0b-bfd1-66324b62d7ca.jpg",
+        "processed_url": "/processed/processed_bbd4f8c4-9cf7-4f0b-bfd1-66324b62d7ca.jpg",
+        "total_damage": 2,
+        "severity": "High",
+        "classes_detected": [
+            "D20 - Alligator Crack",
+            "D40 - Rutting / Pothole"
+        ]
+    },
+    {
+        "id": "f211b61d-c513-40a4-a53d-2d5971492697",
+        "type": "image",
+        "timestamp": "2026-08-20 10:28:50",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage2.jpg",
+        "original_url": "/uploads/f211b61d-c513-40a4-a53d-2d5971492697.jpg",
+        "processed_url": "/processed/processed_f211b61d-c513-40a4-a53d-2d5971492697.jpg",
+        "total_damage": 2,
+        "severity": "High",
+        "classes_detected": [
+            "D20 - Alligator Crack",
+            "D40 - Rutting / Pothole"
+        ]
+    },
+    {
+        "id": "87f16ef6-953a-4910-a658-4fa07cf201f3",
+        "type": "image",
+        "timestamp": "2026-08-20 10:28:18",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage.jpg",
+        "original_url": "/uploads/87f16ef6-953a-4910-a658-4fa07cf201f3.jpg",
+        "processed_url": "/processed/processed_87f16ef6-953a-4910-a658-4fa07cf201f3.jpg",
+        "total_damage": 1,
+        "severity": "Medium",
+        "classes_detected": [
+            "D40 - Rutting / Pothole"
+        ]
+    },
+    {
+        "id": "89a2b53c-fad2-4960-8af0-71087112c751",
+        "type": "image",
+        "timestamp": "2026-08-20 10:27:59",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage2.jpg",
+        "original_url": "/uploads/89a2b53c-fad2-4960-8af0-71087112c751.jpg",
+        "processed_url": "/processed/processed_89a2b53c-fad2-4960-8af0-71087112c751.jpg",
+        "total_damage": 2,
+        "severity": "High",
+        "classes_detected": [
+            "D20 - Alligator Crack",
+            "D40 - Rutting / Pothole"
+        ]
+    },
+    {
+        "id": "baf0a37d-761b-4b0c-bcf4-8fbf0a716101",
+        "type": "image",
+        "timestamp": "2026-08-20 10:27:36",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage1.jpg",
+        "original_url": "/uploads/baf0a37d-761b-4b0c-bcf4-8fbf0a716101.jpg",
+        "processed_url": "/processed/processed_baf0a37d-761b-4b0c-bcf4-8fbf0a716101.jpg",
+        "total_damage": 8,
+        "severity": "High",
+        "classes_detected": [
+            "D20 - Alligator Crack",
+            "D40 - Rutting / Pothole"
+        ]
+    },
+    {
+        "id": "966dc854-a872-4e3e-9d11-d3f8b30ba166",
+        "type": "image",
+        "timestamp": "2026-08-20 10:27:35",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage1.jpg",
+        "original_url": "/uploads/966dc854-a872-4e3e-9d11-d3f8b30ba166.jpg",
+        "processed_url": "/processed/processed_966dc854-a872-4e3e-9d11-d3f8b30ba166.jpg",
+        "total_damage": 8,
+        "severity": "High",
+        "classes_detected": [
+            "D20 - Alligator Crack",
+            "D40 - Rutting / Pothole"
+        ]
+    },
+    {
         "id": "bba93efe-8e73-4f81-b35e-41cc560eea0d",
         "type": "image",
         "timestamp": "2026-08-19 22:27:55",
