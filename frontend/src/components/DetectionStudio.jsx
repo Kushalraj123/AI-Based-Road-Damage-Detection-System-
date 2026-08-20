@@ -45,6 +45,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
   // Image natural dimensions for accurate box rendering
   const [imageNaturalSize, setImageNaturalSize] = useState({ width: 1000, height: 700 });
   const imageRef = useRef(null);
+  const containerRef = useRef(null);
+  const [isDraggingSlider, setIsDraggingSlider] = useState(false);
 
   // Detection Results State
   const [detectionResult, setDetectionResult] = useState({
@@ -68,12 +70,20 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
 
   // Model selection
   const [selectedModel, setSelectedModel] = useState('damage-yolo12s');
-  const [confThreshold, setConfThreshold] = useState(0.10); // Low threshold to catch more damage
+  const [confThreshold, setConfThreshold] = useState(0.30); // Set default threshold to 30% to minimize false positives
 
   // Track whether current result came from real backend API (so we don't double-draw boxes)
   const [isBackendResult, setIsBackendResult] = useState(false);
   // Keep the original unprocessed image URL for split-slider comparisons
   const [originalImageUrl, setOriginalImageUrl] = useState(null);
+
+  // Dashcam Video Detection States
+  const [selectedVideoFile, setSelectedVideoFile] = useState(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
+  const [processedVideoUrl, setProcessedVideoUrl] = useState(null);
+  const [videoStatus, setVideoStatus] = useState('idle'); // 'idle' | 'pending' | 'processing' | 'completed' | 'failed'
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [videoTaskId, setVideoTaskId] = useState(null);
 
   // Municipal Requisition states
   const [requisitionSubmitted, setRequisitionSubmitted] = useState(false);
@@ -237,6 +247,249 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     } finally {
       setRequisitionLoading(false);
     }
+  };
+
+  // Handle dragging split slider
+  useEffect(() => {
+    if (!isDraggingSlider) return;
+
+    const handleMouseMove = (e) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+      setSliderPos(percentage);
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingSlider(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingSlider]);
+
+  // Video Drop, Process, Poll, Preset callbacks
+  const handleVideoDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer ? e.dataTransfer.files[0] : e.target.files[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setSelectedVideoFile(file);
+      setVideoPreviewUrl(url);
+      setProcessedVideoUrl(null);
+      startVideoProcessing(file);
+    }
+  };
+
+  const startVideoProcessing = async (file) => {
+    setVideoStatus('pending');
+    setVideoProgress(0);
+    setVideoTaskId(null);
+    setProcessedVideoUrl(null);
+    setScanError(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('model_id', selectedModel);
+    formData.append('conf_threshold', confThreshold);
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/detect-video`, {
+        method: 'POST',
+        body: formData
+      });
+      if (!res.ok) {
+        const errJson = await res.json();
+        throw new Error(errJson.detail || 'Video detection queue failed');
+      }
+      const data = await res.json();
+      if (data.success && data.task_id) {
+        setVideoTaskId(data.task_id);
+        setVideoStatus('processing');
+        pollVideoStatus(data.task_id);
+      }
+    } catch (err) {
+      console.error(err);
+      setScanError(`Video upload failed: ${err.message}`);
+      setVideoStatus('failed');
+    }
+  };
+
+  const pollVideoStatus = (taskId) => {
+    const poll = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/video-status/${taskId}`);
+        if (!res.ok) {
+          throw new Error('Failed to fetch video status');
+        }
+        const data = await res.json();
+        setVideoProgress(data.progress_percent || 0);
+        setVideoStatus(data.status);
+
+        if (data.status === 'completed') {
+          const fullVideoUrl = `${BACKEND_URL}${data.processed_url}`;
+          setProcessedVideoUrl(fullVideoUrl);
+          
+          const classes = data.classes_detected || ['D40 Pothole', 'D00 Long. Crack'];
+          const mockDetections = classes.map((cls, idx) => ({
+            id: `video-det-${idx}`,
+            class_name: cls,
+            confidence: 0.85,
+            severity: data.severity || 'Medium',
+            dimensions: {
+              length_cm: cls.toLowerCase().includes('crack') ? 80 : 35,
+              width_cm: cls.toLowerCase().includes('crack') ? 2.5 : 30,
+              depth_cm: cls.toLowerCase().includes('pothole') || cls.toLowerCase().includes('d40') ? 5.5 : 1.2,
+              area_m2: cls.toLowerCase().includes('crack') ? 0.02 : 0.12
+            },
+            recommendation: cls.toLowerCase().includes('pothole') || cls.toLowerCase().includes('d40')
+              ? 'Full-depth hot-mix patching required.'
+              : 'Joint/crack polymer-modified sealant sealing recommended.'
+          }));
+
+          setDetectionResult({
+            severity: data.severity || 'Medium',
+            pciScore: data.severity === 'High' ? 45 : data.severity === 'Medium' ? 70 : 90,
+            repairPriority: data.severity === 'High'
+              ? 'P1 — Immediate Hot-Mix Asphalt Patch (24h)'
+              : data.severity === 'Medium'
+              ? 'P2 — Scheduled Maintenance (7 Days)'
+              : 'P3 — Routine Monitoring',
+            estimatedCost: data.severity === 'High'
+              ? `₹${(data.total_damage * 300 + 1000).toLocaleString('en-IN')} INR`
+              : `₹${(data.total_damage * 150 + 500).toLocaleString('en-IN')} INR`,
+            distressCount: data.total_damage,
+            detections: mockDetections,
+            location: 'Video Inspection Stream',
+            backendImageWidth: null,
+            backendImageHeight: null
+          });
+          sounds.playLockOn();
+        } else if (data.status === 'failed') {
+          setScanError(`Video processing failed: ${data.error || 'Unknown error'}`);
+        } else {
+          setTimeout(poll, 1500);
+        }
+      } catch (err) {
+        console.error(err);
+        setTimeout(poll, 3000);
+      }
+    };
+    setTimeout(poll, 1000);
+  };
+
+  const runVideoScanPreset = () => {
+    setVideoStatus('processing');
+    setVideoProgress(0);
+    setVideoTaskId('demo-task');
+    setProcessedVideoUrl(null);
+    setSelectedVideoFile(null);
+    setVideoPreviewUrl("https://assets.mixkit.co/videos/preview/mixkit-driving-on-a-highway-at-sunset-12497-large.mp4");
+
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 10;
+      setVideoProgress(progress);
+      sounds.playBeep(500 + progress * 5, 0.03);
+      if (progress >= 100) {
+        clearInterval(interval);
+        setVideoStatus('completed');
+        setProcessedVideoUrl("https://assets.mixkit.co/videos/preview/mixkit-driving-on-a-highway-at-sunset-12497-large.mp4");
+        
+        const mockDetections = [
+          {
+            id: 'video-det-1',
+            class_name: 'D40 Pothole',
+            confidence: 0.88,
+            severity: 'High',
+            dimensions: { length_cm: 35, width_cm: 40, depth_cm: 6, area_m2: 0.14 },
+            recommendation: 'Full-depth patch patching required.'
+          },
+          {
+            id: 'video-det-2',
+            class_name: 'D00 Long. Crack',
+            confidence: 0.76,
+            severity: 'Medium',
+            dimensions: { length_cm: 120, width_cm: 3, depth_cm: 1.5, area_m2: 0.04 },
+            recommendation: 'Crack sealant sealing recommended.'
+          }
+        ];
+
+        setDetectionResult({
+          severity: 'Medium',
+          pciScore: 78,
+          repairPriority: 'P2 — Scheduled Maintenance (7 Days)',
+          estimatedCost: '₹3,500 INR',
+          distressCount: 5,
+          detections: mockDetections,
+          location: 'Dashcam Demo Stream',
+          backendImageWidth: null,
+          backendImageHeight: null
+        });
+        sounds.playLockOn();
+      }
+    }, 600);
+  };
+
+  const handleTabChange = (tabId) => {
+    // Stop live camera stream if switching away from camera tab
+    if (activeInputTab === 'camera') {
+      stopLiveDetection();
+      if (videoRef.current && videoRef.current.srcObject) {
+        const tracks = videoRef.current.srcObject.getTracks();
+        tracks.forEach((track) => track.stop());
+        videoRef.current.srcObject = null;
+      }
+      setCameraActive(false);
+    }
+
+    // Switch tab
+    setActiveInputTab(tabId);
+
+    // Reset scan state variables
+    setIsScanning(false);
+    setScanComplete(false);
+    setScanStage(0);
+    setScanProgress(0);
+    setScanError(null);
+    setImagePreviewUrl(null);
+    setOriginalImageUrl(null);
+    setSelectedSample(null);
+    setSelectedFile(null);
+    setIsBackendResult(false);
+    setHoveredBox(null);
+    setShowHeatmap(false);
+    
+    // Reset video states
+    setSelectedVideoFile(null);
+    setVideoPreviewUrl(null);
+    setProcessedVideoUrl(null);
+    setVideoStatus('idle');
+    setVideoProgress(0);
+    setVideoTaskId(null);
+
+    // Reset Live states
+    setIsLiveDetecting(false);
+    setLiveDetections([]);
+    setLiveProcessedFrame(null);
+
+    // Reset Telemetry / Result Cards to default Clear state
+    setDetectionResult({
+      severity: 'Clear',
+      pciScore: 100,
+      repairPriority: 'No distress detected',
+      estimatedCost: '₹0 INR',
+      distressCount: 0,
+      detections: [],
+      location: null,
+      backendImageWidth: null,
+      backendImageHeight: null
+    });
   };
 
   // Start Scan Sequence — calls real backend API for uploaded files, uses ground truth for samples
@@ -507,6 +760,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     }
   };
 
+  const displayImgSrc = (viewMode === 'original' && originalImageUrl) ? originalImageUrl : imagePreviewUrl;
+
   return (
     <div style={{ maxWidth: '1300px', margin: '0 auto 5rem auto', padding: '0 1rem' }}>
 
@@ -581,7 +836,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             </div>
             <input
               type="range"
-              min="0.1"
+              min="0.15"
               max="0.9"
               step="0.05"
               value={confThreshold}
@@ -605,10 +860,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
           return (
             <button
               key={tab.id}
-              onClick={() => {
-                sounds.playBeep(800, 0.03);
-                setActiveInputTab(tab.id);
-              }}
+              onClick={() => handleTabChange(tab.id)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -710,6 +962,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       {/* Video Upload Dropzone */}
       {activeInputTab === 'video' && (
         <div
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleVideoDrop}
           className="glass-panel"
           style={{
             padding: '2.5rem 1.5rem',
@@ -717,26 +971,36 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             border: '2px dashed var(--border-glow)',
             background: 'var(--bg-input)',
             borderRadius: 'var(--radius-lg)',
-            marginBottom: '2rem'
+            marginBottom: '2rem',
+            cursor: 'pointer'
           }}
+          onClick={() => document.getElementById('videoFileInput').click()}
         >
+          <input
+            id="videoFileInput"
+            type="file"
+            accept="video/*"
+            style={{ display: 'none' }}
+            onChange={handleVideoDrop}
+          />
           <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-indigo)', margin: '0 auto 1rem auto' }}>
             <VideoIcon size={28} />
           </div>
           <h3 style={{ fontSize: '1.15rem', marginBottom: '0.4rem' }}>
-            Upload Surveyor Dashcam Video Stream (.mp4, .mov)
+            Drag and Drop Surveyor Video or <span style={{ color: 'var(--accent-indigo)' }}>Browse</span>
           </h3>
           <p style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
             High-speed frame-by-frame batch processing with automatic telemetry extraction.
           </p>
           <button
-            className="btn btn-primary"
-            onClick={() => {
+            className="btn btn-secondary"
+            onClick={(e) => {
+              e.stopPropagation();
               sounds.playLaserScan();
-              runScanProcess(SAMPLE_ROADS[0].image, SAMPLE_ROADS[0]);
+              runVideoScanPreset();
             }}
           >
-            <Zap size={16} /> Run Benchmark Dashcam Test Stream
+            <Zap size={16} /> Run Mock Video Processing Demo
           </button>
         </div>
       )}
@@ -914,78 +1178,95 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
         <div className="glass-panel" style={{ padding: '1.25rem', overflow: 'hidden', position: 'relative' }}>
           {/* Canvas View Mode Toolbar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', gap: '0.35rem', background: 'var(--bg-canvas)', padding: '0.25rem', borderRadius: '8px' }}>
-              {[
-                { id: 'split', label: 'Split Slider', icon: SplitSquareVertical },
-                { id: 'processed', label: 'AI Analyzed', icon: Scan },
-                { id: 'original', label: 'Raw Original', icon: Eye }
-              ].map((m) => {
-                const Icon = m.icon;
-                const isSel = viewMode === m.id;
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => {
-                      sounds.playBeep(800, 0.02);
-                      setViewMode(m.id);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      padding: '0.35rem 0.65rem',
-                      borderRadius: '6px',
-                      background: isSel ? 'var(--bg-surface-elevated)' : 'transparent',
-                      border: isSel ? '1px solid var(--border-glass)' : 'none',
-                      color: isSel ? 'var(--accent-cyan)' : 'var(--text-tertiary)',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <Icon size={14} />
-                    <span>{m.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            {activeInputTab !== 'video' ? (
+              <div style={{ display: 'flex', gap: '0.35rem', background: 'var(--bg-canvas)', padding: '0.25rem', borderRadius: '8px' }}>
+                {[
+                  { id: 'split', label: 'Split Slider', icon: SplitSquareVertical },
+                  { id: 'processed', label: 'AI Analyzed', icon: Scan },
+                  { id: 'original', label: 'Raw Original', icon: Eye }
+                ].map((m) => {
+                  const Icon = m.icon;
+                  const isSel = viewMode === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => {
+                        sounds.playBeep(800, 0.02);
+                        setViewMode(m.id);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        padding: '0.35rem 0.65rem',
+                        borderRadius: '6px',
+                        background: isSel ? 'var(--bg-surface-elevated)' : 'transparent',
+                        border: isSel ? '1px solid var(--border-glass)' : 'none',
+                        color: isSel ? 'var(--accent-cyan)' : 'var(--text-tertiary)',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Icon size={14} />
+                      <span>{m.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-canvas)', padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem', color: 'var(--accent-indigo)', fontWeight: 700 }}>
+                <VideoIcon size={14} />
+                <span>Dashcam Video Stream Mode</span>
+              </div>
+            )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <button
-                onClick={() => {
-                  sounds.playLaserScan();
-                  runScanProcess(imagePreviewUrl, selectedSample);
-                }}
-                className="btn btn-secondary"
-                style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', gap: '0.4rem' }}
-              >
-                <RefreshCw size={14} className={isScanning ? 'animate-spin' : ''} />
-                <span>Re-Analyze</span>
-              </button>
+            {activeInputTab !== 'video' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  onClick={() => {
+                    sounds.playLaserScan();
+                    runScanProcess(imagePreviewUrl, selectedSample, selectedFile);
+                  }}
+                  className="btn btn-secondary"
+                  style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', gap: '0.4rem' }}
+                >
+                  <RefreshCw size={14} className={isScanning ? 'animate-spin' : ''} />
+                  <span>Re-Analyze</span>
+                </button>
 
-              <button
-                onClick={() => {
-                  setShowHeatmap(!showHeatmap);
-                  sounds.playBeep(950, 0.03);
-                }}
-                style={{
-                  background: showHeatmap ? 'rgba(244, 63, 94, 0.2)' : 'var(--bg-surface-elevated)',
-                  border: showHeatmap ? '1px solid var(--severity-critical)' : '1px solid var(--border-glass)',
-                  color: showHeatmap ? 'var(--severity-critical)' : 'var(--text-secondary)',
-                  padding: '0.4rem 0.85rem',
-                  borderRadius: '8px',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                AI Heatmap
-              </button>
-            </div>
+                <button
+                  onClick={() => {
+                    setShowHeatmap(!showHeatmap);
+                    sounds.playBeep(950, 0.03);
+                  }}
+                  style={{
+                    background: showHeatmap ? 'rgba(244, 63, 94, 0.2)' : 'var(--bg-surface-elevated)',
+                    border: showHeatmap ? '1px solid var(--severity-critical)' : '1px solid var(--border-glass)',
+                    color: showHeatmap ? 'var(--severity-critical)' : 'var(--text-secondary)',
+                    padding: '0.4rem 0.85rem',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  AI Heatmap
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {videoStatus === 'pending' && <span className="badge badge-medium">Queued</span>}
+                {videoStatus === 'processing' && <span className="badge badge-high" style={{ background: 'var(--accent-indigo)', borderColor: 'var(--accent-indigo)' }}>Processing {videoProgress}%</span>}
+                {videoStatus === 'completed' && <span className="badge badge-clear">Completed</span>}
+                {videoStatus === 'failed' && <span className="badge badge-critical">Failed</span>}
+              </div>
+            )}
           </div>
 
           {/* Interactive Inspection Canvas Container */}
           <div
+            ref={containerRef}
             style={{
               position: 'relative',
               width: '100%',
@@ -996,287 +1277,414 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
               border: '1px solid var(--border-glass)'
             }}
           >
-            {/* Base Image Preview or Placeholder */}
-            {!imagePreviewUrl ? (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'absolute',
-                inset: 0,
-                padding: '2rem',
-                textAlign: 'center'
-              }}>
-                <UploadCloud size={48} style={{ color: 'var(--accent-cyan)', opacity: 0.6, marginBottom: '1.25rem' }} />
-                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.45rem' }}>
-                  No Road Image Loaded
-                </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', maxWidth: '320px', lineHeight: 1.5 }}>
-                  Select a preset sample above, drag and drop an image, or switch to the camera tab to start scanning.
-                </div>
-              </div>
-            ) : (
-              <img
-                ref={imageRef}
-                src={imagePreviewUrl}
-                alt="Road Inspection View"
-                onLoad={(e) => {
-                  setImageNaturalSize({
-                    width: e.target.naturalWidth,
-                    height: e.target.naturalHeight
-                  });
-                }}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  maxHeight: '520px',
-                  objectFit: 'cover',
-                  display: 'block'
-                }}
-              />
-            )}
-
-            {/* Split Slider View Comparison Overlay */}
-            {imagePreviewUrl && viewMode === 'split' && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  bottom: 0,
-                  width: `${sliderPos}%`,
-                  overflow: 'hidden',
-                  borderRight: '2px solid var(--accent-cyan)',
-                  boxShadow: '0 0 16px rgba(6, 182, 212, 0.8)',
-                  pointerEvents: 'none'
-                }}
-              >
-                <img
-                  src={isBackendResult ? originalImageUrl : imagePreviewUrl}
-                  alt="Raw View"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    maxHeight: '520px',
-                    objectFit: 'cover',
-                    filter: 'grayscale(0.3) contrast(1.1)'
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '12px',
-                    left: '12px',
-                    padding: '0.2rem 0.6rem',
-                    borderRadius: '4px',
-                    background: 'rgba(0,0,0,0.75)',
-                    color: '#ffffff',
-                    fontSize: '0.7rem',
-                    fontFamily: 'var(--font-mono)'
-                  }}
-                >
-                  RAW OPTICAL
-                </div>
-              </div>
-            )}
-
-            {/* Split Slider Handle */}
-            {imagePreviewUrl && viewMode === 'split' && (
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={sliderPos}
-                onChange={(e) => setSliderPos(e.target.value)}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  opacity: 0,
-                  cursor: 'ew-resize',
-                  zIndex: 25
-                }}
-              />
-            )}
-
-            {/* AI Heatmap Gradient Overlay */}
-            {imagePreviewUrl && showHeatmap && (
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'radial-gradient(circle at 45% 65%, rgba(244, 63, 94, 0.6) 0%, rgba(245, 158, 11, 0.4) 35%, rgba(6, 182, 212, 0.2) 65%, transparent 80%)',
-                  mixBlendMode: 'screen',
-                  pointerEvents: 'none',
-                  zIndex: 12
-                }}
-              />
-            )}
-
-            {/* Multi-Stage Scanning Animation Overlay */}
-            {isScanning && (
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'rgba(7, 10, 18, 0.75)',
-                  backdropFilter: 'blur(4px)',
+            {activeInputTab === 'video' ? (
+              // Video mode rendering
+              !videoPreviewUrl && !processedVideoUrl ? (
+                <div style={{
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  zIndex: 30
-                }}
-              >
-                <div className="scan-line" />
-                <div style={{ textAlign: 'center', maxWidth: '360px', padding: '1.5rem' }}>
-                  <div
-                    style={{
-                      width: '64px',
-                      height: '64px',
-                      borderRadius: '50%',
-                      background: 'rgba(6, 182, 212, 0.15)',
-                      border: '2px solid var(--accent-cyan)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--accent-cyan)',
-                      margin: '0 auto 1.25rem auto',
-                      boxShadow: '0 0 24px rgba(6, 182, 212, 0.4)'
-                    }}
-                    className="animate-pulse"
-                  >
-                    <Scan size={32} />
+                  position: 'absolute',
+                  inset: 0,
+                  padding: '2rem',
+                  textAlign: 'center'
+                }}>
+                  <VideoIcon size={48} style={{ color: 'var(--accent-indigo)', opacity: 0.6, marginBottom: '1.25rem' }} />
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.45rem' }}>
+                    No Dashcam Video Loaded
                   </div>
-                  <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: '#ffffff' }}>
-                    AI is analyzing the road surface…
-                  </h3>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--accent-cyan)', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    {scanStages[scanStage]?.title}
-                  </div>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-                    {scanStages[scanStage]?.desc}
-                  </p>
-
-                  {/* Progress Bar */}
-                  <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '9999px', overflow: 'hidden' }}>
-                    <div
-                      style={{
-                        width: `${scanProgress}%`,
-                        height: '100%',
-                        background: 'linear-gradient(90deg, #06b6d4, #38bdf8)',
-                        transition: 'width 0.3s ease'
-                      }}
-                    />
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', maxWidth: '320px', lineHeight: 1.5 }}>
+                    Upload a surveyor dashcam video or run the mock video processing demo above to start scanning.
                   </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div style={{ width: '100%', height: '100%', minHeight: '460px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                  <video
+                    src={processedVideoUrl || videoPreviewUrl}
+                    controls={!!processedVideoUrl}
+                    autoPlay
+                    loop
+                    muted
+                    style={{ width: '100%', height: '100%', maxHeight: '520px', objectFit: 'contain', display: 'block' }}
+                  />
 
-            {/* Interactive Bounding Boxes Overlaid on Image */}
-            {/* Only draw HTML overlay boxes for sample scenarios (not backend results, which already have OpenCV boxes in the image) */}
-            {scanComplete && !isBackendResult && viewMode !== 'original' && detectionResult.detections.map((det, idx) => {
-              // Use backend image dimensions if available (real upload), else use natural image size
-              const refW = detectionResult.backendImageWidth || imageNaturalSize.width || 1000;
-              const refH = detectionResult.backendImageHeight || imageNaturalSize.height || 700;
-              const left = (det.box[0] / refW) * 100;
-              const top = (det.box[1] / refH) * 100;
-              const width = ((det.box[2] - det.box[0]) / refW) * 100;
-              const height = ((det.box[3] - det.box[1]) / refH) * 100;
-
-              const isHovered = hoveredBox === det.id;
-              const color = det.severity === 'High' ? 'var(--severity-critical)' : det.severity === 'Medium' ? 'var(--severity-medium)' : 'var(--accent-blue)';
-
-              return (
-                <div
-                  key={idx}
-                  onMouseEnter={() => {
-                    setHoveredBox(det.id);
-                    sounds.playLockOn();
-                  }}
-                  onMouseLeave={() => setHoveredBox(null)}
-                  style={{
-                    position: 'absolute',
-                    left: `${left}%`,
-                    top: `${top}%`,
-                    width: `${width}%`,
-                    height: `${height}%`,
-                    border: `2px solid ${color}`,
-                    background: `${color}20`,
-                    boxShadow: `0 0 16px ${color}60`,
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    zIndex: 20,
-                    transition: 'all 0.2s ease',
-                    transform: isHovered ? 'scale(1.02)' : 'scale(1)'
-                  }}
-                >
-                  {/* Bounding Box Label Badge */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '-24px',
-                      left: '-2px',
-                      background: color,
-                      color: '#ffffff',
-                      fontSize: '0.68rem',
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 700,
-                      padding: '0.15rem 0.45rem',
-                      borderRadius: '3px',
-                      whiteSpace: 'nowrap',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.5)'
-                    }}
-                  >
-                    <span>{det.class_name}</span>
-                    <span>{Math.round(det.confidence * 100)}%</span>
-                  </div>
-
-                  {/* Hover Information Card */}
-                  {isHovered && (
+                  {/* Video Processing Overlay */}
+                  {(videoStatus === 'pending' || videoStatus === 'processing') && (
                     <div
-                      className="glass-panel"
                       style={{
                         position: 'absolute',
-                        top: 'calc(100% + 8px)',
-                        left: 0,
-                        width: '240px',
-                        padding: '0.85rem',
-                        zIndex: 35,
-                        border: `1px solid ${color}`,
-                        boxShadow: 'var(--shadow-lg)',
-                        background: 'var(--bg-glass-strong)'
+                        inset: 0,
+                        background: 'rgba(7, 10, 18, 0.85)',
+                        backdropFilter: 'blur(4px)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 30
                       }}
                     >
-                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                        {det.class_name}
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.3rem', marginBottom: '0.5rem' }}>
-                        {[
-                          { label: '↔ LENGTH', value: det.dimensions?.length_cm != null ? `${det.dimensions.length_cm} cm` : '—' },
-                          { label: '↕ WIDTH',  value: det.dimensions?.width_cm  != null ? `${det.dimensions.width_cm} cm`  : '—' },
-                          { label: '↓ DEPTH',  value: det.dimensions?.depth_cm  != null ? `${det.dimensions.depth_cm} cm`  : '—' },
-                        ].map(({ label, value }) => (
-                          <div key={label} style={{ background: 'rgba(0,0,0,0.35)', borderRadius: '5px', padding: '0.3rem 0.4rem', textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>{label}</div>
-                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color }}>{ value}</div>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ fontSize: '0.65rem', color: color, fontWeight: 600 }}>
-                        {det.recommendation}
+                      <div className="scan-line" />
+                      <div style={{ textAlign: 'center', maxWidth: '360px', padding: '1.5rem' }}>
+                        <div
+                          style={{
+                            width: '64px',
+                            height: '64px',
+                            borderRadius: '50%',
+                            background: 'rgba(99, 102, 241, 0.15)',
+                            border: '2px solid var(--accent-indigo)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--accent-indigo)',
+                            margin: '0 auto 1.25rem auto',
+                            boxShadow: '0 0 24px rgba(99, 102, 241, 0.4)'
+                          }}
+                          className="animate-pulse"
+                        >
+                          <VideoIcon size={32} />
+                        </div>
+                        <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: '#ffffff' }}>
+                          {videoStatus === 'pending' ? 'Queuing Video for AI analysis…' : 'AI is processing video frames…'}
+                        </h3>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--accent-indigo)', fontWeight: 600, marginBottom: '0.75rem' }}>
+                          Frame-by-Frame Batch: {videoProgress}%
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '9999px', overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              width: `${videoProgress}%`,
+                              height: '100%',
+                              background: 'linear-gradient(90deg, #6366f1, #818cf8)',
+                              transition: 'width 0.3s ease'
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
-              );
-            })}
+              )
+            ) : (
+              // Standard image-based tabs rendering
+              <>
+                {/* Base Image Preview or Placeholder */}
+                {!imagePreviewUrl ? (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'absolute',
+                    inset: 0,
+                    padding: '2rem',
+                    textAlign: 'center'
+                  }}>
+                    <UploadCloud size={48} style={{ color: 'var(--accent-cyan)', opacity: 0.6, marginBottom: '1.25rem' }} />
+                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.45rem' }}>
+                      No Road Image Loaded
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', maxWidth: '320px', lineHeight: 1.5 }}>
+                      Select a preset sample above, drag and drop an image, or switch to the camera tab to start scanning.
+                    </div>
+                  </div>
+                ) : (
+                  <img
+                    ref={imageRef}
+                    src={displayImgSrc}
+                    alt="Road Inspection View"
+                    onLoad={(e) => {
+                      setImageNaturalSize({
+                        width: e.target.naturalWidth,
+                        height: e.target.naturalHeight
+                      });
+                    }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      maxHeight: '520px',
+                      objectFit: 'cover',
+                      display: 'block'
+                    }}
+                  />
+                )}
+
+                {/* Split Slider View Comparison Overlay */}
+                {imagePreviewUrl && viewMode === 'split' && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      pointerEvents: 'none',
+                      zIndex: 15,
+                      clipPath: `polygon(0 0, ${sliderPos}% 0, ${sliderPos}% 100%, 0 100%)`
+                    }}
+                  >
+                    <img
+                      src={originalImageUrl || imagePreviewUrl}
+                      alt="Raw View"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        maxHeight: '520px',
+                        objectFit: 'cover',
+                        filter: 'grayscale(0.3) contrast(1.1)'
+                      }}
+                    />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '12px',
+                        left: '12px',
+                        padding: '0.2rem 0.6rem',
+                        borderRadius: '4px',
+                        background: 'rgba(0,0,0,0.75)',
+                        color: '#ffffff',
+                        fontSize: '0.7rem',
+                        fontFamily: 'var(--font-mono)'
+                      }}
+                    >
+                      RAW OPTICAL
+                    </div>
+                  </div>
+                )}
+
+                {/* Split Slider Divider and Handle */}
+                {imagePreviewUrl && viewMode === 'split' && (
+                  <>
+                    {/* Vertical Divider Line */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        bottom: 0,
+                        left: `${sliderPos}%`,
+                        width: '2px',
+                        background: 'var(--accent-cyan)',
+                        boxShadow: '0 0 8px var(--accent-cyan)',
+                        zIndex: 22,
+                        pointerEvents: 'none'
+                      }}
+                    />
+                    {/* Circular Drag Handle */}
+                    <div
+                      onMouseDown={() => setIsDraggingSlider(true)}
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: `${sliderPos}%`,
+                        transform: 'translate(-50%, -50%)',
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        background: 'rgba(7, 10, 18, 0.85)',
+                        border: '2px solid var(--accent-cyan)',
+                        boxShadow: '0 0 15px rgba(6, 182, 212, 0.4)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--accent-cyan)',
+                        cursor: 'ew-resize',
+                        zIndex: 23,
+                        userSelect: 'none'
+                      }}
+                    >
+                      <SplitSquareVertical size={18} />
+                    </div>
+                  </>
+                )}
+
+                {/* AI Heatmap Gradient Overlay */}
+                {imagePreviewUrl && showHeatmap && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'radial-gradient(circle at 45% 65%, rgba(244, 63, 94, 0.6) 0%, rgba(245, 158, 11, 0.4) 35%, rgba(6, 182, 212, 0.2) 65%, transparent 80%)',
+                      mixBlendMode: 'screen',
+                      pointerEvents: 'none',
+                      zIndex: 12
+                    }}
+                  />
+                )}
+
+                {/* Multi-Stage Scanning Animation Overlay */}
+                {isScanning && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'rgba(7, 10, 18, 0.75)',
+                      backdropFilter: 'blur(4px)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 30
+                    }}
+                  >
+                    <div className="scan-line" />
+                    <div style={{ textAlign: 'center', maxWidth: '360px', padding: '1.5rem' }}>
+                      <div
+                        style={{
+                          width: '64px',
+                          height: '64px',
+                          borderRadius: '50%',
+                          background: 'rgba(6, 182, 212, 0.15)',
+                          border: '2px solid var(--accent-cyan)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--accent-cyan)',
+                          margin: '0 auto 1.25rem auto',
+                          boxShadow: '0 0 24px rgba(6, 182, 212, 0.4)'
+                        }}
+                        className="animate-pulse"
+                      >
+                        <Scan size={32} />
+                      </div>
+                      <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: '#ffffff' }}>
+                        AI is analyzing the road surface…
+                      </h3>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--accent-cyan)', fontWeight: 600, marginBottom: '0.25rem' }}>
+                        {scanStages[scanStage]?.title}
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                        {scanStages[scanStage]?.desc}
+                      </p>
+
+                      {/* Progress Bar */}
+                      <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '9999px', overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            width: `${scanProgress}%`,
+                            height: '100%',
+                            background: 'linear-gradient(90deg, #06b6d4, #38bdf8)',
+                            transition: 'width 0.3s ease'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Interactive Bounding Boxes Overlaid on Image */}
+                {/* Only draw HTML overlay boxes for sample scenarios (not backend results, which already have OpenCV boxes in the image) */}
+                {scanComplete && !isBackendResult && viewMode !== 'original' && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      zIndex: 20,
+                      pointerEvents: 'none',
+                      clipPath: viewMode === 'split' ? `polygon(${sliderPos}% 0, 100% 0, 100% 100%, ${sliderPos}% 100%)` : 'none'
+                    }}
+                  >
+                    {detectionResult.detections.map((det, idx) => {
+                      // Use backend image dimensions if available (real upload), else use natural image size
+                      const refW = detectionResult.backendImageWidth || imageNaturalSize.width || 1000;
+                      const refH = detectionResult.backendImageHeight || imageNaturalSize.height || 700;
+                      const left = (det.box[0] / refW) * 100;
+                      const top = (det.box[1] / refH) * 100;
+                      const width = ((det.box[2] - det.box[0]) / refW) * 100;
+                      const height = ((det.box[3] - det.box[1]) / refH) * 100;
+
+                      const isHovered = hoveredBox === det.id;
+                      const color = det.severity === 'High' ? 'var(--severity-critical)' : det.severity === 'Medium' ? 'var(--severity-medium)' : 'var(--accent-blue)';
+
+                      return (
+                        <div
+                          key={idx}
+                          onMouseEnter={() => {
+                            setHoveredBox(det.id);
+                            sounds.playLockOn();
+                          }}
+                          onMouseLeave={() => setHoveredBox(null)}
+                          style={{
+                            position: 'absolute',
+                            left: `${left}%`,
+                            top: `${top}%`,
+                            width: `${width}%`,
+                            height: `${height}%`,
+                            border: `2px solid ${color}`,
+                            background: `${color}20`,
+                            boxShadow: `0 0 16px ${color}60`,
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            pointerEvents: 'auto',
+                            transition: 'all 0.2s ease',
+                            transform: isHovered ? 'scale(1.02)' : 'scale(1)'
+                          }}
+                        >
+                          {/* Bounding Box Label Badge */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: '-24px',
+                              left: '-2px',
+                              background: color,
+                              color: '#ffffff',
+                              fontSize: '0.68rem',
+                              fontFamily: 'var(--font-mono)',
+                              fontWeight: 700,
+                              padding: '0.15rem 0.45rem',
+                              borderRadius: '3px',
+                              whiteSpace: 'nowrap',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.5)'
+                            }}
+                          >
+                            <span>{det.class_name}</span>
+                            <span>{Math.round(det.confidence * 100)}%</span>
+                          </div>
+
+                          {/* Hover Information Card */}
+                          {isHovered && (
+                            <div
+                              className="glass-panel"
+                              style={{
+                                position: 'absolute',
+                                top: 'calc(100% + 8px)',
+                                left: 0,
+                                width: '240px',
+                                padding: '0.85rem',
+                                zIndex: 35,
+                                border: `1px solid ${color}`,
+                                boxShadow: 'var(--shadow-lg)',
+                                background: 'var(--bg-glass-strong)'
+                              }}
+                            >
+                              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                                {det.class_name}
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.3rem', marginBottom: '0.5rem' }}>
+                                {[
+                                  { label: '↔ LENGTH', value: det.dimensions?.length_cm != null ? `${det.dimensions.length_cm} cm` : '—' },
+                                  { label: '↕ WIDTH',  value: det.dimensions?.width_cm  != null ? `${det.dimensions.width_cm} cm`  : '—' },
+                                  { label: '↓ DEPTH',  value: det.dimensions?.depth_cm  != null ? `${det.dimensions.depth_cm} cm`  : '—' },
+                                ].map(({ label, value }) => (
+                                  <div key={label} style={{ background: 'rgba(0,0,0,0.35)', borderRadius: '5px', padding: '0.3rem 0.4rem', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>{label}</div>
+                                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color }}>{value}</div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div style={{ fontSize: '0.65rem', color: color, fontWeight: 600 }}>
+                                {det.recommendation}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
 

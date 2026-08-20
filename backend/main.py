@@ -301,9 +301,9 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     if model is not None:
         # Run real model
         try:
-            # iou=0.40: aggressive NMS — suppresses overlapping duplicate boxes on same object
+            # iou=0.25: aggressive NMS — suppresses overlapping duplicate boxes on same object
             # conf=conf_threshold: initial filter, then we apply a secondary min-conf filter below
-            results = model.predict(image, conf=conf_threshold, iou=0.40, verbose=False)
+            results = model.predict(image, conf=conf_threshold, iou=0.25, verbose=False)
             if len(results) > 0:
                 result = results[0]
                 boxes = result.boxes
@@ -316,7 +316,13 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
                     cls_name = classes.get(cls_id, f"Class {cls_id}")
                     
                     # Skip very low confidence detections (false positives)
-                    if conf < 0.20:
+                    if conf < conf_threshold:
+                        continue
+                        
+                    # Skip massive bounding boxes that cover more than 20% of the image area (usually false positive background noise)
+                    box_w = xyxy[2] - xyxy[0]
+                    box_h = xyxy[3] - xyxy[1]
+                    if (box_w * box_h) > (width * height * 0.20):
                         continue
                     
                     box_coords = [int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3])]
@@ -387,20 +393,114 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
         "height": height
     }
 
+class DistressTracker:
+    def __init__(self, max_disappeared=3, min_appearance=2):
+        self.next_id = 0
+        self.objects = {}  # id -> {box, class_name, conf, class_id, disappeared_count, appearance_count}
+        self.max_disappeared = max_disappeared
+        self.min_appearance = min_appearance
+        self.verified_ids = set()
+
+    def update(self, rects):
+        # rects: list of [x1, y1, x2, y2, class_name, conf, class_id]
+        if len(rects) == 0:
+            for obj_id in list(self.objects.keys()):
+                self.objects[obj_id]["disappeared_count"] += 1
+                if self.objects[obj_id]["disappeared_count"] > self.max_disappeared:
+                    del self.objects[obj_id]
+            return self.get_active_objects()
+
+        if len(self.objects) == 0:
+            for r in rects:
+                self.register(r)
+            return self.get_active_objects()
+
+        object_ids = list(self.objects.keys())
+        object_rects = [self.objects[oid]["box"] for oid in object_ids]
+        
+        matches = []
+        for i, obj_rect in enumerate(object_rects):
+            for j, rect in enumerate(rects):
+                iou = self.calculate_iou(obj_rect, rect[:4])
+                if iou > 0.20:  # Matching IoU threshold
+                    matches.append((iou, object_ids[i], j))
+
+        matches.sort(key=lambda x: x[0], reverse=True)
+        
+        matched_objects = set()
+        matched_rects = set()
+        
+        for iou, oid, rect_idx in matches:
+            if oid in matched_objects or rect_idx in matched_rects:
+                continue
+            
+            self.objects[oid]["box"] = rects[rect_idx][:4]
+            self.objects[oid]["conf"] = rects[rect_idx][5]
+            self.objects[oid]["class_id"] = rects[rect_idx][6]
+            self.objects[oid]["disappeared_count"] = 0
+            self.objects[oid]["appearance_count"] += 1
+            
+            if self.objects[oid]["appearance_count"] >= self.min_appearance:
+                self.verified_ids.add(oid)
+            
+            matched_objects.add(oid)
+            matched_rects.add(rect_idx)
+
+        for oid in object_ids:
+            if oid not in matched_objects:
+                self.objects[oid]["disappeared_count"] += 1
+                if self.objects[oid]["disappeared_count"] > self.max_disappeared:
+                    del self.objects[oid]
+
+        for idx, r in enumerate(rects):
+            if idx not in matched_rects:
+                self.register(r)
+
+        return self.get_active_objects()
+
+    def register(self, rect):
+        self.objects[self.next_id] = {
+            "box": rect[:4],
+            "class_name": rect[4],
+            "conf": rect[5],
+            "class_id": rect[6],
+            "disappeared_count": 0,
+            "appearance_count": 1
+        }
+        self.next_id += 1
+
+    def calculate_iou(self, boxA, boxB):
+        xA = max(boxA[0], boxB[0])
+        yA = max(boxA[1], boxB[1])
+        xB = min(boxA[2], boxB[2])
+        yB = min(boxA[3], boxB[3])
+        interArea = max(0, xB - xA) * max(0, yB - yA)
+        boxAArea = (boxA[2] - boxA[0]) * (boxA[3] - boxA[1])
+        boxBArea = (boxB[2] - boxB[0]) * (boxB[3] - boxB[1])
+        iou = interArea / float(boxAArea + boxBArea - interArea + 1e-6)
+        return iou
+
+    def get_active_objects(self):
+        active = []
+        for oid, obj in self.objects.items():
+            if obj["appearance_count"] >= self.min_appearance and obj["disappeared_count"] == 0:
+                active.append((obj["box"], obj["class_name"], obj["conf"], obj["class_id"]))
+        return active
+
 # Asynchronous Video Processor
 def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_threshold: float):
     try:
         video_tasks[task_id]["status"] = "processing"
         
         cap = cv2.VideoCapture(input_path)
-        if not cap.isOpened():
-            raise Exception("Cannot open input video file.")
-            
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         fps = cap.get(cv2.CAP_PROP_FPS)
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         
+        if fps <= 0:
+            fps = 24.0
+            
         video_tasks[task_id]["total_frames"] = total_frames
         video_tasks[task_id]["fps"] = fps
         
@@ -408,13 +508,13 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         output_filename = f"processed_{task_id}.mp4"
         output_path = os.path.join(PROCESSED_DIR, output_filename)
         
-        # We use mp4v for high compatibility with browsers
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        # We use avc1 (H.264) for native browser compatibility
+        fourcc = cv2.VideoWriter_fourcc(*'avc1')
         out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
         
         model = model_manager.get_model(model_id)
+        tracker = DistressTracker(max_disappeared=3, min_appearance=2)
         frame_idx = 0
-        total_detections_count = 0
         damage_types_set = set()
         
         start_time = time.time()
@@ -424,11 +524,11 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
             if not ret:
                 break
                 
-            detections = []
+            raw_rects = []
             if model is not None:
                 try:
-                    # Predict frame with aggressive NMS (iou=0.40) to prevent duplicate boxes
-                    results = model.predict(frame, conf=conf_threshold, iou=0.40, verbose=False)
+                    # Predict frame with aggressive NMS (iou=0.25) to prevent duplicate boxes
+                    results = model.predict(frame, conf=conf_threshold, iou=0.25, verbose=False)
                     if len(results) > 0:
                         res = results[0]
                         boxes = res.boxes
@@ -441,37 +541,48 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
                             cls_name = classes.get(cls_id, f"Class {cls_id}")
                             
                             # Skip very low confidence detections
-                            if conf < 0.20:
+                            if conf < conf_threshold:
+                                continue
+                                
+                            # Skip massive bounding boxes that cover more than 20% of the image area (usually false positive background noise)
+                            box_w = xyxy[2] - xyxy[0]
+                            box_h = xyxy[3] - xyxy[1]
+                            if (box_w * box_h) > (width * height * 0.20):
                                 continue
                             
-                            detections.append({
-                                "box": [int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3])],
-                                "class_id": cls_id,
-                                "class_name": cls_name,
-                                "confidence": conf
-                            })
+                            raw_rects.append([
+                                int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3]),
+                                cls_name, conf, cls_id
+                            ])
                 except Exception as e:
                     # Draw dummy if exception occurs (to prevent crashing)
                     if frame_idx % 30 == 0:
-                        detections = run_mock_detection(frame, conf_threshold, model_id)
+                        mock_dets = run_mock_detection(frame, conf_threshold, model_id)
+                        for d in mock_dets:
+                            raw_rects.append([
+                                d["box"][0], d["box"][1], d["box"][2], d["box"][3],
+                                d["class_name"], d["confidence"], d["class_id"]
+                            ])
             else:
                 # Mock detection for demo video (run every few frames to simulate video processing)
                 # Seed with frame index to maintain some spatial consistency
                 np.random.seed(frame_idx // 15)
                 if np.random.rand() < 0.2:
-                    detections = run_mock_detection(frame, conf_threshold, model_id)
+                    mock_dets = run_mock_detection(frame, conf_threshold, model_id)
+                    for d in mock_dets:
+                        raw_rects.append([
+                            d["box"][0], d["box"][1], d["box"][2], d["box"][3],
+                            d["class_name"], d["confidence"], d["class_id"]
+                        ])
             
-            # Draw detections
-            for det in detections:
-                x1, y1, x2, y2 = det["box"]
-                class_id = det["class_id"]
-                class_name = det["class_name"]
-                conf = det["confidence"]
-                
+            # Update tracker and get active tracked objects
+            tracked_objects = tracker.update(raw_rects)
+            
+            # Draw tracked objects
+            for box, class_name, conf, class_id in tracked_objects:
+                x1, y1, x2, y2 = box
                 color = MODEL_CLASSES[model_id]["colors"].get(class_id, (0, 255, 255))
                 draw_stylized_box(frame, x1, y1, x2, y2, class_name, conf, color)
-                
-                total_detections_count += 1
                 damage_types_set.add(class_name)
                 
             out.write(frame)
@@ -497,6 +608,7 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         out.release()
         
         # Done
+        total_detections_count = len(tracker.verified_ids)
         severity = "Clear"
         if total_detections_count > 0:
             if total_detections_count > 10:
@@ -525,7 +637,8 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
             "status": "completed",
             "processed_url": f"/processed/{output_filename}",
             "total_damage": total_detections_count,
-            "severity": severity
+            "severity": severity,
+            "classes_detected": list(damage_types_set)
         })
         
     except Exception as e:
@@ -627,7 +740,7 @@ async def detect_video(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     model_id: str = Form("pothole-yolov8"),
-    conf_threshold: float = Form(0.10)
+    conf_threshold: float = Form(0.25)
 ):
     try:
         # Save video
@@ -707,11 +820,14 @@ async def detect_frame(payload: FramePayload):
         
         if model is not None:
             try:
-                results = model.predict(frame, conf=payload.conf_threshold, iou=0.40, verbose=False)
+                results = model.predict(frame, conf=payload.conf_threshold, iou=0.25, verbose=False)
                 if len(results) > 0:
                     res = results[0]
                     boxes = res.boxes
                     classes = MODEL_CLASSES[payload.model_id]["labels"]
+                    
+                    # Get frame shape
+                    height, width = frame.shape[:2]
                     
                     for box in boxes:
                         xyxy = box.xyxy[0].cpu().numpy().tolist()
@@ -720,7 +836,13 @@ async def detect_frame(payload: FramePayload):
                         cls_name = classes.get(cls_id, f"Class {cls_id}")
                         
                         # Skip very low confidence detections
-                        if conf < 0.20:
+                        if conf < payload.conf_threshold:
+                            continue
+                            
+                        # Skip massive bounding boxes that cover more than 20% of the image area
+                        box_w = xyxy[2] - xyxy[0]
+                        box_h = xyxy[3] - xyxy[1]
+                        if (box_w * box_h) > (width * height * 0.20):
                             continue
                         
                         detections.append({
