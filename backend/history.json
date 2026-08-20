@@ -1,5 +1,19 @@
 [
     {
+        "id": "428b89f0-7408-4685-a1df-da577a253378",
+        "type": "image",
+        "timestamp": "2026-08-20 12:32:56",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage4.jpg",
+        "original_url": "/uploads/428b89f0-7408-4685-a1df-da577a253378.jpg",
+        "processed_url": "/processed/processed_428b89f0-7408-4685-a1df-da577a253378.jpg",
+        "total_damage": 5,
+        "severity": "High",
+        "classes_detected": [
+            "D40 Pothole"
+        ]
+    },
+    {
         "id": "9ffcff07-7e87-44f0-96d5-421fd1598b1f",
         "type": "image",
         "timestamp": "2026-08-20 12:17:27",
