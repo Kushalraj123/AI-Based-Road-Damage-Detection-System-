@@ -762,6 +762,37 @@ async def detect_frame(payload: FramePayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+class RequisitionNotification(BaseModel):
+    ticket_id: str
+    address: str
+    latitude: float
+    longitude: float
+    distress_count: int
+    severity: str
+    materials: List[str]
+
+municipal_notifications: List[Dict[str, Any]] = []
+
+@app.post("/api/notifications/submit")
+def submit_notification(payload: RequisitionNotification):
+    notification_entry = {
+        "id": payload.ticket_id,
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "address": payload.address,
+        "coords": {"lat": payload.latitude, "lng": payload.longitude},
+        "distress_count": payload.distress_count,
+        "severity": payload.severity,
+        "materials": payload.materials,
+        "status": "received"
+    }
+    municipal_notifications.append(notification_entry)
+    print(f"🔊 HCMC Dispatch Alert: Potholes detected at {payload.address} ({payload.latitude}, {payload.longitude}). Work order queued.")
+    return {"success": True, "message": "Notification successfully submitted to HCMC Municipal system."}
+
+@app.get("/api/notifications")
+def get_notifications():
+    return municipal_notifications
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

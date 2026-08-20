@@ -288,67 +288,72 @@ export default function Navbar({
                   height: '8px',
                   borderRadius: '50%',
                   backgroundColor: 'var(--severity-critical)',
-                  boxShadow: '0 0 8px var(--severity-critical)'
+                  boxShadow: '0 0 8px var(--severity-critical)',
+                  pointerEvents: 'none'
                 }}
               />
-            </button>
-
-            {/* Notification Dropdown Drawer */}
-            {showNotifs && (
-              <div
-                className="glass-panel"
-                style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 12px)',
-                  right: 0,
-                  width: '320px',
-                  padding: '1rem',
-                  zIndex: 200,
-                  border: '1px solid var(--border-glass)',
-                  boxShadow: 'var(--shadow-lg)'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>Live AI Distress Feeds</span>
-                  <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>3 New</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                  <div
-                    style={{
-                      padding: '0.6rem',
-                      borderRadius: '8px',
-                      background: 'rgba(244, 63, 94, 0.1)',
-                      border: '1px solid rgba(244, 63, 94, 0.25)',
-                      fontSize: '0.8rem'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--severity-critical)', fontWeight: 600 }}>
-                      <AlertTriangle size={14} /> Pothole Hazard (98.1%)
-                    </div>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', marginTop: '0.2rem' }}>
-                      Columbus Ave & Broadway — High severity cavity detected.
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      padding: '0.6rem',
-                      borderRadius: '8px',
-                      background: 'rgba(245, 158, 11, 0.1)',
-                      border: '1px solid rgba(245, 158, 11, 0.25)',
-                      fontSize: '0.8rem'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--severity-medium)', fontWeight: 600 }}>
-                      <AlertTriangle size={14} /> Fatigue Alligator Cracking
-                    </div>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', marginTop: '0.2rem' }}>
-                      Mission St & 3rd St — P2 Scheduled maintenance recommended.
-                    </div>
-                  </div>
-                </div>
-              </div>
             )}
           </div>
+
+          {/* Notification Dropdown Drawer */}
+          {showNotifs && (
+            <div
+              className="glass-panel animate-fade-in"
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 12px)',
+                right: 0,
+                width: '320px',
+                padding: '1rem',
+                zIndex: 200,
+                border: '1px solid var(--border-glass)',
+                boxShadow: 'var(--shadow-lg)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>Municipal Dispatch Feeds</span>
+                <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>{notifications.length} Active</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxHeight: '280px', overflowY: 'auto' }}>
+                {notifications.length === 0 ? (
+                  <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>
+                    No active dispatch logs.
+                  </div>
+                ) : (
+                  [...notifications].reverse().map((notif) => {
+                    const isHigh = notif.severity === 'High' || notif.severity === 'Critical';
+                    const isMed = notif.severity === 'Medium';
+                    const color = isHigh ? 'var(--severity-critical)' : isMed ? 'var(--severity-medium)' : 'var(--accent-blue)';
+                    return (
+                      <div
+                        key={notif.id}
+                        style={{
+                          padding: '0.65rem',
+                          borderRadius: '8px',
+                          background: `${color}08`,
+                          border: `1px solid ${color}20`,
+                          fontSize: '0.78rem'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifySpace: 'between', gap: '0.4rem', color: color, fontWeight: 700 }}>
+                          <AlertTriangle size={13} /> {notif.severity} Severity Dispatch
+                        </div>
+                        <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 600, marginTop: '0.2rem' }}>
+                          {notif.address}
+                        </div>
+                        <div style={{ color: 'var(--text-tertiary)', fontSize: '0.65rem', fontFamily: 'var(--font-mono)', marginTop: '0.15rem' }}>
+                          GPS: {notif.coords?.lat.toFixed(5)}°N, {notif.coords?.lng.toFixed(5)}°E
+                        </div>
+                        <div style={{ color: 'var(--text-tertiary)', fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>
+                          Ticket ID: {notif.id}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
 
           {/* User / Smart-City DOT Profile */}
           <div

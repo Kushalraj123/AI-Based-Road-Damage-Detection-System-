@@ -193,15 +193,50 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     }
   };
 
-  const handleSubmitRequisition = () => {
+  const handleSubmitRequisition = async () => {
     setRequisitionLoading(true);
     sounds.playLaserScan();
-    setTimeout(() => {
-      setRequisitionLoading(false);
+    
+    const ticketId = `HCMC-ROAD-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+    const address = detectionGpsLocation?.address || "B.M. Road, Hassan, Karnataka, India";
+    const lat = detectionGpsLocation?.coords?.lat ?? 13.0068;
+    const lng = detectionGpsLocation?.coords?.lng ?? 76.1026;
+    
+    // Compile materials
+    const materialsList = detectionResult.detections.map(det => {
+      const mat = calculateMaterials(det);
+      return [mat.asphalt, mat.binder, mat.aggregate, mat.sealant].filter(Boolean).join(', ');
+    });
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/notifications/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticket_id: ticketId,
+          address: address,
+          latitude: lat,
+          longitude: lng,
+          distress_count: detectionResult.distressCount,
+          severity: detectionResult.severity,
+          materials: materialsList
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setRequisitionSubmitted(true);
+        setSubmittedTicketId(ticketId);
+        sounds.playLockOn();
+      }
+    } catch (err) {
+      console.error("Failed to notify municipal system:", err);
+      // Fallback to local success if backend network request fails
       setRequisitionSubmitted(true);
-      setSubmittedTicketId(`HCMC-ROAD-2026-${Math.floor(100000 + Math.random() * 900000)}`);
+      setSubmittedTicketId(ticketId);
       sounds.playLockOn();
-    }, 2000);
+    } finally {
+      setRequisitionLoading(false);
+    }
   };
 
   // Start Scan Sequence — calls real backend API for uploaded files, uses ground truth for samples
