@@ -279,20 +279,22 @@ export default function Navbar({
               }}
             >
               <Bell size={17} />
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '-3px',
-                  right: '-3px',
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--severity-critical)',
-                  boxShadow: '0 0 8px var(--severity-critical)',
-                  pointerEvents: 'none'
-                }}
-              />
-            )}
+              {notifications.length > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-3px',
+                    right: '-3px',
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--severity-critical)',
+                    boxShadow: '0 0 8px var(--severity-critical)',
+                    pointerEvents: 'none'
+                  }}
+                />
+              )}
+            </button>
           </div>
 
           {/* Notification Dropdown Drawer */}
