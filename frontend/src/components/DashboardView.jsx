@@ -21,14 +21,111 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
   const [timeRange, setTimeRange] = useState('month'); // 'week' | 'month' | 'quarter' | 'year'
   const [selectedChartFilter, setSelectedChartFilter] = useState('all');
 
-  // KPI Metrics Data
+  // KPI Metrics Data Mapping based on selected timeRange filter
+  const metricsData = {
+    week: {
+      roads: '2,840', roadsChange: '+5.2% vs last wk',
+      damage: '8,140', damageChange: '+3.1% AI scan rate',
+      high: '1,920', highChange: '91% dispatched',
+      medium: '3,410', mediumChange: '55% scheduled',
+      low: '2,810', lowChange: 'Monitored',
+      accuracy: '98.9%', accuracyChange: 'YOLOv12s engine',
+      trendPoints: '0,170 50,165 100,140 150,145 200,120 250,110 300,125 350,90 400,95 450,75 500,80 550,50 600,60 650,30 700,35',
+      trendPolyPoints: '0,170 50,165 100,140 150,145 200,120 250,110 300,125 350,90 400,95 450,75 500,80 550,50 600,60 650,30 700,35 700,190 0,190',
+      trendMarkers: [
+        [150, 145, '45 Cases'],
+        [350, 90, '90 Cases'],
+        [550, 50, '130 Cases'],
+        [700, 35, '155 Cases']
+      ],
+      trendLabels: ["AUG 14", "AUG 16", "AUG 18", "AUG 20"],
+      trendTitle: 'Damage Detection Velocity',
+      trendSubtitle: 'Daily identified distress cases across city road corridors',
+      trendChange: '+8.2% vs Prev Period',
+      pci: '76.5',
+      pciStatus: 'GOOD / SATISFACTORY',
+      pciOffset: 59
+    },
+    month: {
+      roads: '12,450', roadsChange: '+18.4% vs last mo',
+      damage: '36,280', damageChange: '+4.2% AI scan rate',
+      high: '8,420', highChange: '85% dispatched',
+      medium: '15,110', mediumChange: '42% scheduled',
+      low: '12,750', lowChange: 'Monitored',
+      accuracy: '98.7%', accuracyChange: 'YOLOv12s engine',
+      trendPoints: '0,180 50,150 100,165 150,110 200,125 250,85 300,95 350,60 400,75 450,45 500,65 550,30 600,40 650,20 700,25',
+      trendPolyPoints: '0,180 50,150 100,165 150,110 200,125 250,85 300,95 350,60 400,75 450,45 500,65 550,30 600,40 650,20 700,25 700,190 0,190',
+      trendMarkers: [
+        [150, 110, '142 Cases'],
+        [350, 60, '218 Cases'],
+        [550, 30, '310 Cases'],
+        [700, 25, '360 Cases']
+      ],
+      trendLabels: ["AUG 01", "AUG 05", "AUG 10", "AUG 15", "AUG 19 (TODAY)"],
+      trendTitle: 'Damage Detection Velocity',
+      trendSubtitle: 'Daily identified distress cases across city road corridors',
+      trendChange: '+12.4% vs Prev Period',
+      pci: '74.2',
+      pciStatus: 'GOOD / SATISFACTORY',
+      pciOffset: 65
+    },
+    quarter: {
+      roads: '34,120', roadsChange: '+24.1% vs last qtr',
+      damage: '109,840', damageChange: '+6.8% AI scan rate',
+      high: '25,480', highChange: '89% dispatched',
+      medium: '46,310', mediumChange: '48% scheduled',
+      low: '38,050', lowChange: 'Monitored',
+      accuracy: '98.5%', accuracyChange: 'YOLOv12s engine',
+      trendPoints: '0,160 50,140 100,150 150,120 200,135 250,105 300,115 350,80 400,90 450,65 500,75 550,40 600,50 650,30 700,35',
+      trendPolyPoints: '0,160 50,140 100,150 150,120 200,135 250,105 300,115 350,80 400,90 450,65 500,75 550,40 600,50 650,30 700,35 700,190 0,190',
+      trendMarkers: [
+        [150, 120, '480 Cases'],
+        [350, 80, '820 Cases'],
+        [550, 40, '1.2k Cases'],
+        [700, 35, '1.5k Cases']
+      ],
+      trendLabels: ["JUN", "JUL", "AUG", "SEP", "OCT"],
+      trendTitle: 'Monthly Damage Trend',
+      trendSubtitle: 'Aggregated distress velocity over trailing 90 days',
+      trendChange: '+15.7% vs Prev Period',
+      pci: '71.8',
+      pciStatus: 'GOOD / SATISFACTORY',
+      pciOffset: 70
+    },
+    year: {
+      roads: '142,300', roadsChange: '+35.6% YoY',
+      damage: '421,450', damageChange: '+9.1% AI scan rate',
+      high: '98,240', highChange: '92% dispatched',
+      medium: '175,190', mediumChange: '51% scheduled',
+      low: '148,020', lowChange: 'Monitored',
+      accuracy: '98.3%', accuracyChange: 'YOLOv12s engine',
+      trendPoints: '0,150 50,130 100,145 150,115 200,125 250,95 300,105 350,70 400,80 450,55 500,65 550,35 600,45 650,25 700,20',
+      trendPolyPoints: '0,150 50,130 100,145 150,115 200,125 250,95 300,105 350,70 400,80 450,55 500,65 550,35 600,45 650,25 700,20 700,190 0,190',
+      trendMarkers: [
+        [150, 115, '1.8k Cases'],
+        [350, 70, '3.4k Cases'],
+        [550, 35, '5.1k Cases'],
+        [700, 20, '6.8k Cases']
+      ],
+      trendLabels: ["Q1", "Q2", "Q3", "Q4"],
+      trendTitle: 'Quarterly Road Anomaly Velocity',
+      trendSubtitle: 'Annual cumulative inspected anomalies and road condition trend',
+      trendChange: '+18.9% vs Prev Period',
+      pci: '73.5',
+      pciStatus: 'GOOD / SATISFACTORY',
+      pciOffset: 66
+    }
+  };
+
+  const active = metricsData[timeRange] || metricsData.month;
+
   const kpiMetrics = [
-    { label: 'Total Roads Inspected', value: '12,450', unit: 'corridors', change: '+18.4% vs last mo', icon: Layers, color: 'var(--accent-cyan)' },
-    { label: 'Total Damage Detected', value: '36,280', unit: 'anomalies', change: '+4.2% AI scan rate', icon: Activity, color: 'var(--accent-blue)' },
-    { label: 'High Severity Issues', value: '8,420', unit: 'P1 urgent', change: '85% dispatched', icon: AlertTriangle, color: 'var(--severity-critical)' },
-    { label: 'Medium Severity Issues', value: '15,110', unit: 'P2 scheduled', change: '42% scheduled', icon: AlertTriangle, color: 'var(--severity-medium)' },
-    { label: 'Low Severity Issues', value: '12,750', unit: 'P3 monitor', change: 'Monitored', icon: AlertTriangle, color: 'var(--severity-low)' },
-    { label: 'AI Detection Accuracy', value: '98.7%', unit: 'mAP@50', change: 'YOLOv12s engine', icon: ShieldCheck, color: 'var(--severity-clear)' }
+    { label: 'Total Roads Inspected', value: active.roads, unit: 'corridors', change: active.roadsChange, icon: Layers, color: 'var(--accent-cyan)' },
+    { label: 'Total Damage Detected', value: active.damage, unit: 'anomalies', change: active.damageChange, icon: Activity, color: 'var(--accent-blue)' },
+    { label: 'High Severity Issues', value: active.high, unit: 'P1 urgent', change: active.highChange, icon: AlertTriangle, color: 'var(--severity-critical)' },
+    { label: 'Medium Severity Issues', value: active.medium, unit: 'P2 scheduled', change: active.mediumChange, icon: AlertTriangle, color: 'var(--severity-medium)' },
+    { label: 'Low Severity Issues', value: active.low, unit: 'P3 monitor', change: active.lowChange, icon: AlertTriangle, color: 'var(--severity-low)' },
+    { label: 'AI Detection Accuracy', value: active.accuracy, unit: 'mAP@50', change: active.accuracyChange, icon: ShieldCheck, color: 'var(--severity-clear)' }
   ];
 
   // Activity Timeline Events
@@ -139,11 +236,11 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
         <div className="glass-panel" style={{ padding: '1.5rem', background: 'var(--bg-glass-strong)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Damage Detection Velocity</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Daily identified distress cases across city road corridors</p>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>{active.trendTitle}</h3>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{active.trendSubtitle}</p>
             </div>
             <div className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>
-              <TrendingUp size={13} /> +12.4% vs Prev Period
+              <TrendingUp size={13} /> {active.trendChange}
             </div>
           </div>
 
@@ -170,13 +267,13 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
 
               {/* Area Fill */}
               <polygon
-                points="0,180 50,150 100,165 150,110 200,125 250,85 300,95 350,60 400,75 450,45 500,65 550,30 600,40 650,20 700,25 700,190 0,190"
+                points={active.trendPolyPoints}
                 fill="url(#chartGradient)"
               />
 
               {/* Glowing Line */}
               <polyline
-                points="0,180 50,150 100,165 150,110 200,125 250,85 300,95 350,60 400,75 450,45 500,65 550,30 600,40 650,20 700,25"
+                points={active.trendPoints}
                 fill="none"
                 stroke="url(#strokeGradient)"
                 strokeWidth="3.5"
@@ -185,12 +282,7 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
               />
 
               {/* Data Point Glowing Markers */}
-              {[
-                [150, 110, '142 Cases'],
-                [350, 60, '218 Cases'],
-                [550, 30, '310 Cases'],
-                [700, 25, '360 Cases']
-              ].map(([cx, cy, label], i) => (
+              {active.trendMarkers.map(([cx, cy, label], i) => (
                 <g key={i}>
                   <circle cx={cx} cy={cy} r="6" fill="#06b6d4" stroke="#ffffff" strokeWidth="2" />
                   <circle cx={cx} cy={cy} r="12" fill="none" stroke="#06b6d4" strokeWidth="1" opacity="0.6" />
@@ -200,11 +292,9 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-tertiary)', fontSize: '0.72rem', fontFamily: 'var(--font-mono)', marginTop: '0.5rem' }}>
-            <span>AUG 01</span>
-            <span>AUG 05</span>
-            <span>AUG 10</span>
-            <span>AUG 15</span>
-            <span>AUG 19 (TODAY)</span>
+            {active.trendLabels.map((lbl, idx) => (
+              <span key={idx}>{lbl}</span>
+            ))}
           </div>
         </div>
 
@@ -230,16 +320,16 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
                   stroke="url(#strokeGradient)"
                   strokeWidth="10"
                   strokeDasharray="251.2"
-                  strokeDashoffset="65"
+                  strokeDashoffset={active.pciOffset}
                   strokeLinecap="round"
                 />
               </svg>
               <div style={{ position: 'absolute', textAlign: 'center' }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  74.2
+                  {active.pci}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--severity-clear)', fontWeight: 700, marginTop: '0.2rem' }}>
-                  GOOD / SATISFACTORY
+                  {active.pciStatus}
                 </div>
               </div>
             </div>
