@@ -24,19 +24,19 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
   // KPI Metrics Data Mapping based on selected timeRange filter
   const metricsData = {
     week: {
-      roads: '2,840', roadsChange: '+5.2% vs last wk',
-      damage: '8,140', damageChange: '+3.1% AI scan rate',
-      high: '1,920', highChange: '91% dispatched',
-      medium: '3,410', mediumChange: '55% scheduled',
-      low: '2,810', lowChange: 'Monitored',
+      roads: '215', roadsChange: '+5.2% vs last wk',
+      damage: '620', damageChange: '+3.1% AI scan rate',
+      high: '140', highChange: '91% dispatched',
+      medium: '260', mediumChange: '55% scheduled',
+      low: '220', lowChange: 'Monitored',
       accuracy: '98.9%', accuracyChange: 'YOLOv12s engine',
       trendPoints: '0,170 50,165 100,140 150,145 200,120 250,110 300,125 350,90 400,95 450,75 500,80 550,50 600,60 650,30 700,35',
       trendPolyPoints: '0,170 50,165 100,140 150,145 200,120 250,110 300,125 350,90 400,95 450,75 500,80 550,50 600,60 650,30 700,35 700,190 0,190',
       trendMarkers: [
-        [150, 145, '45 Cases'],
-        [350, 90, '90 Cases'],
-        [550, 50, '130 Cases'],
-        [700, 35, '155 Cases']
+        [150, 145, '3 Cases'],
+        [350, 90, '8 Cases'],
+        [550, 50, '12 Cases'],
+        [700, 35, '15 Cases']
       ],
       trendLabels: ["AUG 14", "AUG 16", "AUG 18", "AUG 20"],
       trendTitle: 'Damage Detection Velocity',
@@ -47,19 +47,19 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
       pciOffset: 59
     },
     month: {
-      roads: '12,450', roadsChange: '+18.4% vs last mo',
-      damage: '36,280', damageChange: '+4.2% AI scan rate',
-      high: '8,420', highChange: '85% dispatched',
-      medium: '15,110', mediumChange: '42% scheduled',
-      low: '12,750', lowChange: 'Monitored',
+      roads: '940', roadsChange: '+18.4% vs last mo',
+      damage: '2,810', damageChange: '+4.2% AI scan rate',
+      high: '640', highChange: '85% dispatched',
+      medium: '1,180', mediumChange: '42% scheduled',
+      low: '990', lowChange: 'Monitored',
       accuracy: '98.7%', accuracyChange: 'YOLOv12s engine',
       trendPoints: '0,180 50,150 100,165 150,110 200,125 250,85 300,95 350,60 400,75 450,45 500,65 550,30 600,40 650,20 700,25',
       trendPolyPoints: '0,180 50,150 100,165 150,110 200,125 250,85 300,95 350,60 400,75 450,45 500,65 550,30 600,40 650,20 700,25 700,190 0,190',
       trendMarkers: [
-        [150, 110, '142 Cases'],
-        [350, 60, '218 Cases'],
-        [550, 30, '310 Cases'],
-        [700, 25, '360 Cases']
+        [150, 110, '14 Cases'],
+        [350, 60, '22 Cases'],
+        [550, 30, '31 Cases'],
+        [700, 25, '36 Cases']
       ],
       trendLabels: ["AUG 01", "AUG 05", "AUG 10", "AUG 15", "AUG 19 (TODAY)"],
       trendTitle: 'Damage Detection Velocity',
@@ -70,19 +70,19 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
       pciOffset: 65
     },
     quarter: {
-      roads: '34,120', roadsChange: '+24.1% vs last qtr',
-      damage: '109,840', damageChange: '+6.8% AI scan rate',
-      high: '25,480', highChange: '89% dispatched',
-      medium: '46,310', mediumChange: '48% scheduled',
-      low: '38,050', lowChange: 'Monitored',
+      roads: '2,720', roadsChange: '+24.1% vs last qtr',
+      damage: '8,450', damageChange: '+6.8% AI scan rate',
+      high: '1,950', highChange: '89% dispatched',
+      medium: '3,540', mediumChange: '48% scheduled',
+      low: '2,960', lowChange: 'Monitored',
       accuracy: '98.5%', accuracyChange: 'YOLOv12s engine',
       trendPoints: '0,160 50,140 100,150 150,120 200,135 250,105 300,115 350,80 400,90 450,65 500,75 550,40 600,50 650,30 700,35',
       trendPolyPoints: '0,160 50,140 100,150 150,120 200,135 250,105 300,115 350,80 400,90 450,65 500,75 550,40 600,50 650,30 700,35 700,190 0,190',
       trendMarkers: [
-        [150, 120, '480 Cases'],
-        [350, 80, '820 Cases'],
-        [550, 40, '1.2k Cases'],
-        [700, 35, '1.5k Cases']
+        [150, 120, '48 Cases'],
+        [350, 80, '82 Cases'],
+        [550, 40, '120 Cases'],
+        [700, 35, '150 Cases']
       ],
       trendLabels: ["JUN", "JUL", "AUG", "SEP", "OCT"],
       trendTitle: 'Monthly Damage Trend',
@@ -93,19 +93,19 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
       pciOffset: 70
     },
     year: {
-      roads: '142,300', roadsChange: '+35.6% YoY',
-      damage: '421,450', damageChange: '+9.1% AI scan rate',
-      high: '98,240', highChange: '92% dispatched',
-      medium: '175,190', mediumChange: '51% scheduled',
-      low: '148,020', lowChange: 'Monitored',
+      roads: '10,800', roadsChange: '+35.6% YoY',
+      damage: '32,450', damageChange: '+9.1% AI scan rate',
+      high: '7,540', highChange: '92% dispatched',
+      medium: '13,480', mediumChange: '51% scheduled',
+      low: '11,430', lowChange: 'Monitored',
       accuracy: '98.3%', accuracyChange: 'YOLOv12s engine',
       trendPoints: '0,150 50,130 100,145 150,115 200,125 250,95 300,105 350,70 400,80 450,55 500,65 550,35 600,45 650,25 700,20',
       trendPolyPoints: '0,150 50,130 100,145 150,115 200,125 250,95 300,105 350,70 400,80 450,55 500,65 550,35 600,45 650,25 700,20 700,190 0,190',
       trendMarkers: [
-        [150, 115, '1.8k Cases'],
-        [350, 70, '3.4k Cases'],
-        [550, 35, '5.1k Cases'],
-        [700, 20, '6.8k Cases']
+        [150, 115, '180 Cases'],
+        [350, 70, '340 Cases'],
+        [550, 35, '510 Cases'],
+        [700, 20, '680 Cases']
       ],
       trendLabels: ["Q1", "Q2", "Q3", "Q4"],
       trendTitle: 'Quarterly Road Anomaly Velocity',
@@ -130,11 +130,11 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
 
   // Activity Timeline Events
   const activityStream = [
-    { id: 1, type: 'Pothole (D40)', location: 'I-280 Northbound MP 14.2', time: '12 mins ago', severity: 'High', status: 'Work Order #4812 Dispatched', inspector: 'Fleet Dashcam #04' },
-    { id: 2, type: 'Alligator Fatigue Crack', location: '450 Grand Ave, Oakland', time: '34 mins ago', severity: 'High', status: 'Pending Review', inspector: 'Mobile Surveyor Unit 02' },
-    { id: 3, type: 'Transverse Thermal Crack', location: 'Skyline Blvd, Hwy 35', time: '1 hour ago', severity: 'Medium', status: 'Scheduled (14d)', inspector: 'Municipal Drone Survey' },
-    { id: 4, type: 'Surface Ravelling / Rutting', location: 'Broadway & 12th St, San Jose', time: '2.5 hours ago', severity: 'Low', status: 'Logged to GIS', inspector: 'Citizen Mobile App' },
-    { id: 5, type: 'Full-Depth Pothole Remediated', location: 'Market St & 7th Ave', time: '4 hours ago', severity: 'Clear', status: 'Repaired & Verified', inspector: 'Audit Verification AI' }
+    { id: 1, type: 'Pothole (D40)', location: 'B.M. Road near Old Bus Stand, Hassan', time: '12 mins ago', severity: 'High', status: 'Work Order #4812 Dispatched', inspector: 'Fleet Dashcam #04' },
+    { id: 2, type: 'Alligator Fatigue Crack', location: 'Salagame Road near MCE College, Hassan', time: '34 mins ago', severity: 'High', status: 'Pending Review', inspector: 'Mobile Surveyor Unit 02' },
+    { id: 3, type: 'Transverse Thermal Crack', location: 'Gorur Road Bypass Link, Hassan', time: '1 hour ago', severity: 'Medium', status: 'Scheduled (14d)', inspector: 'Municipal Drone Survey' },
+    { id: 4, type: 'Surface Rutting', location: 'Belur Road Industrial Zone, Hassan', time: '2.5 hours ago', severity: 'Low', status: 'Logged to GIS', inspector: 'Citizen Mobile App' },
+    { id: 5, type: 'Full-Depth Pothole Remediated', location: 'Race Course Road Corridor, Hassan', time: '4 hours ago', severity: 'Clear', status: 'Repaired & Verified', inspector: 'Audit Verification AI' }
   ];
 
   return (
