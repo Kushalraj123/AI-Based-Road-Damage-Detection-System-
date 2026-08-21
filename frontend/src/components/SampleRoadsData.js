@@ -12,7 +12,7 @@ export const SAMPLE_ROADS = [
     severity: 'High',
     pciScore: 42,
     repairPriority: 'P1 — Immediate Hot-Mix Asphalt Patch (24h)',
-    estimatedCost: '₹18,500 INR',
+    estimatedCost: '₹1,850 INR',
     detections: [
       {
         id: 'det-1',
@@ -58,7 +58,7 @@ export const SAMPLE_ROADS = [
     severity: 'High',
     pciScore: 51,
     repairPriority: 'P1 — Mill and Inlay Resurfacing',
-    estimatedCost: '₹22,000 INR',
+    estimatedCost: '₹2,200 INR',
     detections: [
       {
         id: 'det-4',
@@ -94,7 +94,7 @@ export const SAMPLE_ROADS = [
     severity: 'Medium',
     pciScore: 68,
     repairPriority: 'P2 — Scheduled Crack Sealing (14 Days)',
-    estimatedCost: '₹7,600 INR',
+    estimatedCost: '₹850 INR',
     detections: [
       {
         id: 'det-6',
@@ -120,7 +120,7 @@ export const SAMPLE_ROADS = [
     severity: 'Low',
     pciScore: 78,
     repairPriority: 'P3 — Routine Micro-surfacing / Slurry Seal',
-    estimatedCost: '₹5,700 INR',
+    estimatedCost: '₹650 INR',
     detections: [
       {
         id: 'det-7',

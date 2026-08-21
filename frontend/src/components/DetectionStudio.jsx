@@ -361,8 +361,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
               ? 'P2 — Scheduled Maintenance (7 Days)'
               : 'P3 — Routine Monitoring',
             estimatedCost: data.severity === 'High'
-              ? `₹${(data.total_damage * 300 + 1000).toLocaleString('en-IN')} INR`
-              : `₹${(data.total_damage * 150 + 500).toLocaleString('en-IN')} INR`,
+              ? `₹${(data.total_damage * 120 + 350).toLocaleString('en-IN')} INR`
+              : `₹${(data.total_damage * 60 + 180).toLocaleString('en-IN')} INR`,
             distressCount: data.total_damage,
             detections: mockDetections,
             location: 'Video Inspection Stream',
@@ -605,8 +605,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             ? 'P2 — Scheduled Maintenance (7 Days)'
             : 'P3 — Routine Monitoring',
           estimatedCost: apiSeverity === 'High'
-            ? `₹${(mappedDetections.length * 400 + 1000).toLocaleString('en-IN')} INR`
-            : `₹${(mappedDetections.length * 200 + 500).toLocaleString('en-IN')} INR`,
+            ? `₹${(mappedDetections.length * 150 + 400).toLocaleString('en-IN')} INR`
+            : `₹${(mappedDetections.length * 80 + 200).toLocaleString('en-IN')} INR`,
           distressCount: data.total_damage,
           detections: mappedDetections,
           location: 'Uploaded Image — GPS Coordinates Not Available',

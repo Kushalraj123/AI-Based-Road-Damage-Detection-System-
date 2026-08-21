@@ -26,7 +26,7 @@ const CORRIDOR_PROFILES = {
   'Hassan Urban Corridor Grid': {
     code: 'KA-HAS-01',
     district: 'Hassan Central Urban Zone',
-    baseMiles: 48.6,
+    baseMiles: 18.5,
     filterKeyword: 'Hassan',
     pciScore: 71.4,
     budgetMultiplier: 1.0,
@@ -36,30 +36,30 @@ const CORRIDOR_PROFILES = {
   'National Highway 75 (NH-75) Hassan Bypass': {
     code: 'NH-75-KA',
     district: 'NHAI Regional Division Karnataka',
-    baseMiles: 182.4,
+    baseMiles: 45.0,
     filterKeyword: 'NH-75',
     pciScore: 84.8,
-    budgetMultiplier: 2.2,
+    budgetMultiplier: 1.3,
     wardTeam: 'NHAI Highway Patrol & Engineering Unit 03',
     authority: 'National Highways Authority of India (NHAI)'
   },
   'Bengaluru-Mysuru Expressway (NH-275)': {
     code: 'NH-275-EXP',
     district: 'Bengaluru-Mysuru Expressway Corridor',
-    baseMiles: 118.0,
+    baseMiles: 38.0,
     filterKeyword: 'Bengaluru',
     pciScore: 88.5,
-    budgetMultiplier: 1.8,
+    budgetMultiplier: 1.2,
     wardTeam: 'Expressway Rapid Response Engineering Unit',
     authority: 'Karnataka State Highway Improvement Project (KSHIP)'
   },
   'Karnataka State Highway Corridor (SH-1)': {
     code: 'SH-01-KA',
     district: 'State Arterial Highway Grid',
-    baseMiles: 245.0,
+    baseMiles: 62.0,
     filterKeyword: 'Highway',
     pciScore: 66.2,
-    budgetMultiplier: 3.1,
+    budgetMultiplier: 1.4,
     wardTeam: 'PWD State Highway Division 04',
     authority: 'Public Works Department (PWD) Karnataka'
   }
@@ -68,8 +68,8 @@ const CORRIDOR_PROFILES = {
 const DATE_INTERVAL_MULTIPLIERS = {
   'Last 7 Days': { factor: 0.25, label: '7-Day Inspection Sweep' },
   'Last 30 Days': { factor: 1.0, label: 'Monthly DOT Routine Audit' },
-  'Current Fiscal Quarter': { factor: 2.8, label: 'Quarterly Infrastructure Audit (Q3 FY26)' },
-  'Full Year 2026': { factor: 8.5, label: 'Annual Capital Asset Audit FY2026' }
+  'Current Fiscal Quarter': { factor: 2.2, label: 'Quarterly Infrastructure Audit (Q3 FY26)' },
+  'Full Year 2026': { factor: 5.0, label: 'Annual Capital Asset Audit FY2026' }
 };
 
 export default function ReportsGenerator() {
@@ -111,12 +111,12 @@ export default function ReportsGenerator() {
 
   const displayPoints = filteredPoints.length > 0 ? filteredPoints : GIS_DAMAGE_POINTS;
 
-  // Computed dynamic metrics
+  // Computed dynamic metrics (scaled down to realistic road repair values)
   const totalSurveyedMiles = (profile.baseMiles * intervalConfig.factor).toFixed(1);
-  const totalDefectsCount = Math.round(displayPoints.length * intervalConfig.factor * 12 * (auditSeed % 2 === 0 ? 1.05 : 0.95));
-  const criticalHazards = Math.round(displayPoints.filter(p => p.severity === 'Critical' || p.severity === 'High').length * intervalConfig.factor * 3);
-  const calculatedPCI = (profile.pciScore - (criticalHazards > 20 ? 4.2 : 0) + (auditSeed % 3) * 0.5).toFixed(1);
-  const estRemediationCost = Math.round((totalDefectsCount * 4200 + criticalHazards * 18500) * profile.budgetMultiplier);
+  const totalDefectsCount = Math.max(1, Math.round(displayPoints.length * intervalConfig.factor * (auditSeed % 2 === 0 ? 1.05 : 0.95)));
+  const criticalHazards = Math.max(0, Math.round(displayPoints.filter(p => p.severity === 'Critical' || p.severity === 'High').length * intervalConfig.factor));
+  const calculatedPCI = (profile.pciScore - (criticalHazards > 5 ? 2.5 : 0) + (auditSeed % 3) * 0.4).toFixed(1);
+  const estRemediationCost = Math.round((totalDefectsCount * 450 + criticalHazards * 1200) * profile.budgetMultiplier);
 
   // Handle re-generation
   const handleRegenerateAudit = () => {
