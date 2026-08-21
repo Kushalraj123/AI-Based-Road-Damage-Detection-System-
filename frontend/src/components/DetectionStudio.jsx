@@ -504,7 +504,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     setSubmittedTicketId(null);
     sounds.playLaserScan();
 
-    // Run stages concurrently with API call if we have a real file to upload
+    // Run stages dynamically with API call if we have a real file to upload
     let apiPromise = null;
     if (uploadedFile) {
       const formData = new FormData();
@@ -518,17 +518,15 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       getGpsAndGeocode();
     }
 
-    for (let i = 0; i < scanStages.length; i++) {
-      setScanStage(i);
-      setScanProgress((i + 1) * 20);
-      sounds.playBeep(450 + i * 120, 0.04);
-      await new Promise((r) => setTimeout(r, 420));
-    }
-
-    sounds.playLockOn();
-
     if (groundTruthData) {
-      // Sample preset scenario — use its pre-defined detections
+      // Sample preset scenario — snappy realistic scan sequence
+      for (let i = 0; i < scanStages.length; i++) {
+        setScanStage(i);
+        setScanProgress((i + 1) * 20);
+        sounds.playBeep(450 + i * 120, 0.03);
+        await new Promise((r) => setTimeout(r, 70));
+      }
+      sounds.playLockOn();
       setIsBackendResult(false);
       setDetectionResult({
         ...groundTruthData,
@@ -541,13 +539,27 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     }
 
     if (apiPromise) {
+      // Animate progress smoothly while API is fetching
+      let stageCounter = 0;
+      const progressTimer = setInterval(() => {
+        stageCounter = (stageCounter + 1) % scanStages.length;
+        setScanStage(stageCounter);
+        setScanProgress(Math.min(90, 20 + stageCounter * 16));
+        sounds.playBeep(450 + stageCounter * 100, 0.02);
+      }, 100);
+
       try {
         const response = await apiPromise;
+        clearInterval(progressTimer);
+        setScanStage(scanStages.length - 1);
+        setScanProgress(100);
+
         if (!response.ok) {
           const err = await response.json();
           throw new Error(err.detail || 'Backend detection failed');
         }
         const data = await response.json();
+        sounds.playLockOn();
 
         // Map backend detections to our UI format
         const mappedDetections = (data.detections || []).map((det, idx) => {
@@ -681,21 +693,31 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     }
   };
 
-  // Capture one frame from video and run backend detection
+  // Capture one frame from video and run backend detection with downscaling for real-time responsiveness
+  const isFrameInFlightRef = useRef(false);
+
   const captureAndDetect = async () => {
+    if (isFrameInFlightRef.current) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas || video.readyState < 2) return;
 
-    const w = video.videoWidth || 640;
-    const h = video.videoHeight || 480;
-    canvas.width  = w;
-    canvas.height = h;
+    // Scale frame down to max 640x360 for high-speed network transmission and inference
+    const maxDim = 640;
+    let targetW = video.videoWidth || 640;
+    let targetH = video.videoHeight || 360;
+    if (targetW > maxDim) {
+      targetH = Math.round((targetH * maxDim) / targetW);
+      targetW = maxDim;
+    }
+    canvas.width  = targetW;
+    canvas.height = targetH;
 
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, w, h);
-    const base64Frame = canvas.toDataURL('image/jpeg', 0.75);
+    ctx.drawImage(video, 0, 0, targetW, targetH);
+    const base64Frame = canvas.toDataURL('image/jpeg', 0.65);
 
+    isFrameInFlightRef.current = true;
     const frameStart = performance.now();
     try {
       const res = await fetch(`${BACKEND_URL}/api/detect-frame`, {
@@ -707,11 +729,14 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
           conf_threshold: confThreshold
         })
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        isFrameInFlightRef.current = false;
+        return;
+      }
       const data = await res.json();
 
       const elapsed = performance.now() - frameStart;
-      setLiveFps(Math.round(1000 / elapsed));
+      setLiveFps(Math.round(1000 / Math.max(elapsed, 1)));
 
       if (data.success) {
         setLiveProcessedFrame(data.processed_frame);
@@ -724,6 +749,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       }
     } catch (err) {
       // Network error — silently skip frame
+    } finally {
+      isFrameInFlightRef.current = false;
     }
   };
 
@@ -732,9 +759,10 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     setIsLiveDetecting(true);
     setLiveTotalDetected(0);
     setLiveFrameCount(0);
+    isFrameInFlightRef.current = false;
     sounds.playLaserScan();
-    // Run detection every 800ms (adjust for performance)
-    liveDetectRef.current = setInterval(captureAndDetect, 800);
+    // Responsive loop (120ms polling when free)
+    liveDetectRef.current = setInterval(captureAndDetect, 120);
   };
 
   const stopLiveDetection = () => {
@@ -742,6 +770,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       clearInterval(liveDetectRef.current);
       liveDetectRef.current = null;
     }
+    isFrameInFlightRef.current = false;
     setIsLiveDetecting(false);
   };
 
@@ -1301,11 +1330,13 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
               ) : (
                 <div style={{ width: '100%', height: '100%', minHeight: '460px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                   <video
+                    key={processedVideoUrl || videoPreviewUrl}
                     src={processedVideoUrl || videoPreviewUrl}
                     controls={!!processedVideoUrl}
                     autoPlay
                     loop
                     muted
+                    playsInline
                     style={{ width: '100%', height: '100%', maxHeight: '520px', objectFit: 'contain', display: 'block' }}
                   />
 

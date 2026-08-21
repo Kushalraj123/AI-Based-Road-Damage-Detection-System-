@@ -7,3 +7,5 @@ torch
 torchvision
 pydantic
 pandas
+imageio
+imageio-ffmpeg
