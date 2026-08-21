@@ -1,5 +1,35 @@
 [
     {
+        "id": "398cb1a1-670e-4311-b57b-a715c25dcf7c",
+        "type": "video",
+        "timestamp": "2026-08-21 19:24:13",
+        "model_id": "damage-yolo12s",
+        "filename": "398cb1a1-670e-4311-b57b-a715c25dcf7c.mp4",
+        "original_url": "/uploads/398cb1a1-670e-4311-b57b-a715c25dcf7c.mp4",
+        "processed_url": "/processed/processed_398cb1a1-670e-4311-b57b-a715c25dcf7c.mp4",
+        "total_damage": 8,
+        "severity": "Medium",
+        "classes_detected": [
+            "D00",
+            "D40"
+        ]
+    },
+    {
+        "id": "7111176d-729d-48eb-8e19-4679126cd678",
+        "type": "video",
+        "timestamp": "2026-08-21 19:19:41",
+        "model_id": "damage-yolo12s",
+        "filename": "7111176d-729d-48eb-8e19-4679126cd678.mp4",
+        "original_url": "/uploads/7111176d-729d-48eb-8e19-4679126cd678.mp4",
+        "processed_url": "/processed/processed_7111176d-729d-48eb-8e19-4679126cd678.mp4",
+        "total_damage": 12,
+        "severity": "High",
+        "classes_detected": [
+            "D00",
+            "D40"
+        ]
+    },
+    {
         "id": "b7ba00f9-8441-4b57-848d-e1f341cd1932",
         "type": "image",
         "timestamp": "2026-08-21 19:18:10",
@@ -688,35 +718,6 @@
         "severity": "High",
         "classes_detected": [
             "D40 Pothole"
-        ]
-    },
-    {
-        "id": "2a5cd843-c682-48a7-a912-f5d5b3fd5693",
-        "type": "image",
-        "timestamp": "2026-08-20 10:37:08",
-        "model_id": "damage-yolo12s",
-        "filename": "road damage3.png",
-        "original_url": "/uploads/2a5cd843-c682-48a7-a912-f5d5b3fd5693.png",
-        "processed_url": "/processed/processed_2a5cd843-c682-48a7-a912-f5d5b3fd5693.png",
-        "total_damage": 10,
-        "severity": "High",
-        "classes_detected": [
-            "D40 - Rutting / Pothole"
-        ]
-    },
-    {
-        "id": "b51c7b5d-c4e6-47d9-a098-2cf7f3c0b8c8",
-        "type": "image",
-        "timestamp": "2026-08-20 10:34:09",
-        "model_id": "damage-yolo12s",
-        "filename": "road damage 22.jpg",
-        "original_url": "/uploads/b51c7b5d-c4e6-47d9-a098-2cf7f3c0b8c8.jpg",
-        "processed_url": "/processed/processed_b51c7b5d-c4e6-47d9-a098-2cf7f3c0b8c8.jpg",
-        "total_damage": 3,
-        "severity": "Medium",
-        "classes_detected": [
-            "D00 - Longitudinal Crack",
-            "D20 - Alligator Crack"
         ]
     }
 ]
