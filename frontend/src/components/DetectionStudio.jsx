@@ -1489,9 +1489,10 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                     style={{
                       width: '100%',
                       height: '100%',
-                      maxHeight: '520px',
-                      objectFit: 'cover',
-                      display: 'block'
+                      maxHeight: '600px',
+                      objectFit: 'contain',
+                      display: 'block',
+                      margin: '0 auto'
                     }}
                   />
                 )}
@@ -1513,8 +1514,10 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                       style={{
                         width: '100%',
                         height: '100%',
-                        maxHeight: '520px',
-                        objectFit: 'cover',
+                        maxHeight: '600px',
+                        objectFit: 'contain',
+                        display: 'block',
+                        margin: '0 auto',
                         filter: 'grayscale(0.3) contrast(1.1)'
                       }}
                     />

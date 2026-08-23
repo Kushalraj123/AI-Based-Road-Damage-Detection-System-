@@ -288,13 +288,13 @@ def draw_stylized_box(image: np.ndarray, x1: int, y1: int, x2: int, y2: int, lab
     badge_w = tw + int(10 * scale)
     badge_h = th + baseline + int(8 * scale)
     
-    # Place badge above box if there's room, otherwise place it inside top of box
-    if y1 >= badge_h:
-        bx1, by1 = x1, y1 - badge_h
-        bx2, by2 = min(w - 1, x1 + badge_w), y1
+    # Place badge above box if there is room, otherwise inside top-left of box
+    if y1 >= badge_h + 6:
+        bx1, by1 = x1, y1 - badge_h - 2
+        bx2, by2 = min(w - 1, x1 + badge_w), y1 - 2
     else:
-        bx1, by1 = x1, y1
-        bx2, by2 = min(w - 1, x1 + badge_w), min(h - 1, y1 + badge_h)
+        bx1, by1 = x1 + 2, y1 + 2
+        bx2, by2 = min(w - 1, x1 + badge_w + 2), min(h - 1, y1 + badge_h + 2)
     
     # Draw dark shadow under badge for contrast
     cv2.rectangle(image, (bx1 - 1, by1 - 1), (bx2 + 1, by2 + 1), (20, 20, 20), -1)
