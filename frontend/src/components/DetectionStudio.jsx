@@ -70,7 +70,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
 
   // Model selection & speed
   const [selectedModel, setSelectedModel] = useState('damage-ensemble');
-  const [confThreshold, setConfThreshold] = useState(0.10); // Default 10% for full recall of both large fatigue road breakdowns and acute pothole pits
+  const [confThreshold, setConfThreshold] = useState(0.08); // Default 8% for maximum recall of wide diffuse road erosion and sharp potholes
   const [inferenceTimeMs, setInferenceTimeMs] = useState(null);
 
   // Track whether current result came from real backend API (so we don't double-draw boxes)
@@ -839,14 +839,19 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
         </div>
 
         {/* Studio Controls: Model & Threshold */}
-        <div className="glass-panel" style={{ padding: '0.65rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+        <div className="glass-panel" style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem' }}>
           <div>
             <label style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.2rem', fontFamily: 'var(--font-mono)' }}>
               NEURAL MODEL
             </label>
             <select
               value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
+              onChange={(e) => {
+                setSelectedModel(e.target.value);
+                if (selectedFile) {
+                  runScanProcess(imagePreviewUrl, null, selectedFile);
+                }
+              }}
               style={{
                 background: 'var(--bg-canvas)',
                 border: '1px solid var(--border-glass)',
@@ -864,19 +869,63 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
           </div>
 
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-              <span>CONFIDENCE THRESHOLD</span>
-              <span style={{ color: 'var(--accent-cyan)' }}>{Math.round(confThreshold * 100)}%</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginBottom: '0.2rem' }}>
+              <span>SENSITIVITY / THRESHOLD</span>
+              <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>{Math.round(confThreshold * 100)}%</span>
             </div>
-            <input
-              type="range"
-              min="0.05"
-              max="0.75"
-              step="0.05"
-              value={confThreshold}
-              onChange={(e) => setConfThreshold(parseFloat(e.target.value))}
-              style={{ width: '130px', accentColor: 'var(--accent-cyan)' }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <input
+                type="range"
+                min="0.04"
+                max="0.60"
+                step="0.02"
+                value={confThreshold}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setConfThreshold(val);
+                }}
+                onMouseUp={() => {
+                  if (selectedFile) runScanProcess(imagePreviewUrl, null, selectedFile);
+                }}
+                onTouchEnd={() => {
+                  if (selectedFile) runScanProcess(imagePreviewUrl, null, selectedFile);
+                }}
+                style={{ width: '110px', accentColor: 'var(--accent-cyan)' }}
+              />
+              <div style={{ display: 'flex', gap: '0.25rem' }}>
+                {[
+                  { label: '8% Max', val: 0.08 },
+                  { label: '15% Bal', val: 0.15 },
+                  { label: '25% Strict', val: 0.25 }
+                ].map((p) => (
+                  <button
+                    key={p.val}
+                    onClick={() => {
+                      setConfThreshold(p.val);
+                      if (selectedFile) {
+                        const formData = new FormData();
+                        formData.append('file', selectedFile);
+                        formData.append('model_id', selectedModel);
+                        formData.append('conf_threshold', p.val);
+                        runScanProcess(imagePreviewUrl, null, selectedFile);
+                      }
+                    }}
+                    style={{
+                      background: Math.abs(confThreshold - p.val) < 0.02 ? 'rgba(6, 182, 212, 0.25)' : 'var(--bg-canvas)',
+                      border: Math.abs(confThreshold - p.val) < 0.02 ? '1px solid var(--accent-cyan)' : '1px solid var(--border-glass)',
+                      color: Math.abs(confThreshold - p.val) < 0.02 ? 'var(--accent-cyan)' : 'var(--text-tertiary)',
+                      fontSize: '0.68rem',
+                      padding: '0.2rem 0.45rem',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-mono)'
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
