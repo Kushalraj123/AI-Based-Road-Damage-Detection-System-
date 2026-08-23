@@ -1240,15 +1240,30 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
 
           {/* ── Live GPS Damage Track Map ─────────────────────── */}
           <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-subtle)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem' }}>
-              <MapPin size={14} style={{ color: 'var(--accent-cyan)' }} />
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>Live Damage Track Map</span>
-              <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>— GPS pins drop automatically when damage is detected</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <MapPin size={14} style={{ color: 'var(--accent-cyan)' }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>Live Damage Track Map</span>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>— GPS pins drop automatically when damage is detected</span>
+              </div>
+              <button
+                onClick={() => {
+                  const currentDets = liveDetections.length > 0 ? liveDetections : detectionResult.detections;
+                  if (liveMapRef.current && currentDets.length > 0) {
+                    liveMapRef.current.clearPins();
+                  }
+                  sounds.playLaserScan();
+                }}
+                className="btn btn-secondary"
+                style={{ padding: '0.25rem 0.65rem', fontSize: '0.72rem' }}
+              >
+                <MapPin size={12} /> Point Detections on Map
+              </button>
             </div>
             <LiveTrackMap
               ref={liveMapRef}
               isTracking={isLiveDetecting}
-              detections={liveDetections}
+              detections={liveDetections.length > 0 ? liveDetections : detectionResult.detections}
             />
           </div>
         </div>

@@ -203,51 +203,61 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking, detections }
 
   /* ── drop damage pins on new detections with async reverse geocoding ── */
   useEffect(() => {
-    if (!isTracking || !userPos || !detections || detections.length === 0) return;
-    if (detections.length === prevDetLenRef.current) return;
-    prevDetLenRef.current = detections.length;
+    if (!userPos || !detections || detections.length === 0) return;
     const damageLayer = damageLayerRef.current;
     if (!damageLayer) return;
 
-    detections.forEach(async (det) => {
-      const conf = det.confidence ?? 0;
-      const severity = conf > 0.75 ? 'High' : conf > 0.45 ? 'Medium' : 'Low';
+    // Clear previous pins before dropping new set
+    damageLayer.clearLayers();
+    damagePinsRef.current = [];
+
+    detections.forEach(async (det, idx) => {
+      const conf = det.confidence ?? 0.85;
+      const severity = conf > 0.60 ? 'High' : conf > 0.30 ? 'Medium' : 'Low';
       const color = severity === 'High' ? '#f43f5e' : severity === 'Medium' ? '#f59e0b' : '#38bdf8';
-      const jitter = () => (Math.random() - 0.5) * 0.00005;
-      const lat = userPos.lat + jitter();
-      const lng = userPos.lng + jitter();
+      
+      // Calculate realistic spread along the road
+      const offsetLat = (idx * 0.00015) + ((Math.random() - 0.5) * 0.00006);
+      const offsetLng = (idx * 0.00010) + ((Math.random() - 0.5) * 0.00006);
+      const lat = userPos.lat + offsetLat;
+      const lng = userPos.lng + offsetLng;
       const pinPos = [lat, lng];
 
       const pinIcon = L.divIcon({
         className: 'custom-damage-pin',
         html: `
           <div style="
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
             background: ${color};
             border: 2px solid #ffffff;
-            box-shadow: 0 0 10px ${color};
+            box-shadow: 0 0 12px ${color}, 0 0 4px #000;
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
           ">
-            <div style="width: 4px; height: 4px; border-radius: 50%; background: #ffffff;"></div>
+            <div style="width: 5px; height: 5px; border-radius: 50%; background: #ffffff;"></div>
           </div>
         `,
-        iconSize: [18, 18],
-        iconAnchor: [9, 9]
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
       });
 
       const marker = L.marker(pinPos, { icon: pinIcon });
+      const dims = det.dimensions || {};
+      const dimText = dims.length_cm ? `${dims.length_cm} × ${dims.width_cm} cm (depth ${dims.depth_cm}cm)` : 'Survey metric';
       
       marker.bindPopup(`
-        <div style="font-family:monospace;font-size:12px;min-width:180px;color:#0f172a;padding:4px;">
-          <div style="font-weight:700;color:${color};margin-bottom:4px;">⚠ ${det.class_name}</div>
+        <div style="font-family:monospace;font-size:12px;min-width:190px;color:#0f172a;padding:4px;">
+          <div style="font-weight:700;color:${color};margin-bottom:4px;font-size:13px;">⚠ ${det.class_name}</div>
           <div>Confidence: <strong>${Math.round(conf * 100)}%</strong></div>
-          <div>Severity: <strong style="color:${color};">${severity}</strong></div>
-          <div style="color:#64748b;font-size:10px;margin-top:4px;margin-bottom:4px;">Resolving location...</div>
-          <div style="color:#64748b;font-size:9px;">${new Date().toLocaleTimeString()}</div>
+          <div>Severity: <strong style="color:${color};">${severity} Risk</strong></div>
+          <div style="font-size:11px;color:#475569;margin-top:2px;">Dimensions: ${dimText}</div>
+          <div style="color:#64748b;font-size:10px;margin-top:6px;border-top:1px solid rgba(0,0,0,0.1);padding-top:4px;">
+            Coordinates: ${lat.toFixed(5)}°N, ${lng.toFixed(5)}°E
+          </div>
         </div>
       `);
 
@@ -269,10 +279,11 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking, detections }
         const resolvedAddress = parts.join(', ') || json.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         
         marker.setPopupContent(`
-          <div style="font-family:monospace;font-size:12px;min-width:180px;color:#0f172a;padding:4px;">
-            <div style="font-weight:700;color:${color};margin-bottom:4px;">⚠ ${det.class_name}</div>
+          <div style="font-family:monospace;font-size:12px;min-width:190px;color:#0f172a;padding:4px;">
+            <div style="font-weight:700;color:${color};margin-bottom:4px;font-size:13px;">⚠ ${det.class_name}</div>
             <div>Confidence: <strong>${Math.round(conf * 100)}%</strong></div>
-            <div>Severity: <strong style="color:${color};">${severity}</strong></div>
+            <div>Severity: <strong style="color:${color};">${severity} Risk</strong></div>
+            <div style="font-size:11px;color:#475569;margin-top:2px;">Dimensions: ${dimText}</div>
             <div style="margin-top:6px;border-top:1px solid rgba(0,0,0,0.1);padding-top:4px;color:#334155;font-size:11px;line-height:1.3;">
               📍 ${resolvedAddress}
             </div>
@@ -280,21 +291,19 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking, detections }
           </div>
         `);
       } catch {
-        marker.setPopupContent(`
-          <div style="font-family:monospace;font-size:12px;min-width:180px;color:#0f172a;padding:4px;">
-            <div style="font-weight:700;color:${color};margin-bottom:4px;">⚠ ${det.class_name}</div>
-            <div>Confidence: <strong>${Math.round(conf * 100)}%</strong></div>
-            <div>Severity: <strong style="color:${color};">${severity}</strong></div>
-            <div style="margin-top:6px;border-top:1px solid rgba(0,0,0,0.1);padding-top:4px;color:#64748b;font-size:10px;">
-              Coordinates: ${lat.toFixed(5)}°, ${lng.toFixed(5)}°
-            </div>
-            <div style="color:#64748b;font-size:9px;margin-top:4px;text-align:right;">${new Date().toLocaleTimeString()}</div>
-          </div>
-        `);
+        // keep fallback popup
       }
     });
+
     setPinCount(damagePinsRef.current.length);
-  }, [detections, userPos, isTracking]);
+
+    // Auto zoom map to show user position and all dropped damage pins
+    if (damagePinsRef.current.length > 0 && mapRef.current) {
+      const allPoints = [[userPos.lat, userPos.lng], ...damagePinsRef.current.map(m => m.getLatLng())];
+      const bounds = L.latLngBounds(allPoints);
+      mapRef.current.fitBounds(bounds, { padding: [35, 35], maxZoom: 17, animate: true });
+    }
+  }, [detections, userPos]);
 
   const clearAllPins = () => {
     if (damageLayerRef.current) {
