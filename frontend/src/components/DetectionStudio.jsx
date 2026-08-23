@@ -1237,20 +1237,6 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
               </div>
             </div>
           </div>
-
-          {/* ── Live GPS Damage Track Map ─────────────────────── */}
-          <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-subtle)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem' }}>
-              <MapPin size={14} style={{ color: 'var(--accent-cyan)' }} />
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>Live Damage Track Map</span>
-              <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>— GPS pins drop automatically when damage is detected</span>
-            </div>
-            <LiveTrackMap
-              ref={liveMapRef}
-              isTracking={isLiveDetecting}
-              detections={liveDetections}
-            />
-          </div>
         </div>
       )}
 
