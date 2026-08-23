@@ -29,7 +29,10 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking = false, dete
   const [isLocating, setIsLocating] = useState(false);
   const [userAddress, setUserAddress] = useState('Acquiring location…');
 
-  /* Expose clearPins() and pinDetections() to parent */
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+
+  /* Expose clearPins(), pinDetections(), and setLocation() to parent */
   useImperativeHandle(ref, () => ({
     clearPins() {
       clearAllPins();
@@ -39,13 +42,24 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking = false, dete
     },
     locateMe() {
       acquireUserPosition(true);
+    },
+    setCustomLocation(lat, lng, address) {
+      const customPos = { lat: parseFloat(lat), lng: parseFloat(lng) };
+      setUserPos(customPos);
+      setAccuracy(5);
+      setGpsStatus('PINPOINT PINNED');
+      if (address) setUserAddress(address);
+      updateUserMarkerOnMap(customPos, 5, true);
+      if (detections && detections.length > 0) {
+        dropPinsForDetections(detections, customPos);
+      }
     }
   }));
 
   // Helper to acquire user position via HTML5 Geolocation with IP fallback
   const acquireUserPosition = (panTo = false) => {
     setIsLocating(true);
-    setGpsStatus('Acquiring GPS…');
+    setGpsStatus('Acquiring Hardware GPS…');
     setGpsError(null);
 
     if (navigator.geolocation) {
@@ -55,7 +69,7 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking = false, dete
           const newPos = { lat, lng };
           setUserPos(newPos);
           setAccuracy(Math.round(acc));
-          setGpsStatus(`LOCKED ±${Math.round(acc)}m`);
+          setGpsStatus(`GPS HARDWARE ±${Math.round(acc)}m`);
           setIsLocating(false);
 
           updateUserMarkerOnMap(newPos, acc, panTo);
@@ -70,28 +84,59 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking = false, dete
             if (data && data.latitude && data.longitude) {
               const newPos = { lat: data.latitude, lng: data.longitude };
               setUserPos(newPos);
-              setAccuracy(1000);
-              setGpsStatus(`IP-BASED (${data.city || 'India'})`);
+              setAccuracy(500);
+              setGpsStatus(`APPROX IP (${data.city || 'Regional'})`);
               setIsLocating(false);
               setUserAddress(`${data.city || ''}, ${data.region || ''}, ${data.country_name || 'India'}`);
-              updateUserMarkerOnMap(newPos, 1000, panTo);
+              updateUserMarkerOnMap(newPos, 500, panTo);
             } else {
               throw new Error('IP geolocation unavailable');
             }
           } catch (ipErr) {
-            setGpsStatus('DEFAULT (Bengaluru)');
-            setGpsError('GPS permission not granted; defaulting to regional hub.');
+            setGpsStatus('DEFAULT (Hassan/Bengaluru)');
+            setGpsError('GPS permission not granted; click map or search above to pinpoint.');
             setIsLocating(false);
-            const fallbackPos = { lat: 12.9716, lng: 77.5946 };
+            const fallbackPos = { lat: 13.0171, lng: 76.1275 }; // Hassan Default
             setUserPos(fallbackPos);
-            updateUserMarkerOnMap(fallbackPos, 500, panTo);
+            updateUserMarkerOnMap(fallbackPos, 100, panTo);
           }
         },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     } else {
       setGpsError('Geolocation is not supported by your browser.');
       setIsLocating(false);
+    }
+  };
+
+  const handleSearchLocation = async (e) => {
+    e?.preventDefault();
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`);
+      const results = await res.json();
+      if (results && results.length > 0) {
+        const item = results[0];
+        const newLat = parseFloat(item.lat);
+        const newLng = parseFloat(item.lon);
+        const newPos = { lat: newLat, lng: newLng };
+        setUserPos(newPos);
+        setAccuracy(5);
+        setGpsStatus('CUSTOM SEARCH PIN');
+        setUserAddress(item.display_name);
+        setIsSearching(false);
+        updateUserMarkerOnMap(newPos, 5, true);
+        if (detections && detections.length > 0) {
+          dropPinsForDetections(detections, newPos);
+        }
+      } else {
+        alert('Location not found. Try searching for a nearby landmark or city.');
+        setIsSearching(false);
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+      setIsSearching(false);
     }
   };
 
@@ -103,7 +148,7 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking = false, dete
       const json = await res.json();
       const a = json.address || {};
       const parts = [
-        a.road || a.pedestrian || a.suburb,
+        a.road || a.pedestrian || a.suburb || a.village,
         a.city || a.town || a.county || a.state_district,
         a.state
       ].filter(Boolean);
@@ -123,22 +168,37 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking = false, dete
     const userIcon = L.divIcon({
       className: 'custom-user-marker',
       html: `
-        <div style="position:relative; width:22px; height:22px; display:flex; align-items:center; justify-content:center;">
+        <div style="position:relative; width:24px; height:24px; display:flex; align-items:center; justify-content:center;">
           <div style="position:absolute; width:100%; height:100%; border-radius:50%; background:#06b6d4; opacity:0.4; animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></div>
-          <div style="width:14px; height:14px; border-radius:50%; background:#06b6d4; border:2.5px solid #ffffff; box-shadow:0 0 12px #06b6d4;"></div>
+          <div style="width:14px; height:14px; border-radius:50%; background:#06b6d4; border:2.5px solid #ffffff; box-shadow:0 0 14px #06b6d4;"></div>
         </div>
       `,
-      iconSize: [22, 22],
-      iconAnchor: [11, 11]
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
     });
 
     if (!userMarkerRef.current) {
-      userMarkerRef.current = L.marker(latlng, { icon: userIcon }).addTo(map);
+      userMarkerRef.current = L.marker(latlng, { icon: userIcon, draggable: true }).addTo(map);
+      
+      // Allow dragging marker to exact road position
+      userMarkerRef.current.on('dragend', (ev) => {
+        const movedLatLng = ev.target.getLatLng();
+        const movedPos = { lat: movedLatLng.lat, lng: movedLatLng.lng };
+        setUserPos(movedPos);
+        setGpsStatus('EXACT DRAGGED PIN');
+        reverseGeocode(movedPos.lat, movedPos.lng);
+        if (accuracyCircleRef.current) accuracyCircleRef.current.setLatLng(movedLatLng);
+        if (detections && detections.length > 0) {
+          dropPinsForDetections(detections, movedPos);
+        }
+      });
+
       userMarkerRef.current.bindPopup(`
-        <div style="font-family:monospace;font-size:12px;color:#0f172a;padding:4px;">
-          <div style="font-weight:700;color:#06b6d4;margin-bottom:4px;">📍 Your Live Location</div>
-          <div style="font-size:11px;color:#334155;">${userAddress}</div>
-          <div style="font-size:10px;color:#64748b;margin-top:4px;">Lat: ${pos.lat.toFixed(5)}°, Lng: ${pos.lng.toFixed(5)}°</div>
+        <div style="font-family: 'Inter', sans-serif; font-size:12px; color:#0f172a; padding:4px;">
+          <div style="font-weight:700; color:#06b6d4; margin-bottom:4px;">📍 Your Survey Location</div>
+          <div style="font-size:11px; color:#334155; line-height:1.3;">${userAddress}</div>
+          <div style="font-size:10px; color:#64748b; margin-top:4px;">Lat: ${pos.lat.toFixed(6)}°, Lng: ${pos.lng.toFixed(6)}°</div>
+          <div style="font-size:9px; color:#06b6d4; margin-top:4px; font-style:italic;">(Drag marker or click map to reposition)</div>
         </div>
       `);
     } else {
@@ -168,8 +228,8 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking = false, dete
     if (!mapDivRef.current || mapRef.current) return;
 
     const map = L.map(mapDivRef.current, {
-      center: [12.9716, 77.5946], // Default: South India Hub
-      zoom: 12,
+      center: [13.0171, 76.1275], // Default: Hassan Hub
+      zoom: 13,
       zoomControl: true,
       attributionControl: false
     });
@@ -182,6 +242,19 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking = false, dete
     const damageLayer = L.layerGroup().addTo(map);
     damageLayerRef.current = damageLayer;
     mapRef.current = map;
+
+    // Add click on map to pinpoint exact location
+    map.on('click', (e) => {
+      const clickedPos = { lat: e.latlng.lat, lng: e.latlng.lng };
+      setUserPos(clickedPos);
+      setAccuracy(5);
+      setGpsStatus('MANUALLY PINPOINTED');
+      reverseGeocode(clickedPos.lat, clickedPos.lng);
+      updateUserMarkerOnMap(clickedPos, 5, false);
+      if (detections && detections.length > 0) {
+        dropPinsForDetections(detections, clickedPos);
+      }
+    });
 
     setTimeout(() => {
       map.invalidateSize();
@@ -455,16 +528,96 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking = false, dete
 
       {/* Street Address / Position Banner */}
       {userPos && (
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.35rem 0.75rem', borderRadius: '6px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.35rem 0.75rem', borderRadius: '6px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap', gap: '0.3rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             <span style={{ color: 'var(--accent-cyan)' }}>📍</span>
-            <span>{userAddress}</span>
+            <span style={{ fontWeight: 600, color: '#ffffff' }}>{userAddress}</span>
           </div>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.66rem', color: 'var(--text-tertiary)', flexShrink: 0, marginLeft: '0.5rem' }}>
             {userPos.lat.toFixed(6)}°N, {userPos.lng.toFixed(6)}°E
           </span>
         </div>
       )}
+
+      {/* Location Search Bar & Quick City Presets */}
+      <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <form onSubmit={handleSearchLocation} style={{ display: 'flex', gap: '0.4rem', flex: 1, minWidth: '240px' }}>
+          <input
+            type="text"
+            placeholder="🔍 Search city, locality, street, or landmark (e.g. Hassan, Katihalli, MG Road)…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              flex: 1,
+              background: 'var(--bg-canvas)',
+              border: '1px solid var(--border-glass)',
+              borderRadius: '7px',
+              padding: '0.35rem 0.65rem',
+              color: 'var(--text-primary)',
+              fontSize: '0.74rem'
+            }}
+          />
+          <button
+            type="submit"
+            disabled={isSearching}
+            style={{
+              background: 'var(--bg-surface-elevated)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '7px',
+              padding: '0.35rem 0.75rem',
+              color: 'var(--accent-cyan)',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            {isSearching ? 'Searching…' : 'Find'}
+          </button>
+        </form>
+
+        {/* Quick Location Shortcuts */}
+        <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+          {[
+            { label: 'Hassan', lat: 13.0072, lng: 76.1030, name: 'Hassan, Karnataka, India' },
+            { label: 'Katihalli', lat: 13.0171, lng: 76.1275, name: 'Katihalli, Hassan, Karnataka, India' },
+            { label: 'Bengaluru', lat: 12.9716, lng: 77.5946, name: 'Bengaluru, Karnataka, India' },
+            { label: 'Mysuru', lat: 12.2958, lng: 76.6394, name: 'Mysuru, Karnataka, India' }
+          ].map(loc => (
+            <button
+              key={loc.label}
+              type="button"
+              onClick={() => {
+                const p = { lat: loc.lat, lng: loc.lng };
+                setUserPos(p);
+                setAccuracy(5);
+                setGpsStatus(`PINNED (${loc.label})`);
+                setUserAddress(loc.name);
+                updateUserMarkerOnMap(p, 5, true);
+                if (detections && detections.length > 0) {
+                  dropPinsForDetections(detections, p);
+                }
+              }}
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '5px',
+                padding: '0.22rem 0.5rem',
+                color: 'var(--text-secondary)',
+                fontSize: '0.67rem',
+                cursor: 'pointer'
+              }}
+            >
+              📍 {loc.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Interactive Map Tip */}
+      <div style={{ fontSize: '0.66rem', color: 'var(--text-tertiary)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        <span>💡</span>
+        <span>Click anywhere on the map or drag the blue marker to pinpoint your exact road location.</span>
+      </div>
 
       {/* Leaflet Map Canvas */}
       <div
