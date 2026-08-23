@@ -26,7 +26,7 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking, detections }
   const [gpsError,  setGpsError]  = useState(null);
   const [accuracy,  setAccuracy]  = useState(null);
 
-  /* expose clearPins() to parent */
+  /* expose clearPins() and dropPins() to parent */
   useImperativeHandle(ref, () => ({
     clearPins() {
       if (damageLayerRef.current) {
@@ -35,8 +35,88 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking, detections }
       damagePinsRef.current = [];
       setPinCount(0);
       prevDetLenRef.current = 0;
+    },
+    dropPins(items) {
+      dropPinsInternal(items);
     }
   }));
+
+  const dropPinsInternal = (items) => {
+    const list = items && items.length > 0 ? items : detections;
+    if (!list || list.length === 0) return;
+    const basePos = userPos || { lat: 13.0171, lng: 76.1275 };
+    const damageLayer = damageLayerRef.current;
+    const map = mapRef.current;
+    if (!damageLayer || !map) return;
+
+    damageLayer.clearLayers();
+    damagePinsRef.current = [];
+
+    list.forEach(async (det, idx) => {
+      const conf = det.confidence ?? 0.85;
+      const severity = conf > 0.60 ? 'High' : conf > 0.30 ? 'Medium' : 'Low';
+      const color = (det.class_name || '').toLowerCase().includes('pothole')
+        ? '#f43f5e'
+        : (det.class_name || '').toLowerCase().includes('alligator')
+        ? '#f59e0b'
+        : '#06b6d4';
+
+      const offsetLat = (idx * 0.00015) + ((Math.random() - 0.5) * 0.00006);
+      const offsetLng = (idx * 0.00010) + ((Math.random() - 0.5) * 0.00006);
+      const lat = basePos.lat + offsetLat;
+      const lng = basePos.lng + offsetLng;
+      const pinPos = [lat, lng];
+
+      const pinIcon = L.divIcon({
+        className: 'custom-damage-pin',
+        html: `
+          <div style="
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: ${color};
+            border: 2.5px solid #ffffff;
+            box-shadow: 0 0 14px ${color}, 0 0 4px #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+          ">
+            <div style="width: 5px; height: 5px; border-radius: 50%; background: #ffffff;"></div>
+          </div>
+        `,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
+      });
+
+      const marker = L.marker(pinPos, { icon: pinIcon });
+      const dims = det.dimensions || {};
+      const dimText = dims.length_cm ? `${dims.length_cm} × ${dims.width_cm} cm (depth ${dims.depth_cm}cm)` : 'Survey metric';
+
+      marker.bindPopup(`
+        <div style="font-family:monospace;font-size:12px;min-width:190px;color:#0f172a;padding:4px;">
+          <div style="font-weight:700;color:${color};margin-bottom:4px;font-size:13px;">⚠ ${det.class_name || 'Road Distress'}</div>
+          <div>Confidence: <strong>${Math.round(conf * 100)}%</strong></div>
+          <div>Severity: <strong style="color:${color};">${severity} Risk</strong></div>
+          <div style="font-size:11px;color:#475569;margin-top:2px;">Dimensions: ${dimText}</div>
+          <div style="color:#64748b;font-size:10px;margin-top:6px;border-top:1px solid rgba(0,0,0,0.1);padding-top:4px;">
+            Coordinates: ${lat.toFixed(5)}°N, ${lng.toFixed(5)}°E
+          </div>
+        </div>
+      `);
+
+      damageLayer.addLayer(marker);
+      damagePinsRef.current.push(marker);
+    });
+
+    setPinCount(damagePinsRef.current.length);
+
+    if (damagePinsRef.current.length > 0) {
+      const allPoints = [[basePos.lat, basePos.lng], ...damagePinsRef.current.map(m => m.getLatLng())];
+      const bounds = L.latLngBounds(allPoints);
+      map.fitBounds(bounds, { padding: [35, 35], maxZoom: 17, animate: true });
+    }
+  };
 
   /* ── init map + show user location immediately ── */
   useEffect(() => {
