@@ -1,5 +1,174 @@
 [
     {
+        "id": "97636461-a82b-4396-b0c1-e9b37660bd04",
+        "type": "image",
+        "timestamp": "2026-08-23 21:30:48",
+        "model_id": "damage-ensemble",
+        "filename": "9b61a272-71c6-4dce-a42e-e5b90b8f39f7.jpeg",
+        "original_url": "/uploads/97636461-a82b-4396-b0c1-e9b37660bd04.jpeg",
+        "processed_url": "/processed/processed_97636461-a82b-4396-b0c1-e9b37660bd04.jpeg",
+        "total_damage": 2,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "b3c430b2-0127-42e5-a246-7ae47954d5f9",
+        "type": "image",
+        "timestamp": "2026-08-23 21:30:34",
+        "model_id": "damage-ensemble",
+        "filename": "618b1067-6253-4f73-b45d-fd13d7238bdf.jpeg",
+        "original_url": "/uploads/b3c430b2-0127-42e5-a246-7ae47954d5f9.jpeg",
+        "processed_url": "/processed/processed_b3c430b2-0127-42e5-a246-7ae47954d5f9.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole",
+            "Alligator Crack"
+        ]
+    },
+    {
+        "id": "618b1067-6253-4f73-b45d-fd13d7238bdf",
+        "type": "image",
+        "timestamp": "2026-08-23 21:21:52",
+        "model_id": "damage-yolov8",
+        "filename": "road damage10.jpeg",
+        "original_url": "/uploads/618b1067-6253-4f73-b45d-fd13d7238bdf.jpeg",
+        "processed_url": "/processed/processed_618b1067-6253-4f73-b45d-fd13d7238bdf.jpeg",
+        "total_damage": 2,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "bf66c782-5c00-40ad-bf3b-2e70338e18bd",
+        "type": "image",
+        "timestamp": "2026-08-23 21:21:45",
+        "model_id": "damage-yolov8",
+        "filename": "road damage5.jpeg",
+        "original_url": "/uploads/bf66c782-5c00-40ad-bf3b-2e70338e18bd.jpeg",
+        "processed_url": "/processed/processed_bf66c782-5c00-40ad-bf3b-2e70338e18bd.jpeg",
+        "total_damage": 1,
+        "severity": "Medium",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "bc91e4d9-9361-4d16-a3c6-8b8d60cf3994",
+        "type": "image",
+        "timestamp": "2026-08-23 21:21:39",
+        "model_id": "damage-yolov8",
+        "filename": "road damage8.jpeg",
+        "original_url": "/uploads/bc91e4d9-9361-4d16-a3c6-8b8d60cf3994.jpeg",
+        "processed_url": "/processed/processed_bc91e4d9-9361-4d16-a3c6-8b8d60cf3994.jpeg",
+        "total_damage": 3,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "175aa371-bd96-4ce1-b700-b5dd88eb7b4a",
+        "type": "image",
+        "timestamp": "2026-08-23 21:21:34",
+        "model_id": "damage-yolov8",
+        "filename": "road damage7.jpeg",
+        "original_url": "/uploads/175aa371-bd96-4ce1-b700-b5dd88eb7b4a.jpeg",
+        "processed_url": "/processed/processed_175aa371-bd96-4ce1-b700-b5dd88eb7b4a.jpeg",
+        "total_damage": 5,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "5d20d035-313b-4992-a097-f82344c988a1",
+        "type": "image",
+        "timestamp": "2026-08-23 21:21:24",
+        "model_id": "damage-yolov8",
+        "filename": "road damage10.jpeg",
+        "original_url": "/uploads/5d20d035-313b-4992-a097-f82344c988a1.jpeg",
+        "processed_url": "/processed/processed_5d20d035-313b-4992-a097-f82344c988a1.jpeg",
+        "total_damage": 2,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "1fff3948-d649-4872-b1cb-415c791fe751",
+        "type": "image",
+        "timestamp": "2026-08-23 21:21:16",
+        "model_id": "damage-yolov8",
+        "filename": "road damage9.jpeg",
+        "original_url": "/uploads/1fff3948-d649-4872-b1cb-415c791fe751.jpeg",
+        "processed_url": "/processed/processed_1fff3948-d649-4872-b1cb-415c791fe751.jpeg",
+        "total_damage": 3,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "cd937948-ba4e-49d1-9637-348abd4b43c7",
+        "type": "image",
+        "timestamp": "2026-08-23 21:21:10",
+        "model_id": "damage-yolov8",
+        "filename": "road damage8.jpeg",
+        "original_url": "/uploads/cd937948-ba4e-49d1-9637-348abd4b43c7.jpeg",
+        "processed_url": "/processed/processed_cd937948-ba4e-49d1-9637-348abd4b43c7.jpeg",
+        "total_damage": 3,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "96977f60-668c-470d-827c-3010a2f96654",
+        "type": "image",
+        "timestamp": "2026-08-23 21:21:03",
+        "model_id": "damage-yolov8",
+        "filename": "road damage7.jpeg",
+        "original_url": "/uploads/96977f60-668c-470d-827c-3010a2f96654.jpeg",
+        "processed_url": "/processed/processed_96977f60-668c-470d-827c-3010a2f96654.jpeg",
+        "total_damage": 5,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "932286fe-b6d5-4275-8c9c-a636f52e4997",
+        "type": "image",
+        "timestamp": "2026-08-23 21:20:57",
+        "model_id": "damage-yolov8",
+        "filename": "road damage6.jpeg",
+        "original_url": "/uploads/932286fe-b6d5-4275-8c9c-a636f52e4997.jpeg",
+        "processed_url": "/processed/processed_932286fe-b6d5-4275-8c9c-a636f52e4997.jpeg",
+        "total_damage": 6,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "cb907971-3c4a-4465-b8c7-17935f2ac014",
+        "type": "image",
+        "timestamp": "2026-08-23 21:20:49",
+        "model_id": "damage-yolov8",
+        "filename": "road damage5.jpeg",
+        "original_url": "/uploads/cb907971-3c4a-4465-b8c7-17935f2ac014.jpeg",
+        "processed_url": "/processed/processed_cb907971-3c4a-4465-b8c7-17935f2ac014.jpeg",
+        "total_damage": 1,
+        "severity": "Medium",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
         "id": "260b90ea-abb2-4a72-873c-f386e8d182e5",
         "type": "image",
         "timestamp": "2026-08-23 21:19:32",
@@ -536,179 +705,6 @@
         "severity": "High",
         "classes_detected": [
             "D00 Long. Crack",
-            "D40 Pothole"
-        ]
-    },
-    {
-        "id": "1cdcdb4b-b5fb-4a4d-8c25-cfc7751a99d2",
-        "type": "video",
-        "timestamp": "2026-08-20 23:11:35",
-        "model_id": "damage-yolo12s",
-        "filename": "1cdcdb4b-b5fb-4a4d-8c25-cfc7751a99d2.mp4",
-        "original_url": "/uploads/1cdcdb4b-b5fb-4a4d-8c25-cfc7751a99d2.mp4",
-        "processed_url": "/processed/processed_1cdcdb4b-b5fb-4a4d-8c25-cfc7751a99d2.mp4",
-        "total_damage": 24,
-        "severity": "High",
-        "classes_detected": [
-            "D40 Pothole",
-            "D00 Long. Crack"
-        ]
-    },
-    {
-        "id": "95883833-fc84-4651-9cf4-f2d198640ea5",
-        "type": "video",
-        "timestamp": "2026-08-20 18:33:50",
-        "model_id": "damage-yolo12s",
-        "filename": "95883833-fc84-4651-9cf4-f2d198640ea5.mp4",
-        "original_url": "/uploads/95883833-fc84-4651-9cf4-f2d198640ea5.mp4",
-        "processed_url": "/processed/processed_95883833-fc84-4651-9cf4-f2d198640ea5.mp4",
-        "total_damage": 67,
-        "severity": "High",
-        "classes_detected": [
-            "D40 Pothole",
-            "D00 Long. Crack"
-        ]
-    },
-    {
-        "id": "9737c77d-d91e-4408-a9b6-4b33a817eef3",
-        "type": "video",
-        "timestamp": "2026-08-20 18:32:04",
-        "model_id": "damage-yolo12s",
-        "filename": "9737c77d-d91e-4408-a9b6-4b33a817eef3.mp4",
-        "original_url": "/uploads/9737c77d-d91e-4408-a9b6-4b33a817eef3.mp4",
-        "processed_url": "/processed/processed_9737c77d-d91e-4408-a9b6-4b33a817eef3.mp4",
-        "total_damage": 24,
-        "severity": "High",
-        "classes_detected": [
-            "D40 Pothole",
-            "D00 Long. Crack"
-        ]
-    },
-    {
-        "id": "67a8567b-7e68-405f-902d-97faf44ee9ea",
-        "type": "image",
-        "timestamp": "2026-08-20 18:30:32",
-        "model_id": "damage-yolo12s",
-        "filename": "road damage2.jpg",
-        "original_url": "/uploads/67a8567b-7e68-405f-902d-97faf44ee9ea.jpg",
-        "processed_url": "/processed/processed_67a8567b-7e68-405f-902d-97faf44ee9ea.jpg",
-        "total_damage": 2,
-        "severity": "High",
-        "classes_detected": [
-            "D20 Alligator",
-            "D40 Pothole"
-        ]
-    },
-    {
-        "id": "88fa828f-3c60-4d19-bbc7-dcca3b7e5c25",
-        "type": "image",
-        "timestamp": "2026-08-20 18:18:35",
-        "model_id": "damage-yolo12s",
-        "filename": "road damage3.png",
-        "original_url": "/uploads/88fa828f-3c60-4d19-bbc7-dcca3b7e5c25.png",
-        "processed_url": "/processed/processed_88fa828f-3c60-4d19-bbc7-dcca3b7e5c25.png",
-        "total_damage": 9,
-        "severity": "High",
-        "classes_detected": [
-            "D40 Pothole"
-        ]
-    },
-    {
-        "id": "4bcd2e0c-3679-4da1-9483-fc164aacdca6",
-        "type": "image",
-        "timestamp": "2026-08-20 18:16:41",
-        "model_id": "damage-yolo12s",
-        "filename": "road damage4.jpg",
-        "original_url": "/uploads/4bcd2e0c-3679-4da1-9483-fc164aacdca6.jpg",
-        "processed_url": "/processed/processed_4bcd2e0c-3679-4da1-9483-fc164aacdca6.jpg",
-        "total_damage": 6,
-        "severity": "High",
-        "classes_detected": [
-            "D40 Pothole",
-            "D20 Alligator"
-        ]
-    },
-    {
-        "id": "a6f38cb1-3e8d-4b36-bed2-d2ecffe24c2a",
-        "type": "image",
-        "timestamp": "2026-08-20 18:11:18",
-        "model_id": "damage-yolo12s",
-        "filename": "road damage3.png",
-        "original_url": "/uploads/a6f38cb1-3e8d-4b36-bed2-d2ecffe24c2a.png",
-        "processed_url": "/processed/processed_a6f38cb1-3e8d-4b36-bed2-d2ecffe24c2a.png",
-        "total_damage": 7,
-        "severity": "High",
-        "classes_detected": [
-            "D40 Pothole"
-        ]
-    },
-    {
-        "id": "4d4056b0-870a-42d8-82ec-a715435ed272",
-        "type": "image",
-        "timestamp": "2026-08-20 18:10:36",
-        "model_id": "damage-yolo12s",
-        "filename": "road damage4.jpg",
-        "original_url": "/uploads/4d4056b0-870a-42d8-82ec-a715435ed272.jpg",
-        "processed_url": "/processed/processed_4d4056b0-870a-42d8-82ec-a715435ed272.jpg",
-        "total_damage": 5,
-        "severity": "High",
-        "classes_detected": [
-            "D40 Pothole"
-        ]
-    },
-    {
-        "id": "cb96b03f-4700-4860-a380-75829435642b",
-        "type": "image",
-        "timestamp": "2026-08-20 18:08:38",
-        "model_id": "damage-yolo12s",
-        "filename": "road damage3.png",
-        "original_url": "/uploads/cb96b03f-4700-4860-a380-75829435642b.png",
-        "processed_url": "/processed/processed_cb96b03f-4700-4860-a380-75829435642b.png",
-        "total_damage": 9,
-        "severity": "High",
-        "classes_detected": [
-            "D40 Pothole"
-        ]
-    },
-    {
-        "id": "428b89f0-7408-4685-a1df-da577a253378",
-        "type": "image",
-        "timestamp": "2026-08-20 12:32:56",
-        "model_id": "damage-yolo12s",
-        "filename": "road damage4.jpg",
-        "original_url": "/uploads/428b89f0-7408-4685-a1df-da577a253378.jpg",
-        "processed_url": "/processed/processed_428b89f0-7408-4685-a1df-da577a253378.jpg",
-        "total_damage": 5,
-        "severity": "High",
-        "classes_detected": [
-            "D40 Pothole"
-        ]
-    },
-    {
-        "id": "9ffcff07-7e87-44f0-96d5-421fd1598b1f",
-        "type": "image",
-        "timestamp": "2026-08-20 12:17:27",
-        "model_id": "damage-yolo12s",
-        "filename": "road damage3.png",
-        "original_url": "/uploads/9ffcff07-7e87-44f0-96d5-421fd1598b1f.png",
-        "processed_url": "/processed/processed_9ffcff07-7e87-44f0-96d5-421fd1598b1f.png",
-        "total_damage": 9,
-        "severity": "High",
-        "classes_detected": [
-            "D40 Pothole"
-        ]
-    },
-    {
-        "id": "e652469d-6591-4091-98a5-325f46a88b34",
-        "type": "image",
-        "timestamp": "2026-08-20 12:07:39",
-        "model_id": "damage-yolo12s",
-        "filename": "road damage3.png",
-        "original_url": "/uploads/e652469d-6591-4091-98a5-325f46a88b34.png",
-        "processed_url": "/processed/processed_e652469d-6591-4091-98a5-325f46a88b34.png",
-        "total_damage": 9,
-        "severity": "High",
-        "classes_detected": [
             "D40 Pothole"
         ]
     }

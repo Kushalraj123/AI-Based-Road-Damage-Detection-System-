@@ -395,72 +395,101 @@ def estimate_damage_dimensions(box: List[int], class_name: str, conf: float,
         "area_m2":   area_m2
     }
 
-# Core detection service
+def calculate_box_iou(box1: List[int], box2: List[int]) -> float:
+    xA = max(box1[0], box2[0])
+    yA = max(box1[1], box2[1])
+    xB = min(box1[2], box2[2])
+    yB = min(box1[3], box2[3])
+    inter = max(0, xB - xA) * max(0, yB - yA)
+    a1 = max(0, box1[2] - box1[0]) * max(0, box1[3] - box1[1])
+    a2 = max(0, box2[2] - box2[0]) * max(0, box2[3] - box2[1])
+    return inter / float(a1 + a2 - inter + 1e-6)
+
+# Core detection service with Intelligent Multi-Model Ensemble option
 def process_detection(image_path: str, model_id: str, conf_threshold: float) -> Dict[str, Any]:
     image = cv2.imread(image_path)
     if image is None:
         raise ValueError("Could not load image.")
     
     height, width = image.shape[:2]
-    detections = []
-    model = model_manager.get_model(model_id)
+    raw_detections = []
     t0 = time.perf_counter()
-    
-    if model is not None:
-        try:
-            # Use 640x640 resolution matching YOLO training priors for 5x-10x faster CPU inference (~120ms) and optimal recall
-            results = model.predict(image, imgsz=640, conf=conf_threshold, iou=0.45, verbose=False)
-            if len(results) > 0:
-                result = results[0]
-                boxes = result.boxes
-                
-                for box in boxes:
-                    xyxy = box.xyxy[0].cpu().numpy().tolist() # x1, y1, x2, y2
-                    conf = float(box.conf[0].cpu().item())
-                    cls_id = int(box.cls[0].cpu().item())
-                    
-                    # Resolve descriptive human-readable label
-                    raw_name = model.names.get(cls_id, str(cls_id)) if hasattr(model, "names") else str(cls_id)
-                    cls_name = clean_class_name(raw_name, cls_id, model_id)
-                    
-                    # Skip very low confidence detections (false positives)
-                    if conf < conf_threshold:
-                        continue
-                    
-                    box_coords = [int(round(xyxy[0])), int(round(xyxy[1])), int(round(xyxy[2])), int(round(xyxy[3]))]
-                    dims = estimate_damage_dimensions(box_coords, cls_name, conf, width, height)
 
-                    detections.append({
-                        "box": box_coords,
-                        "class_id": cls_id,
-                        "class_name": cls_name,
-                        "confidence": conf,
-                        "dimensions": dims
-                    })
-        except Exception as e:
-            print(f"Error in model inference: {e}. Falling back to mock detection.")
-            detections = run_mock_detection(image, conf_threshold, model_id)
+    # Determine which models to execute
+    if model_id == "damage-ensemble" or model_id not in MODEL_CLASSES:
+        models_to_run = [("damage-yolo12s", 800), ("damage-yolov8", 640)]
     else:
-        # Run mock simulation (no ultralytics / loading failed)
-        detections = run_mock_detection(image, conf_threshold, model_id)
+        sz = 800 if model_id == "damage-yolo12s" else 640
+        models_to_run = [(model_id, sz)]
+
+    for mid, imgsz in models_to_run:
+        m = model_manager.get_model(mid)
+        if m is not None:
+            try:
+                # Run YOLO inference
+                res = m.predict(image, imgsz=imgsz, conf=conf_threshold, iou=0.45, verbose=False)
+                if len(res) > 0:
+                    for box in res[0].boxes:
+                        xyxy = box.xyxy[0].cpu().numpy().tolist()
+                        conf = float(box.conf[0].cpu().item())
+                        cls_id = int(box.cls[0].cpu().item())
+                        
+                        raw_name = m.names.get(cls_id, str(cls_id)) if hasattr(m, "names") else str(cls_id)
+                        cls_name = clean_class_name(raw_name, cls_id, mid)
+                        
+                        if conf < conf_threshold:
+                            continue
+                        
+                        box_coords = [int(round(xyxy[0])), int(round(xyxy[1])), int(round(xyxy[2])), int(round(xyxy[3]))]
+                        raw_detections.append({
+                            "box": box_coords,
+                            "class_id": cls_id,
+                            "class_name": cls_name,
+                            "confidence": conf
+                        })
+            except Exception as e:
+                print(f"Error in model {mid} inference: {e}")
+
+    # Fallback to mock detection if no models could run or no ultralytics
+    if len(raw_detections) == 0 and not ULTRALYTICS_AVAILABLE:
+        raw_detections = run_mock_detection(image, conf_threshold, model_id)
+
+    # Multi-Model NMS Fusion: sort by confidence descending, merge overlapping duplicates
+    raw_detections.sort(key=lambda x: x["confidence"], reverse=True)
+    detections = []
+    for candidate in raw_detections:
+        is_duplicate = False
+        for kept in detections:
+            # If same or overlapping area (IoU > 0.35), merge
+            if calculate_box_iou(candidate["box"], kept["box"]) > 0.35:
+                is_duplicate = True
+                break
+        if not is_duplicate:
+            # Attach estimated real-world dimensions
+            candidate["dimensions"] = estimate_damage_dimensions(
+                candidate["box"], candidate["class_name"], candidate["confidence"], width, height
+            )
+            detections.append(candidate)
 
     inference_time_ms = round((time.perf_counter() - t0) * 1000, 1)
 
-    # Attach dimensions to mock detections too (they don't have them yet)
-    for det in detections:
-        if "dimensions" not in det:
-            det["dimensions"] = estimate_damage_dimensions(
-                det["box"], det["class_name"], det["confidence"], width, height
-            )
+    # Standard color map by class name
+    CLASS_COLORS = {
+        "Pothole": (50, 50, 255),          # Vibrant Red
+        "Alligator Crack": (0, 165, 255),   # Orange
+        "Transverse Crack": (50, 220, 50),  # Green
+        "Longitudinal Crack": (30, 200, 255),# Cyan
+        "Repair Patch": (180, 100, 220),    # Purple
+        "Surface Distortion": (180, 100, 220),
+        "Surface Distress": (180, 100, 220)
+    }
 
-    # Draw boxes
+    # Draw stylized bounding boxes
     for det in detections:
         x1, y1, x2, y2 = det["box"]
-        class_id = det["class_id"]
         class_name = det["class_name"]
         conf = det["confidence"]
-        
-        color = MODEL_CLASSES.get(model_id, {}).get("colors", {}).get(class_id, (0, 255, 255))
+        color = CLASS_COLORS.get(class_name, (0, 255, 255))
         draw_stylized_box(image, x1, y1, x2, y2, class_name, conf, color)
 
     # Save processed image
@@ -477,8 +506,7 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     severity = "Clear"
     total_damage = len(detections)
     if total_damage > 0:
-        # Severity evaluation rules
-        has_critical = any("Pothole" in d["class_name"] or "D40" in d["class_name"] or "D20" in d["class_name"] or "Alligator" in d["class_name"] for d in detections)
+        has_critical = any("Pothole" in d["class_name"] or "Alligator" in d["class_name"] for d in detections)
         if total_damage >= 4 or (total_damage >= 2 and has_critical):
             severity = "High"
         elif total_damage >= 2 or has_critical:
@@ -794,9 +822,15 @@ def get_models():
     return {
         "models": [
             {
+                "id": "damage-ensemble",
+                "name": "RoadVision AI Ensemble Fusion (Recommended)",
+                "description": "Multi-model neural fusion capturing large alligator road failures, base erosion, potholes, and fine cracks.",
+                "classes": ["Alligator Crack", "Pothole", "Longitudinal Crack", "Transverse Crack", "Repair Patch", "Surface Distortion"]
+            },
+            {
                 "id": "damage-yolo12s",
                 "name": "Road Damage RDD2022 (YOLOv12s)",
-                "description": "Comprehensive road distress detector covering longitudinal, transverse, alligator cracks, rutting, and repairs.",
+                "description": "Specialized in structural fatigue, extensive alligator failure, longitudinal and transverse cracks.",
                 "classes": list(MODEL_CLASSES["damage-yolo12s"]["labels"].values())
             },
             {

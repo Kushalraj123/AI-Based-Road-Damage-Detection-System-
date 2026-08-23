@@ -69,8 +69,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
   const [showHeatmap, setShowHeatmap] = useState(false);
 
   // Model selection & speed
-  const [selectedModel, setSelectedModel] = useState('damage-yolov8');
-  const [confThreshold, setConfThreshold] = useState(0.15); // Default 15% for high sensitivity & balanced recall of potholes and cracks
+  const [selectedModel, setSelectedModel] = useState('damage-ensemble');
+  const [confThreshold, setConfThreshold] = useState(0.10); // Default 10% for full recall of both large fatigue road breakdowns and acute pothole pits
   const [inferenceTimeMs, setInferenceTimeMs] = useState(null);
 
   // Track whether current result came from real backend API (so we don't double-draw boxes)
@@ -856,8 +856,9 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 fontSize: '0.85rem'
               }}
             >
-              <option value="damage-yolov8">⚡ YOLOv8 Road Damage Pro (Ultra Fast ~120ms)</option>
-              <option value="damage-yolo12s">🧠 RDD2022 YOLOv12s (Deep Multi-Class)</option>
+              <option value="damage-ensemble">✨ RoadVision AI Ensemble Fusion (Complete Distress & Base Failure)</option>
+              <option value="damage-yolo12s">🧠 RDD2022 YOLOv12s (Alligator & Structural Distress)</option>
+              <option value="damage-yolov8">⚡ YOLOv8 Road Damage Pro (Potholes & Cracks)</option>
               <option value="pothole-yolov8">🎯 YOLOv8 Pothole Specialist</option>
             </select>
           </div>
