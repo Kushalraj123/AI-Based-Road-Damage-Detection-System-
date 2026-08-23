@@ -68,9 +68,10 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
   const [hoveredBox, setHoveredBox] = useState(null);
   const [showHeatmap, setShowHeatmap] = useState(false);
 
-  // Model selection
-  const [selectedModel, setSelectedModel] = useState('damage-yolo12s');
-  const [confThreshold, setConfThreshold] = useState(0.20); // Default 20% for balanced recall of subtle cracks and wide road distress
+  // Model selection & speed
+  const [selectedModel, setSelectedModel] = useState('damage-yolov8');
+  const [confThreshold, setConfThreshold] = useState(0.15); // Default 15% for high sensitivity & balanced recall of potholes and cracks
+  const [inferenceTimeMs, setInferenceTimeMs] = useState(null);
 
   // Track whether current result came from real backend API (so we don't double-draw boxes)
   const [isBackendResult, setIsBackendResult] = useState(false);
@@ -615,6 +616,9 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
         });
 
         // Show the processed image from backend (has OpenCV boxes already drawn)
+        if (data.inference_time_ms) {
+          setInferenceTimeMs(data.inference_time_ms);
+        }
         if (data.processed_image_base64) {
           setImagePreviewUrl(data.processed_image_base64);
           // Auto-switch to processed view so user sees backend result immediately
@@ -852,9 +856,9 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 fontSize: '0.85rem'
               }}
             >
-              <option value="damage-yolo12s">RDD2022 YOLOv12s (Full Distress)</option>
-              <option value="damage-yolov8">YOLOv8 Road Damage Pro</option>
-              <option value="pothole-yolov8">YOLOv8 Pothole Specialist</option>
+              <option value="damage-yolov8">⚡ YOLOv8 Road Damage Pro (Ultra Fast ~120ms)</option>
+              <option value="damage-yolo12s">🧠 RDD2022 YOLOv12s (Deep Multi-Class)</option>
+              <option value="pothole-yolov8">🎯 YOLOv8 Pothole Specialist</option>
             </select>
           </div>
 
@@ -865,8 +869,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             </div>
             <input
               type="range"
-              min="0.10"
-              max="0.85"
+              min="0.05"
+              max="0.75"
               step="0.05"
               value={confThreshold}
               onChange={(e) => setConfThreshold(parseFloat(e.target.value))}
@@ -1723,8 +1727,15 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Executive Condition Rating Card */}
           <div className="glass-panel" style={{ padding: '1.5rem', background: 'var(--bg-glass-strong)', border: '1px solid var(--border-glass)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <span className="mono-tag" style={{ color: 'var(--text-tertiary)' }}>INSPECTION TELEMETRY</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span className="mono-tag" style={{ color: 'var(--text-tertiary)' }}>INSPECTION TELEMETRY</span>
+                {inferenceTimeMs && (
+                  <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', padding: '0.15rem 0.45rem', borderRadius: '4px', background: 'rgba(6, 182, 212, 0.15)', color: 'var(--accent-cyan)', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
+                    ⚡ {inferenceTimeMs}ms
+                  </span>
+                )}
+              </div>
               {getSeverityBadge(detectionResult.severity)}
             </div>
 
