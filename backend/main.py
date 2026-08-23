@@ -671,13 +671,12 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(raw_output_path, fourcc, fps, (width, height))
         
-        actual_model_id = "damage-yolov8" if (model_id == "damage-ensemble" or model_id not in MODEL_CLASSES) else model_id
-        model = model_manager.get_model(actual_model_id)
+        models_for_video = [("damage-yolov8", 640), ("damage-yolo12s", 640)] if (model_id == "damage-ensemble" or model_id not in MODEL_CLASSES) else [(model_id, 640)]
         tracker = DistressTracker(max_disappeared=5, min_appearance=1)
         frame_idx = 0
         damage_types_set = set()
         
-        # Smart frame sampling: process YOLO every 2 frames for 2.5x faster speed while tracker maintains continuous 30fps boxes
+        # Smart frame sampling: process YOLO every 2 frames for fast speed while tracker maintains smooth continuous boxes
         frame_step = 2 if total_frames > 25 else 1
         cached_rects = []
         
@@ -691,58 +690,58 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
             raw_rects = []
             should_infer = (frame_idx % frame_step == 0)
             
-            if model is not None:
-                if should_infer:
-                    try:
-                        results = model.predict(frame, imgsz=640, conf=conf_threshold, iou=0.45, verbose=False)
-                        if len(results) > 0:
-                            res = results[0]
-                            boxes = res.boxes
-                            class_labels = MODEL_CLASSES.get(actual_model_id, {}).get("labels", {})
-                            
-                            for box in boxes:
-                                xyxy = box.xyxy[0].cpu().numpy().tolist()
-                                conf = float(box.conf[0].cpu().item())
-                                cls_id = int(box.cls[0].cpu().item())
-                                
-                                raw_name = class_labels.get(cls_id, str(cls_id))
-                                if hasattr(model, "names") and cls_id in model.names:
-                                    raw_name = str(model.names[cls_id])
-                                cls_name = clean_class_name(raw_name, cls_id, actual_model_id)
-                                
-                                if conf < conf_threshold:
-                                    continue
-                                
-                                raw_rects.append([
-                                    int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3]),
-                                    cls_name, conf, cls_id
-                                ])
-                            cached_rects = raw_rects
-                    except Exception as e:
-                        if frame_idx % 30 == 0:
-                            mock_dets = run_mock_detection(frame, conf_threshold, actual_model_id)
-                            for d in mock_dets:
-                                raw_rects.append([
-                                    d["box"][0], d["box"][1], d["box"][2], d["box"][3],
-                                    d["class_name"], d["confidence"], d["class_id"]
-                                ])
-                            cached_rects = raw_rects
-                else:
-                    # Reuse cached rects for intermediate frame
-                    raw_rects = cached_rects
+            if should_infer:
+                for mid, sz in models_for_video:
+                    m = model_manager.get_model(mid)
+                    if m is not None:
+                        try:
+                            infer_conf = max(0.04, min(conf_threshold, 0.08)) if model_id == "damage-ensemble" else conf_threshold
+                            results = m.predict(frame, imgsz=sz, conf=infer_conf, iou=0.45, verbose=False)
+                            if len(results) > 0:
+                                for box in results[0].boxes:
+                                    xyxy = box.xyxy[0].cpu().numpy().tolist()
+                                    conf = float(box.conf[0].cpu().item())
+                                    cls_id = int(box.cls[0].cpu().item())
+                                    
+                                    raw_name = m.names.get(cls_id, str(cls_id)) if hasattr(m, "names") else str(cls_id)
+                                    cls_name = clean_class_name(raw_name, cls_id, mid)
+                                    
+                                    cutoff = min(conf_threshold, 0.08) if model_id == "damage-ensemble" else conf_threshold
+                                    if conf < cutoff:
+                                        continue
+                                    
+                                    raw_rects.append([
+                                        int(round(xyxy[0])), int(round(xyxy[1])), int(round(xyxy[2])), int(round(xyxy[3])),
+                                        cls_name, conf, cls_id
+                                    ])
+                        except Exception as e:
+                            pass
+
+                # Category-aware NMS deduplication for video frame
+                raw_rects.sort(key=lambda x: x[5], reverse=True)
+                clean_frame_rects = []
+                for candidate in raw_rects:
+                    cbox = candidate[:4]
+                    dup = False
+                    for kept in clean_frame_rects:
+                        kbox = kept[:4]
+                        iou = calculate_box_iou(cbox, kbox)
+                        if candidate[4] == kept[4] and iou > 0.20:
+                            dup = True
+                            break
+                        elif iou > 0.60:
+                            dup = True
+                            break
+                    if not dup:
+                        clean_frame_rects.append(candidate)
+                
+                cached_rects = clean_frame_rects
             else:
-                # Mock fallback
-                np.random.seed(frame_idx // 15)
-                if np.random.rand() < 0.25:
-                    mock_dets = run_mock_detection(frame, conf_threshold, actual_model_id)
-                    for d in mock_dets:
-                        raw_rects.append([
-                            d["box"][0], d["box"][1], d["box"][2], d["box"][3],
-                            d["class_name"], d["confidence"], d["class_id"]
-                        ])
+                # Reuse cached rects for intermediate frame
+                clean_frame_rects = cached_rects
             
             # Update tracker and get active tracked objects
-            tracked_objects = tracker.update(raw_rects)
+            tracked_objects = tracker.update(clean_frame_rects)
             
             # Draw tracked objects
             for box, class_name, conf, class_id in tracked_objects:
