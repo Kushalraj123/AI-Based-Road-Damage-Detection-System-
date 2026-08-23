@@ -2042,7 +2042,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 }}
               >
                 <MapPin size={15} />
-                <span>Sync to GIS Map</span>
+                <span>Sync to Full GIS Map</span>
               </button>
 
               <button
@@ -2059,6 +2059,31 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ── Global Live GIS Damage Tracking Map ── */}
+      <div className="glass-panel" style={{ marginTop: '2rem', padding: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(6, 182, 212, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-cyan)' }}>
+              <MapPin size={20} />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Live Incident Geo-Intelligence & Road Damage Map
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                Real-time GPS positioning with automatic road distress pin projection, reverse geocoding, and telemetry syncing
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <LiveTrackMap
+          ref={liveMapRef}
+          isTracking={true}
+          detections={activeInputTab === 'camera' ? liveDetections : detectionResult.detections}
+        />
       </div>
     </div>
   );
