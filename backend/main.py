@@ -418,16 +418,18 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     # Determine which models to execute
     if model_id == "damage-ensemble" or model_id not in MODEL_CLASSES:
         models_to_run = [("damage-yolo12s", 800), ("damage-yolov8", 640)]
+        infer_conf = max(0.04, min(conf_threshold, 0.08))
     else:
         sz = 800 if model_id == "damage-yolo12s" else 640
         models_to_run = [(model_id, sz)]
+        infer_conf = max(0.04, conf_threshold)
 
     for mid, imgsz in models_to_run:
         m = model_manager.get_model(mid)
         if m is not None:
             try:
-                # Run YOLO inference
-                res = m.predict(image, imgsz=imgsz, conf=conf_threshold, iou=0.45, verbose=False)
+                # Run YOLO inference with high-recall sensitivity
+                res = m.predict(image, imgsz=imgsz, conf=infer_conf, iou=0.45, verbose=False)
                 if len(res) > 0:
                     for box in res[0].boxes:
                         xyxy = box.xyxy[0].cpu().numpy().tolist()
@@ -437,7 +439,9 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
                         raw_name = m.names.get(cls_id, str(cls_id)) if hasattr(m, "names") else str(cls_id)
                         cls_name = clean_class_name(raw_name, cls_id, mid)
                         
-                        if conf < conf_threshold:
+                        # In ensemble mode, preserve authentic diffuse road depressions down to 0.08
+                        cutoff = min(conf_threshold, 0.08) if model_id == "damage-ensemble" else conf_threshold
+                        if conf < cutoff:
                             continue
                         
                         box_coords = [int(round(xyxy[0])), int(round(xyxy[1])), int(round(xyxy[2])), int(round(xyxy[3]))]
