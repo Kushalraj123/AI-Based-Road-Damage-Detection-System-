@@ -166,19 +166,19 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
 
   // ── Calculate dynamic repair materials based on dimensions ────────
   const calculateMaterials = (det) => {
-    const len = det.dimensions?.length_cm || 30;
-    const wid = det.dimensions?.width_cm || 30;
-    const dep = det.dimensions?.depth_cm || 3;
-    const area = det.dimensions?.area_m2 || 0.1;
+    const len = det.dimensions?.length_cm || 25;
+    const wid = det.dimensions?.width_cm || 20;
+    const dep = det.dimensions?.depth_cm || 2.5;
+    const area = det.dimensions?.area_m2 || 0.05;
     
     const isPothole = det.class_name.toLowerCase().includes('pothole') || det.class_name.includes('D40');
     const isAlligator = det.class_name.toLowerCase().includes('alligator') || det.class_name.includes('D20');
     
     if (isPothole) {
       const vol = (len * wid * dep) / 1000000;
-      const asphaltKg = Math.max(1, Math.round(vol * 200));
-      const tackCoatLiters = parseFloat(Math.max(0.05, area * 0.1).toFixed(2));
-      const aggregateKg = Math.max(1, Math.round(vol * 150));
+      const asphaltKg = Math.max(1, Math.round(vol * 70));
+      const tackCoatLiters = parseFloat(Math.max(0.01, area * 0.03).toFixed(2));
+      const aggregateKg = Math.max(1, Math.round(vol * 40));
       return {
         asphalt: `${asphaltKg} kg Bituminous Hot-Mix`,
         binder: `${tackCoatLiters} L Emulsion Tack Coat`,
@@ -186,17 +186,17 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       };
     } else if (isAlligator) {
       const vol = (len * wid * dep) / 1000000;
-      const asphaltKg = Math.max(1, Math.round(vol * 180));
-      const tackCoatLiters = parseFloat(Math.max(0.08, area * 0.12).toFixed(2));
-      const sealantKg = Math.max(0.5, Math.round(area * 0.4));
+      const asphaltKg = Math.max(1, Math.round(vol * 55));
+      const tackCoatLiters = parseFloat(Math.max(0.02, area * 0.04).toFixed(2));
+      const sealantKg = Math.max(0.2, parseFloat((area * 0.15).toFixed(1)));
       return {
         asphalt: `${asphaltKg} kg Dense Bituminous Macadam`,
         binder: `${tackCoatLiters} L CSS-1h Tack Emulsion`,
         sealant: `${sealantKg} kg Crack Sealant Compound`
       };
     } else {
-      const tackCoatLiters = parseFloat(Math.max(0.02, area * 0.05).toFixed(2));
-      const sealantKg = Math.max(0.2, Math.round((len / 100) * 0.15));
+      const tackCoatLiters = parseFloat(Math.max(0.01, area * 0.02).toFixed(2));
+      const sealantKg = Math.max(0.1, parseFloat(((len / 100) * 0.06).toFixed(1)));
       return {
         binder: `${tackCoatLiters} L Rapid Setting Emulsion`,
         sealant: `${sealantKg} kg Hot-Applied Polymer Sealant`
