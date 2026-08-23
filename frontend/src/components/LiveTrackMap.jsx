@@ -256,9 +256,18 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking = false, dete
       }
     });
 
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 200);
+    [100, 300, 600, 1000].forEach(delay => {
+      setTimeout(() => {
+        if (mapRef.current) mapRef.current.invalidateSize();
+      }, delay);
+    });
+
+    if (window.ResizeObserver && mapDivRef.current) {
+      const ro = new ResizeObserver(() => {
+        if (mapRef.current) mapRef.current.invalidateSize();
+      });
+      ro.observe(mapDivRef.current);
+    }
 
     acquireUserPosition(true);
 
@@ -611,12 +620,6 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking = false, dete
             </button>
           ))}
         </div>
-      </div>
-
-      {/* Interactive Map Tip */}
-      <div style={{ fontSize: '0.66rem', color: 'var(--text-tertiary)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-        <span>💡</span>
-        <span>Click anywhere on the map or drag the blue marker to pinpoint your exact road location.</span>
       </div>
 
       {/* Leaflet Map Canvas */}
