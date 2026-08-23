@@ -458,14 +458,19 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     if len(raw_detections) == 0 and not ULTRALYTICS_AVAILABLE:
         raw_detections = run_mock_detection(image, conf_threshold, model_id)
 
-    # Multi-Model NMS Fusion: sort by confidence descending, merge overlapping duplicates
+    # Clean Hierarchical Multi-Model NMS: sort by confidence descending, merge overlapping duplicates
     raw_detections.sort(key=lambda x: x["confidence"], reverse=True)
     detections = []
     for candidate in raw_detections:
         is_duplicate = False
         for kept in detections:
-            # If same or overlapping area (IoU > 0.35), merge
-            if calculate_box_iou(candidate["box"], kept["box"]) > 0.35:
+            iou = calculate_box_iou(candidate["box"], kept["box"])
+            # If same category covering the same defect (IoU > 0.20), discard duplicate
+            if candidate["class_name"] == kept["class_name"] and iou > 0.20:
+                is_duplicate = True
+                break
+            # If broad overlap > 0.60, discard duplicate
+            elif iou > 0.60:
                 is_duplicate = True
                 break
         if not is_duplicate:

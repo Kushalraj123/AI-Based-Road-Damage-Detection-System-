@@ -1,5 +1,34 @@
 [
     {
+        "id": "3f240a53-791a-4755-aca6-86b718cfc6b0",
+        "type": "image",
+        "timestamp": "2026-08-23 21:57:46",
+        "model_id": "damage-ensemble",
+        "filename": "5409830b-9e94-45bc-b56b-8b47dc0edff9.jpeg",
+        "original_url": "/uploads/3f240a53-791a-4755-aca6-86b718cfc6b0.jpeg",
+        "processed_url": "/processed/processed_3f240a53-791a-4755-aca6-86b718cfc6b0.jpeg",
+        "total_damage": 3,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "0f9d330e-3bf8-4311-b296-7fa8c61933a8",
+        "type": "image",
+        "timestamp": "2026-08-23 21:56:33",
+        "model_id": "damage-ensemble",
+        "filename": "618b1067-6253-4f73-b45d-fd13d7238bdf.jpeg",
+        "original_url": "/uploads/0f9d330e-3bf8-4311-b296-7fa8c61933a8.jpeg",
+        "processed_url": "/processed/processed_0f9d330e-3bf8-4311-b296-7fa8c61933a8.jpeg",
+        "total_damage": 3,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole",
+            "Alligator Crack"
+        ]
+    },
+    {
         "id": "01050e00-81f9-4a6c-8eef-d3650ff5a0f7",
         "type": "image",
         "timestamp": "2026-08-23 21:52:00",
@@ -675,36 +704,6 @@
         "severity": "High",
         "classes_detected": [
             "D20",
-            "D40"
-        ]
-    },
-    {
-        "id": "398cb1a1-670e-4311-b57b-a715c25dcf7c",
-        "type": "video",
-        "timestamp": "2026-08-21 19:24:13",
-        "model_id": "damage-yolo12s",
-        "filename": "398cb1a1-670e-4311-b57b-a715c25dcf7c.mp4",
-        "original_url": "/uploads/398cb1a1-670e-4311-b57b-a715c25dcf7c.mp4",
-        "processed_url": "/processed/processed_398cb1a1-670e-4311-b57b-a715c25dcf7c.mp4",
-        "total_damage": 8,
-        "severity": "Medium",
-        "classes_detected": [
-            "D00",
-            "D40"
-        ]
-    },
-    {
-        "id": "7111176d-729d-48eb-8e19-4679126cd678",
-        "type": "video",
-        "timestamp": "2026-08-21 19:19:41",
-        "model_id": "damage-yolo12s",
-        "filename": "7111176d-729d-48eb-8e19-4679126cd678.mp4",
-        "original_url": "/uploads/7111176d-729d-48eb-8e19-4679126cd678.mp4",
-        "processed_url": "/processed/processed_7111176d-729d-48eb-8e19-4679126cd678.mp4",
-        "total_damage": 12,
-        "severity": "High",
-        "classes_detected": [
-            "D00",
             "D40"
         ]
     }
