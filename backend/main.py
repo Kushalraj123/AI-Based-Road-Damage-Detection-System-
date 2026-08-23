@@ -155,6 +155,19 @@ MODEL_CLASSES = {
     }
 }
 
+# Global class colors
+CLASS_COLORS = {
+    "Pothole": (50, 50, 255),          # Vibrant Red
+    "Alligator Crack": (0, 165, 255),   # Orange
+    "Alligator Crack / Base Failure": (0, 165, 255), # Orange
+    "Transverse Crack": (50, 220, 50),  # Green
+    "Longitudinal Crack": (30, 200, 255),# Cyan
+    "Repair Patch": (180, 100, 220),    # Purple
+    "Surface Distortion": (180, 100, 220),
+    "Surface Distress": (180, 100, 220),
+    "Road Distress": (0, 165, 255)
+}
+
 def clean_class_name(raw_name: str, cls_id: int = 0, model_id: str = "damage-yolov8") -> str:
     """Normalize raw class names from various model architectures into clear readable labels."""
     raw_lower = str(raw_name).lower().strip()
@@ -658,7 +671,8 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(raw_output_path, fourcc, fps, (width, height))
         
-        model = model_manager.get_model(model_id)
+        actual_model_id = "damage-yolov8" if (model_id == "damage-ensemble" or model_id not in MODEL_CLASSES) else model_id
+        model = model_manager.get_model(actual_model_id)
         tracker = DistressTracker(max_disappeared=5, min_appearance=1)
         frame_idx = 0
         damage_types_set = set()
@@ -684,27 +698,17 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
                         if len(results) > 0:
                             res = results[0]
                             boxes = res.boxes
-                            class_labels = MODEL_CLASSES.get(model_id, {}).get("labels", {})
+                            class_labels = MODEL_CLASSES.get(actual_model_id, {}).get("labels", {})
                             
                             for box in boxes:
                                 xyxy = box.xyxy[0].cpu().numpy().tolist()
                                 conf = float(box.conf[0].cpu().item())
                                 cls_id = int(box.cls[0].cpu().item())
                                 
-                                cls_name = class_labels.get(cls_id)
-                                if not cls_name:
-                                    if hasattr(model, "names") and cls_id in model.names:
-                                        raw_name = str(model.names[cls_id])
-                                        rdd_map = {
-                                            "D00": "D00 Long. Crack",
-                                            "D10": "D10 Trans. Crack",
-                                            "D20": "D20 Alligator",
-                                            "D40": "D40 Pothole",
-                                            "Repair": "Repair Patch"
-                                        }
-                                        cls_name = rdd_map.get(raw_name, raw_name)
-                                    else:
-                                        cls_name = f"Class {cls_id}"
+                                raw_name = class_labels.get(cls_id, str(cls_id))
+                                if hasattr(model, "names") and cls_id in model.names:
+                                    raw_name = str(model.names[cls_id])
+                                cls_name = clean_class_name(raw_name, cls_id, actual_model_id)
                                 
                                 if conf < conf_threshold:
                                     continue
@@ -716,7 +720,7 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
                             cached_rects = raw_rects
                     except Exception as e:
                         if frame_idx % 30 == 0:
-                            mock_dets = run_mock_detection(frame, conf_threshold, model_id)
+                            mock_dets = run_mock_detection(frame, conf_threshold, actual_model_id)
                             for d in mock_dets:
                                 raw_rects.append([
                                     d["box"][0], d["box"][1], d["box"][2], d["box"][3],
@@ -730,7 +734,7 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
                 # Mock fallback
                 np.random.seed(frame_idx // 15)
                 if np.random.rand() < 0.25:
-                    mock_dets = run_mock_detection(frame, conf_threshold, model_id)
+                    mock_dets = run_mock_detection(frame, conf_threshold, actual_model_id)
                     for d in mock_dets:
                         raw_rects.append([
                             d["box"][0], d["box"][1], d["box"][2], d["box"][3],
@@ -743,7 +747,7 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
             # Draw tracked objects
             for box, class_name, conf, class_id in tracked_objects:
                 x1, y1, x2, y2 = box
-                color = MODEL_CLASSES[model_id]["colors"].get(class_id, (0, 255, 255))
+                color = CLASS_COLORS.get(class_name, (0, 255, 255))
                 draw_stylized_box(frame, x1, y1, x2, y2, class_name, conf, color)
                 damage_types_set.add(class_name)
                 
@@ -997,7 +1001,8 @@ async def detect_frame(payload: FramePayload):
             
         # Detect
         detections = []
-        model = model_manager.get_model(payload.model_id)
+        actual_model_id = "damage-yolov8" if (payload.model_id == "damage-ensemble" or payload.model_id not in MODEL_CLASSES) else payload.model_id
+        model = model_manager.get_model(actual_model_id)
         
         if model is not None:
             try:
@@ -1005,13 +1010,14 @@ async def detect_frame(payload: FramePayload):
                 if len(results) > 0:
                     res = results[0]
                     boxes = res.boxes
-                    classes = getattr(model, "names", MODEL_CLASSES[payload.model_id]["labels"])
+                    classes = getattr(model, "names", MODEL_CLASSES.get(actual_model_id, {}).get("labels", {}))
                     
                     for box in boxes:
                         xyxy = box.xyxy[0].cpu().numpy().tolist()
                         conf = float(box.conf[0].cpu().item())
                         cls_id = int(box.cls[0].cpu().item())
-                        cls_name = classes.get(cls_id, f"Class {cls_id}")
+                        raw_name = classes.get(cls_id, f"Class {cls_id}")
+                        cls_name = clean_class_name(raw_name, cls_id, actual_model_id)
                         
                         # Skip very low confidence detections
                         if conf < payload.conf_threshold:
@@ -1030,11 +1036,10 @@ async def detect_frame(payload: FramePayload):
         # Draw bounding boxes
         for det in detections:
             x1, y1, x2, y2 = det["box"]
-            class_id = det["class_id"]
             class_name = det["class_name"]
             conf = det["confidence"]
             
-            color = MODEL_CLASSES[payload.model_id]["colors"].get(class_id, (0, 255, 255))
+            color = CLASS_COLORS.get(class_name, (0, 255, 255))
             draw_stylized_box(frame, x1, y1, x2, y2, class_name, conf, color)
             
         # Re-encode to jpeg base64
