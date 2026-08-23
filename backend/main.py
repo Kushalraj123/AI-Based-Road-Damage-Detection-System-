@@ -95,15 +95,15 @@ video_tasks: Dict[str, Dict[str, Any]] = {}
 
 # Class mapping and color palettes
 MODEL_CLASSES = {
-    "pothole-yolov8": {
-        "repo": "vinothvikas1987/pothole-detection-yolov8",
-        "filename": "best.pt",
+    "damage-yolo12s": {
+        "repo": "rezzzq/yolo12s-road-damage-rdd2022",
+        "filename": "yolo12s_RDD2022_best.pt",
         "labels": {
-            0: "Long. Crack",
-            1: "Trans. Crack",
-            2: "Alligator",
-            3: "Pothole",
-            4: "Other"
+            0: "D00 Long. Crack",
+            1: "D10 Trans. Crack",
+            2: "D20 Alligator",
+            3: "D40 Pothole",
+            4: "Repair Patch"
         },
         "colors": {
             0: (30, 200, 255),   # Cyan
@@ -113,15 +113,33 @@ MODEL_CLASSES = {
             4: (180, 100, 220)   # Purple
         }
     },
-    "damage-yolo12s": {
-        "repo": "rezzzq/yolo12s-road-damage-rdd2022",
-        "filename": "yolo12s_RDD2022_best.pt",
+    "damage-yolov8": {
+        "repo": "ozair23/yolov8-road-damage-detector",
+        "filename": "best.pt",
         "labels": {
-            0: "D00 Long. Crack",
-            1: "D10 Trans. Crack",
-            2: "D20 Alligator",
-            3: "D40 Pothole",
-            4: "Repair"
+            0: "Alligator Crack",
+            1: "Transverse Crack",
+            2: "Longitudinal Crack",
+            3: "Surface Corruption",
+            4: "Pothole"
+        },
+        "colors": {
+            0: (0, 165, 255),    # Orange
+            1: (50, 220, 50),    # Green
+            2: (30, 200, 255),   # Cyan
+            3: (180, 100, 220),  # Purple
+            4: (50, 50, 255)     # Red
+        }
+    },
+    "pothole-yolov8": {
+        "repo": "vinothvikas1987/pothole-detection-yolov8",
+        "filename": "best.pt",
+        "labels": {
+            0: "Long. Crack",
+            1: "Trans. Crack",
+            2: "Alligator Crack",
+            3: "Pothole",
+            4: "Other Distress"
         },
         "colors": {
             0: (30, 200, 255),   # Cyan
@@ -209,28 +227,32 @@ def draw_stylized_box(image: np.ndarray, x1: int, y1: int, x2: int, y2: int, lab
     if x2 <= x1 or y2 <= y1:
         return
     
+    # Dynamic scale factor based on image resolution
+    scale = max(0.55, min(1.35, w / 1000.0))
+    box_thickness = max(2, int(round(2.2 * scale)))
+    font_scale = 0.48 * scale
+    text_thickness = max(1, int(round(scale)))
+
     # Draw semi-transparent filled overlay inside box
     overlay = image.copy()
     cv2.rectangle(overlay, (x1, y1), (x2, y2), color, -1)
     cv2.addWeighted(overlay, 0.18, image, 0.82, 0, image)
     
     # Draw outer dark shadow border for contrast on any background
-    cv2.rectangle(image, (x1 - 1, y1 - 1), (x2 + 1, y2 + 1), (20, 20, 20), 2, lineType=cv2.LINE_AA)
+    cv2.rectangle(image, (x1 - 1, y1 - 1), (x2 + 1, y2 + 1), (20, 20, 20), box_thickness + 1, lineType=cv2.LINE_AA)
     # Draw main colored border
-    cv2.rectangle(image, (x1, y1), (x2, y2), color, 2, lineType=cv2.LINE_AA)
+    cv2.rectangle(image, (x1, y1), (x2, y2), color, box_thickness, lineType=cv2.LINE_AA)
     
     # Label: short name + confidence as percentage (e.g. "D40 Pothole 82%")
     conf_pct = int(round(conf * 100))
     text = f"{label} {conf_pct}%"
     
     font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 0.48
-    thickness = 1
     
     # Get text width/height for label badge
-    (tw, th), baseline = cv2.getTextSize(text, font, font_scale, thickness)
-    badge_w = tw + 10
-    badge_h = th + baseline + 8
+    (tw, th), baseline = cv2.getTextSize(text, font, font_scale, text_thickness)
+    badge_w = tw + int(10 * scale)
+    badge_h = th + baseline + int(8 * scale)
     
     # Place badge above box if there's room, otherwise place it inside top of box
     if y1 >= badge_h:
@@ -246,9 +268,9 @@ def draw_stylized_box(image: np.ndarray, x1: int, y1: int, x2: int, y2: int, lab
     cv2.rectangle(image, (bx1, by1), (bx2, by2), color, -1)
     
     # Draw text in white
-    text_x = bx1 + 5
-    text_y = by2 - baseline - 4
-    cv2.putText(image, text, (text_x, text_y), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
+    text_x = bx1 + int(5 * scale)
+    text_y = by2 - baseline - int(4 * scale)
+    cv2.putText(image, text, (text_x, text_y), font, font_scale, (255, 255, 255), text_thickness, cv2.LINE_AA)
 
 # Simulated detection for fallback (or offline mode)
 def run_mock_detection(image: np.ndarray, confidence_threshold: float, model_id: str) -> List[Dict[str, Any]]:
@@ -257,7 +279,7 @@ def run_mock_detection(image: np.ndarray, confidence_threshold: float, model_id:
     results = []
     
     # Class definitions based on model
-    classes = MODEL_CLASSES[model_id]["labels"]
+    classes = MODEL_CLASSES.get(model_id, MODEL_CLASSES["damage-yolo12s"])["labels"]
     
     # Seed deterministic coordinates based on image aspect ratio and properties to make it feel natural
     np.random.seed(int((w * h) % 100000))
@@ -302,6 +324,8 @@ DAMAGE_DEPTH_RANGES = {
     "Alligator": (1.5, 5.0),
     "Trans": (0.3, 2.5),
     "Long": (0.3, 2.0),
+    "Corruption": (1.0, 4.0),
+    "Repair": (0.2, 1.0)
 }
 
 def estimate_damage_dimensions(box: List[int], class_name: str, conf: float,
@@ -323,7 +347,7 @@ def estimate_damage_dimensions(box: List[int], class_name: str, conf: float,
     # Depth: look up range by class code / keyword
     depth_min, depth_max = 0.5, 3.0   # default fallback
     for key, rng in DAMAGE_DEPTH_RANGES.items():
-        if key in class_name:
+        if key.lower() in class_name.lower():
             depth_min, depth_max = rng
             break
 
@@ -348,19 +372,37 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     model = model_manager.get_model(model_id)
     
     if model is not None:
-        # Run real model with standard 640px resolution and balanced NMS
+        # Adaptive high-resolution inference based on image dimensions (e.g. 1024 or 1280) for high recall of fine & large cracks
+        max_dim = max(height, width)
+        adaptive_imgsz = min(1280, max(640, int(round(max_dim / 32.0)) * 32))
+        
         try:
-            results = model.predict(image, imgsz=640, conf=conf_threshold, iou=0.45, verbose=False)
+            results = model.predict(image, imgsz=adaptive_imgsz, conf=conf_threshold, iou=0.45, verbose=False)
             if len(results) > 0:
                 result = results[0]
                 boxes = result.boxes
-                classes = getattr(model, "names", MODEL_CLASSES[model_id]["labels"])
+                class_labels = MODEL_CLASSES.get(model_id, {}).get("labels", {})
                 
                 for box in boxes:
                     xyxy = box.xyxy[0].cpu().numpy().tolist() # x1, y1, x2, y2
                     conf = float(box.conf[0].cpu().item())
                     cls_id = int(box.cls[0].cpu().item())
-                    cls_name = classes.get(cls_id, f"Class {cls_id}")
+                    
+                    # Resolve descriptive human-readable label
+                    cls_name = class_labels.get(cls_id)
+                    if not cls_name:
+                        if hasattr(model, "names") and cls_id in model.names:
+                            raw_name = str(model.names[cls_id])
+                            rdd_map = {
+                                "D00": "D00 Long. Crack",
+                                "D10": "D10 Trans. Crack",
+                                "D20": "D20 Alligator",
+                                "D40": "D40 Pothole",
+                                "Repair": "Repair Patch"
+                            }
+                            cls_name = rdd_map.get(raw_name, raw_name)
+                        else:
+                            cls_name = f"Class {cls_id}"
                     
                     # Skip very low confidence detections (false positives)
                     if conf < conf_threshold:
@@ -397,7 +439,7 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
         class_name = det["class_name"]
         conf = det["confidence"]
         
-        color = MODEL_CLASSES[model_id]["colors"].get(class_id, (0, 255, 255))
+        color = MODEL_CLASSES.get(model_id, {}).get("colors", {}).get(class_id, (0, 255, 255))
         draw_stylized_box(image, x1, y1, x2, y2, class_name, conf, color)
 
     # Save processed image
@@ -415,10 +457,10 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     total_damage = len(detections)
     if total_damage > 0:
         # Severity evaluation rules
-        has_potholes = any("Pothole" in d["class_name"] or "D40" in d["class_name"] for d in detections)
-        if total_damage >= 4 or (total_damage >= 2 and has_potholes):
+        has_critical = any("Pothole" in d["class_name"] or "D40" in d["class_name"] or "D20" in d["class_name"] or "Alligator" in d["class_name"] for d in detections)
+        if total_damage >= 4 or (total_damage >= 2 and has_critical):
             severity = "High"
-        elif total_damage >= 2 or has_potholes:
+        elif total_damage >= 2 or has_critical:
             severity = "Medium"
         else:
             severity = "Low"
@@ -583,13 +625,27 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
                         if len(results) > 0:
                             res = results[0]
                             boxes = res.boxes
-                            classes = getattr(model, "names", MODEL_CLASSES[model_id]["labels"])
+                            class_labels = MODEL_CLASSES.get(model_id, {}).get("labels", {})
                             
                             for box in boxes:
                                 xyxy = box.xyxy[0].cpu().numpy().tolist()
                                 conf = float(box.conf[0].cpu().item())
                                 cls_id = int(box.cls[0].cpu().item())
-                                cls_name = classes.get(cls_id, f"Class {cls_id}")
+                                
+                                cls_name = class_labels.get(cls_id)
+                                if not cls_name:
+                                    if hasattr(model, "names") and cls_id in model.names:
+                                        raw_name = str(model.names[cls_id])
+                                        rdd_map = {
+                                            "D00": "D00 Long. Crack",
+                                            "D10": "D10 Trans. Crack",
+                                            "D20": "D20 Alligator",
+                                            "D40": "D40 Pothole",
+                                            "Repair": "Repair Patch"
+                                        }
+                                        cls_name = rdd_map.get(raw_name, raw_name)
+                                    else:
+                                        cls_name = f"Class {cls_id}"
                                 
                                 if conf < conf_threshold:
                                     continue
@@ -716,16 +772,22 @@ def get_models():
     return {
         "models": [
             {
-                "id": "pothole-yolov8",
-                "name": "Pothole Detection (YOLOv8)",
-                "description": "Optimized to detect potholes and surface voids. Best for quick scans.",
-                "classes": list(MODEL_CLASSES["pothole-yolov8"]["labels"].values())
-            },
-            {
                 "id": "damage-yolo12s",
                 "name": "Road Damage RDD2022 (YOLOv12s)",
                 "description": "Comprehensive road distress detector covering longitudinal, transverse, alligator cracks, rutting, and repairs.",
                 "classes": list(MODEL_CLASSES["damage-yolo12s"]["labels"].values())
+            },
+            {
+                "id": "damage-yolov8",
+                "name": "Road Damage Pro (YOLOv8)",
+                "description": "High-sensitivity detector specialized in alligator, longitudinal, transverse cracks, potholes, and surface corruption.",
+                "classes": list(MODEL_CLASSES["damage-yolov8"]["labels"].values())
+            },
+            {
+                "id": "pothole-yolov8",
+                "name": "Pothole Specialist (YOLOv8)",
+                "description": "Optimized to detect potholes and surface voids with fast inference.",
+                "classes": list(MODEL_CLASSES["pothole-yolov8"]["labels"].values())
             }
         ]
     }

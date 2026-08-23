@@ -70,7 +70,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
 
   // Model selection
   const [selectedModel, setSelectedModel] = useState('damage-yolo12s');
-  const [confThreshold, setConfThreshold] = useState(0.30); // Set default threshold to 30% to minimize false positives
+  const [confThreshold, setConfThreshold] = useState(0.20); // Default 20% for balanced recall of subtle cracks and wide road distress
 
   // Track whether current result came from real backend API (so we don't double-draw boxes)
   const [isBackendResult, setIsBackendResult] = useState(false);
@@ -853,8 +853,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
               }}
             >
               <option value="damage-yolo12s">RDD2022 YOLOv12s (Full Distress)</option>
-              <option value="pothole-yolov8">YOLOv8-Pothole Core</option>
-              <option value="sam-vit-large">SAM + ViT Road Segmenter</option>
+              <option value="damage-yolov8">YOLOv8 Road Damage Pro</option>
+              <option value="pothole-yolov8">YOLOv8 Pothole Specialist</option>
             </select>
           </div>
 
@@ -865,8 +865,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             </div>
             <input
               type="range"
-              min="0.15"
-              max="0.9"
+              min="0.10"
+              max="0.85"
               step="0.05"
               value={confThreshold}
               onChange={(e) => setConfThreshold(parseFloat(e.target.value))}
