@@ -86,10 +86,6 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoTaskId, setVideoTaskId] = useState(null);
 
-  // Municipal Requisition states
-  const [requisitionSubmitted, setRequisitionSubmitted] = useState(false);
-  const [requisitionLoading, setRequisitionLoading] = useState(false);
-  const [submittedTicketId, setSubmittedTicketId] = useState(null);
 
 
   // Camera stream ref
@@ -204,51 +200,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     }
   };
 
-  const handleSubmitRequisition = async () => {
-    setRequisitionLoading(true);
-    sounds.playLaserScan();
-    
-    const ticketId = `HCMC-ROAD-2026-${Math.floor(100000 + Math.random() * 900000)}`;
-    const address = detectionGpsLocation?.address || "B.M. Road, Hassan, Karnataka, India";
-    const lat = detectionGpsLocation?.coords?.lat ?? 13.0068;
-    const lng = detectionGpsLocation?.coords?.lng ?? 76.1026;
-    
-    // Compile materials
-    const materialsList = detectionResult.detections.map(det => {
-      const mat = calculateMaterials(det);
-      return [mat.asphalt, mat.binder, mat.aggregate, mat.sealant].filter(Boolean).join(', ');
-    });
 
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/notifications/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ticket_id: ticketId,
-          address: address,
-          latitude: lat,
-          longitude: lng,
-          distress_count: detectionResult.distressCount,
-          severity: detectionResult.severity,
-          materials: materialsList
-        })
-      });
-      const data = await response.json();
-      if (data.success) {
-        setRequisitionSubmitted(true);
-        setSubmittedTicketId(ticketId);
-        sounds.playLockOn();
-      }
-    } catch (err) {
-      console.error("Failed to notify municipal system:", err);
-      // Fallback to local success if backend network request fails
-      setRequisitionSubmitted(true);
-      setSubmittedTicketId(ticketId);
-      sounds.playLockOn();
-    } finally {
-      setRequisitionLoading(false);
-    }
-  };
 
   // Handle dragging split slider
   useEffect(() => {
@@ -500,9 +452,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     setScanStage(0);
     setScanProgress(5);
     setScanError(null);
-    setRequisitionSubmitted(false);
-    setRequisitionLoading(false);
-    setSubmittedTicketId(null);
+
     sounds.playLaserScan();
 
     // Run stages dynamically with API call if we have a real file to upload
@@ -1895,50 +1845,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             </div>
           )}
 
-          {/* ── Municipal Requisition Card ──────────────────────── */}
-          {isBackendResult && detectionResult.detections.length > 0 && (
-            <div className="glass-panel" style={{ padding: '1.25rem', background: 'var(--bg-glass-strong)', border: '1px solid rgba(139, 92, 246, 0.25)', boxShadow: '0 0 12px rgba(139, 92, 246, 0.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.85rem' }}>
-                <Sparkles size={14} style={{ color: 'var(--accent-purple)' }} />
-                <span style={{ fontSize: '0.78rem', fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 700 }}>MUNICIPAL ROAD REBUILD ORDER</span>
-              </div>
-              
-              {!requisitionSubmitted ? (
-                <>
-                  <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', lineHeight: 1.45, marginBottom: '0.85rem' }}>
-                    Package detected distress parameters and material estimates into a direct repair requisition for the Municipal Works department.
-                  </p>
-                  
-                  {requisitionLoading ? (
-                    <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--accent-purple)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                      <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2px solid var(--accent-purple)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
-                      Transmitting to Hassan Municipal Corporation (HCMC)…
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleSubmitRequisition}
-                      className="btn btn-primary"
-                      style={{ width: '100%', padding: '0.6rem', fontSize: '0.8rem', background: 'linear-gradient(135deg, var(--accent-purple), #7c3aed)' }}
-                    >
-                      <Zap size={13} /> Submit Work Order to HCMC
-                    </button>
-                  )}
-                </>
-              ) : (
-                <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', padding: '0.85rem', color: 'var(--severity-clear)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.45rem' }}>
-                    <CheckCircle2 size={16} /> Work Order Logged
-                  </div>
-                  <div style={{ fontSize: '0.67rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', marginBottom: '0.45rem' }}>
-                    TICKET ID: {submittedTicketId}
-                  </div>
-                  <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: '0' }}>
-                    Hassan City Municipal Corporation (HCMC) has received the requisition. Repair crew assigned to rebuild to **Grade A Good Quality**. Target completion: 72 hours.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
+
 
           {/* Distress Classification Breakdown List */}
           <div className="glass-panel" style={{ padding: '1.5rem' }}>
