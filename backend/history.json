@@ -1,5 +1,95 @@
 [
     {
+        "id": "311ec548-83b1-4203-bf0b-cd9fe321c074",
+        "type": "image",
+        "timestamp": "2026-08-24 23:02:28",
+        "model_id": "damage-ensemble",
+        "filename": "road damage9.jpeg",
+        "original_url": "/uploads/311ec548-83b1-4203-bf0b-cd9fe321c074.jpeg",
+        "processed_url": "/processed/processed_311ec548-83b1-4203-bf0b-cd9fe321c074.jpeg",
+        "total_damage": 3,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole",
+            "Alligator Crack"
+        ]
+    },
+    {
+        "id": "0f4790dd-0715-4179-9735-c11ff3298b00",
+        "type": "video",
+        "timestamp": "2026-08-24 23:02:10",
+        "model_id": "damage-ensemble",
+        "filename": "0f4790dd-0715-4179-9735-c11ff3298b00.mp4",
+        "original_url": "/uploads/0f4790dd-0715-4179-9735-c11ff3298b00.mp4",
+        "processed_url": "/processed/processed_0f4790dd-0715-4179-9735-c11ff3298b00.mp4",
+        "total_damage": 25,
+        "severity": "High",
+        "classes_detected": [
+            "Alligator Crack",
+            "Pothole",
+            "Surface Distortion"
+        ]
+    },
+    {
+        "id": "aed5a8b2-8b6c-4c54-b805-8dfef57869e5",
+        "type": "video",
+        "timestamp": "2026-08-24 22:59:49",
+        "model_id": "damage-ensemble",
+        "filename": "aed5a8b2-8b6c-4c54-b805-8dfef57869e5.mp4",
+        "original_url": "/uploads/aed5a8b2-8b6c-4c54-b805-8dfef57869e5.mp4",
+        "processed_url": "/processed/processed_aed5a8b2-8b6c-4c54-b805-8dfef57869e5.mp4",
+        "total_damage": 25,
+        "severity": "High",
+        "classes_detected": [
+            "Transverse Crack",
+            "Longitudinal Crack",
+            "Pothole"
+        ]
+    },
+    {
+        "id": "d3cfee23-790b-4f2f-bf20-2846796687b1",
+        "type": "image",
+        "timestamp": "2026-08-24 22:57:49",
+        "model_id": "damage-ensemble",
+        "filename": "road damage5.jpeg",
+        "original_url": "/uploads/d3cfee23-790b-4f2f-bf20-2846796687b1.jpeg",
+        "processed_url": "/processed/processed_d3cfee23-790b-4f2f-bf20-2846796687b1.jpeg",
+        "total_damage": 6,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "e0596267-d56a-485a-80ed-ff39b5116a81",
+        "type": "image",
+        "timestamp": "2026-08-24 22:57:35",
+        "model_id": "damage-ensemble",
+        "filename": "road damage7.jpeg",
+        "original_url": "/uploads/e0596267-d56a-485a-80ed-ff39b5116a81.jpeg",
+        "processed_url": "/processed/processed_e0596267-d56a-485a-80ed-ff39b5116a81.jpeg",
+        "total_damage": 5,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "4e6bd14a-ea42-41ac-8bac-98d3f02110ef",
+        "type": "image",
+        "timestamp": "2026-08-24 22:57:17",
+        "model_id": "damage-ensemble",
+        "filename": "road damage9.jpeg",
+        "original_url": "/uploads/4e6bd14a-ea42-41ac-8bac-98d3f02110ef.jpeg",
+        "processed_url": "/processed/processed_4e6bd14a-ea42-41ac-8bac-98d3f02110ef.jpeg",
+        "total_damage": 3,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole",
+            "Alligator Crack"
+        ]
+    },
+    {
         "id": "c28b9cf6-d352-40a9-b63a-9b9eeb89531b",
         "type": "image",
         "timestamp": "2026-08-24 22:48:33",
@@ -977,92 +1067,6 @@
         "severity": "Medium",
         "classes_detected": [
             "Pothole"
-        ]
-    },
-    {
-        "id": "ac36096b-eb97-4346-a53b-d85eb908c92c",
-        "type": "video",
-        "timestamp": "2026-08-23 22:22:43",
-        "model_id": "damage-ensemble",
-        "filename": "ac36096b-eb97-4346-a53b-d85eb908c92c.mp4",
-        "original_url": "/uploads/ac36096b-eb97-4346-a53b-d85eb908c92c.mp4",
-        "processed_url": "/processed/processed_ac36096b-eb97-4346-a53b-d85eb908c92c.mp4",
-        "total_damage": 8,
-        "severity": "Medium",
-        "classes_detected": [
-            "Pothole"
-        ]
-    },
-    {
-        "id": "a4876b3e-f1e0-42c9-9e90-57484e2322c5",
-        "type": "video",
-        "timestamp": "2026-08-23 22:20:08",
-        "model_id": "damage-ensemble",
-        "filename": "a4876b3e-f1e0-42c9-9e90-57484e2322c5.mp4",
-        "original_url": "/uploads/a4876b3e-f1e0-42c9-9e90-57484e2322c5.mp4",
-        "processed_url": "/processed/processed_a4876b3e-f1e0-42c9-9e90-57484e2322c5.mp4",
-        "total_damage": 9,
-        "severity": "High",
-        "classes_detected": [
-            "Pothole"
-        ]
-    },
-    {
-        "id": "test_video_task_1",
-        "type": "video",
-        "timestamp": "2026-08-23 22:18:46",
-        "model_id": "damage-ensemble",
-        "filename": "4bbfc8a4-9dc6-4955-bd22-36d7e4f593e0.mp4",
-        "original_url": "/uploads/4bbfc8a4-9dc6-4955-bd22-36d7e4f593e0.mp4",
-        "processed_url": "/processed/processed_test_video_task_1.mp4",
-        "total_damage": 9,
-        "severity": "High",
-        "classes_detected": [
-            "Pothole"
-        ]
-    },
-    {
-        "id": "ee08192c-8c5b-4184-adc3-a2a6249ba2ad",
-        "type": "image",
-        "timestamp": "2026-08-23 22:03:36",
-        "model_id": "damage-ensemble",
-        "filename": "road damage9.jpeg",
-        "original_url": "/uploads/ee08192c-8c5b-4184-adc3-a2a6249ba2ad.jpeg",
-        "processed_url": "/processed/processed_ee08192c-8c5b-4184-adc3-a2a6249ba2ad.jpeg",
-        "total_damage": 5,
-        "severity": "High",
-        "classes_detected": [
-            "Pothole",
-            "Alligator Crack"
-        ]
-    },
-    {
-        "id": "bdaa3a74-4a7b-4a6d-ba00-33c365d08bd9",
-        "type": "image",
-        "timestamp": "2026-08-23 22:03:30",
-        "model_id": "damage-ensemble",
-        "filename": "road damage8.jpeg",
-        "original_url": "/uploads/bdaa3a74-4a7b-4a6d-ba00-33c365d08bd9.jpeg",
-        "processed_url": "/processed/processed_bdaa3a74-4a7b-4a6d-ba00-33c365d08bd9.jpeg",
-        "total_damage": 9,
-        "severity": "High",
-        "classes_detected": [
-            "Pothole"
-        ]
-    },
-    {
-        "id": "cabdf804-aaa0-477e-8a60-f68eeecc066c",
-        "type": "image",
-        "timestamp": "2026-08-23 22:03:25",
-        "model_id": "damage-ensemble",
-        "filename": "road damage7.jpeg",
-        "original_url": "/uploads/cabdf804-aaa0-477e-8a60-f68eeecc066c.jpeg",
-        "processed_url": "/processed/processed_cabdf804-aaa0-477e-8a60-f68eeecc066c.jpeg",
-        "total_damage": 8,
-        "severity": "High",
-        "classes_detected": [
-            "Pothole",
-            "Alligator Crack"
         ]
     }
 ]

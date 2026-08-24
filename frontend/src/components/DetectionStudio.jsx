@@ -245,6 +245,10 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     setVideoTaskId(null);
     setProcessedVideoUrl(null);
     setScanError(null);
+    setIsBackendResult(false);
+
+    // Fire GPS geocoding in parallel
+    getGpsAndGeocode();
 
     const formData = new FormData();
     formData.append('file', file);
@@ -322,6 +326,10 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             backendImageWidth: null,
             backendImageHeight: null
           });
+          setIsBackendResult(true);
+          if (!detectionGpsLocation?.coords) {
+            getGpsAndGeocode();
+          }
           sounds.playLockOn();
         } else if (data.status === 'failed') {
           setScanError(`Video processing failed: ${data.error || 'Unknown error'}`);
@@ -343,6 +351,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     setProcessedVideoUrl(null);
     setSelectedVideoFile(null);
     setVideoPreviewUrl("https://assets.mixkit.co/videos/preview/mixkit-driving-on-a-highway-at-sunset-12497-large.mp4");
+    setIsBackendResult(false);
+    getGpsAndGeocode();
 
     let progress = 0;
     const interval = setInterval(() => {
@@ -384,6 +394,14 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
           backendImageWidth: null,
           backendImageHeight: null
         });
+        setIsBackendResult(true);
+        if (!detectionGpsLocation?.coords) {
+          setDetectionGpsLocation({
+            address: 'NH-75 Highway Corridor, Km 114, Hassan - Bengaluru Corridor',
+            coords: { lat: 12.9716, lng: 77.5946 },
+            loading: false
+          });
+        }
         sounds.playLockOn();
       }
     }, 600);
@@ -1805,33 +1823,35 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
           </div>
 
           {/* ── Incident GPS Location Card ──────────────────────── */}
-          {isBackendResult && (
+          {(isBackendResult || activeInputTab === 'video' || selectedSample || detectionGpsLocation || (detectionResult.detections && detectionResult.detections.length > 0)) && (
             <div style={{ padding: '0.9rem 1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid rgba(6,182,212,0.25)', boxShadow: '0 0 0 1px rgba(6,182,212,0.08)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
                 <MapPin size={13} style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
-                <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', fontWeight: 700 }}>INCIDENT LOCATION</span>
+                <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', fontWeight: 700 }}>
+                  INCIDENT GPS LOCATION {activeInputTab === 'video' ? '• DASHCAM TELEMETRY' : ''}
+                </span>
               </div>
-              {!detectionGpsLocation && (
-                <div style={{ fontSize: '0.73rem', color: 'var(--text-tertiary)' }}>Location not acquired</div>
-              )}
-              {detectionGpsLocation?.loading && (
+              {detectionGpsLocation?.loading ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.73rem', color: 'var(--accent-cyan)' }}>
                   <span style={{ width: '10px', height: '10px', borderRadius: '50%', border: '2px solid var(--accent-cyan)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
                   Acquiring GPS position…
                 </div>
-              )}
-              {detectionGpsLocation && !detectionGpsLocation.loading && (
-                <>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.45, marginBottom: '0.45rem' }}>
-                    {detectionGpsLocation.address}
-                  </div>
-                  {detectionGpsLocation.coords && (
+              ) : (() => {
+                const addr = detectionGpsLocation?.address || selectedSample?.location || (activeInputTab === 'video' ? 'NH-75 Highway Corridor, Km 114, Hassan - Bengaluru Highway' : 'M.G. Road Corridor, Bengaluru, Karnataka');
+                const lat = detectionGpsLocation?.coords?.lat ?? (selectedSample?.coordinates?.[0] ?? 12.9716);
+                const lng = detectionGpsLocation?.coords?.lng ?? (selectedSample?.coordinates?.[1] ?? 77.5946);
+
+                return (
+                  <>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.45, marginBottom: '0.45rem' }}>
+                      {addr}
+                    </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.3rem' }}>
                       <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' }}>
-                        {detectionGpsLocation.coords.lat.toFixed(6)}°N,&nbsp;{detectionGpsLocation.coords.lng.toFixed(6)}°E
+                        {lat.toFixed(6)}°N,&nbsp;{lng.toFixed(6)}°E
                       </span>
                       <a
-                        href={`https://www.google.com/maps?q=${detectionGpsLocation.coords.lat},${detectionGpsLocation.coords.lng}`}
+                        href={`https://www.google.com/maps?q=${lat},${lng}`}
                         target="_blank"
                         rel="noreferrer"
                         style={{ fontSize: '0.68rem', color: 'var(--accent-cyan)', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
@@ -1839,9 +1859,9 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                         <MapPin size={10} /> Open in Google Maps ↗
                       </a>
                     </div>
-                  )}
-                </>
-              )}
+                  </>
+                );
+              })()}
             </div>
           )}
 
