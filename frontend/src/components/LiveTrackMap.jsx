@@ -130,9 +130,10 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking, detections }
       attributionControl: false
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 19
+    // Google Maps Light Mode Roadmap Basemap
+    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      maxZoom: 20
     }).addTo(map);
 
     const damageLayer = L.layerGroup().addTo(map);

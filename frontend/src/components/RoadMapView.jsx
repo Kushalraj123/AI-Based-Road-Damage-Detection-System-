@@ -35,7 +35,7 @@ export default function RoadMapView({ onInspectItem }) {
   const [surveyLog, setSurveyLog] = useState([]);
   const surveyTimerRef = useRef(null);
 
-  // Initialize Leaflet Map with Dark Matter tiles
+  // Initialize Leaflet Map with Google Maps Light Mode tiles
   useEffect(() => {
     if (!mapContainerRef.current) return;
     if (mapInstanceRef.current) return;
@@ -48,10 +48,10 @@ export default function RoadMapView({ onInspectItem }) {
       attributionControl: false
     });
 
-    // Dark Matter CartoDB Basemap (Requires no API key, dark cyber GIS aesthetic)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 19
+    // Google Maps Light Mode Roadmap Basemap
+    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      maxZoom: 20
     }).addTo(map);
 
     // Layer group for distress markers
@@ -76,7 +76,7 @@ export default function RoadMapView({ onInspectItem }) {
     };
   }, []);
 
-  // Update Markers on Filter Change
+  // Update Markers on Filter or Points Change
   const renderMarkers = (layerGroup, points) => {
     if (!layerGroup || !mapInstanceRef.current) return;
     

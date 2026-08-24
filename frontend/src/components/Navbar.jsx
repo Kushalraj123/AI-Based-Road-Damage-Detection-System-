@@ -24,10 +24,12 @@ import { sounds } from './SoundEffects';
 export default function Navbar({
   activeTab,
   setActiveTab,
+  onNavigate,
   theme,
   onToggleTheme,
   backendOnline,
-  notifications = []
+  notifications = [],
+  notificationCount
 }) {
   const [showNotifs, setShowNotifs] = useState(false);
   const [soundActive, setSoundActive] = useState(true);
@@ -51,7 +53,11 @@ export default function Navbar({
 
   const handleTabClick = (tabId) => {
     sounds.playBeep(700, 0.04);
-    setActiveTab(tabId);
+    if (typeof onNavigate === 'function') {
+      onNavigate(tabId);
+    } else if (typeof setActiveTab === 'function') {
+      setActiveTab(tabId);
+    }
     setMobileMenuOpen(false);
   };
 

@@ -125,27 +125,35 @@ export default function App() {
               MUNICIPAL DISPATCH SIGNAL
             </span>
           </div>
-          <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            HCMC Dispatch Alert Received
-          </h4>
-          <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-            Road damage reported at: <strong style={{ color: 'var(--accent-cyan)' }}>{activeToast.address}</strong>
-          </p>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' }}>
-            <span>GPS: {activeToast.coords.lat.toFixed(5)}°N, {activeToast.coords.lng.toFixed(5)}°E</span>
-            <span style={{ color: 'var(--severity-critical)', fontWeight: 700 }}>{activeToast.severity} Severity</span>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+            <div style={{ padding: '6px', borderRadius: '8px', background: 'rgba(139, 92, 246, 0.2)', color: 'var(--accent-purple)', fontSize: '1.1rem' }}>
+              ⚡
+            </div>
+            <div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--accent-purple)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>
+                Municipal Work Order Alert
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                {activeToast.distress_count} Defect(s) Logged: {activeToast.address}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', marginTop: '0.25rem', fontFamily: 'var(--font-mono)' }}>
+                Ticket: {activeToast.id} • SLA: 72h
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Sticky Glassmorphic Navbar */}
+      {/* Top Futuristic Navigation Bar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={handleNavigate}
+        onNavigate={handleNavigate}
         theme={theme}
         onToggleTheme={handleToggleTheme}
         backendOnline={backendOnline}
         notifications={notifications}
+        notificationCount={notifications.length}
       />
 
       {/* Main View Router */}
