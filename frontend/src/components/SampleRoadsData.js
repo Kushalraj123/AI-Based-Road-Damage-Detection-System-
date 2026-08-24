@@ -6,7 +6,7 @@ export const SAMPLE_ROADS = [
     category: 'Highways & Expressways',
     location: 'M.G. Road Corridor, Bengaluru, Karnataka',
     coordinates: [12.9716, 77.5946],
-    image: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=1200&q=80',
+    image: '/images/pothole_real.jpg',
     description: 'Multiple deep asphalt cavity fractures causing structural pavement depression and hazard to local transit.',
     distressCount: 3,
     severity: 'High',
@@ -52,7 +52,7 @@ export const SAMPLE_ROADS = [
     category: 'Arterial Corridors',
     location: 'Gokul Road, Hubballi, Karnataka',
     coordinates: [15.3647, 75.1240],
-    image: 'https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?auto=format&fit=crop&w=1200&q=80',
+    image: '/images/alligator_real.jpg',
     description: 'Extensive interconnected fatigue cracking in the wheel path resulting from repeated subgrade deflection.',
     distressCount: 4,
     severity: 'High',
@@ -88,7 +88,7 @@ export const SAMPLE_ROADS = [
     category: 'Arterial Corridors',
     location: 'Kottara Chowki Flyover Access, Mangaluru, Karnataka',
     coordinates: [12.9141, 74.8560],
-    image: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=1200&q=80',
+    image: '/images/crack_real.jpg',
     description: 'Perpendicular thermal contraction cracks extending across both travel lanes due to coastal weather cycles.',
     distressCount: 2,
     severity: 'Medium',
@@ -114,7 +114,7 @@ export const SAMPLE_ROADS = [
     category: 'Commercial District',
     location: 'Congress Road, Belagavi, Karnataka',
     coordinates: [15.8497, 74.4977],
-    image: 'https://images.unsplash.com/photo-1498084393753-b411b2d26b34?auto=format&fit=crop&w=1200&q=80',
+    image: '/images/crack_real.jpg',
     description: 'Loss of surface aggregate binder matrix creating coarse friction loss and heavy truck lane depressions.',
     distressCount: 2,
     severity: 'Low',
@@ -140,7 +140,7 @@ export const SAMPLE_ROADS = [
     category: 'Highways & Expressways',
     location: 'Mysuru Palace Ring Rd, Mysuru, Karnataka',
     coordinates: [12.2958, 76.6394],
-    image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80',
+    image: '/images/pothole_survey.jpg',
     description: 'Optimal road condition with clear retroreflective striping and zero detected pavement distresses.',
     distressCount: 0,
     severity: 'Clear',
@@ -163,7 +163,7 @@ export const GIS_DAMAGE_POINTS = [
     date: '2026-08-18 14:32',
     inspectorUnit: 'KA-51-Survey-Unit 04',
     status: 'Pending Work Order',
-    image: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=400&q=80'
+    image: '/images/pothole_real.jpg'
   },
   {
     id: 'gis-2',
@@ -175,7 +175,7 @@ export const GIS_DAMAGE_POINTS = [
     date: '2026-08-18 16:15',
     inspectorUnit: 'KA-09-Fleet #12',
     status: 'Assigned to Crew 2',
-    image: 'https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?auto=format&fit=crop&w=400&q=80'
+    image: '/images/alligator_real.jpg'
   },
   {
     id: 'gis-3',
@@ -187,7 +187,7 @@ export const GIS_DAMAGE_POINTS = [
     date: '2026-08-17 11:20',
     inspectorUnit: 'KA-19-Survey Van #02',
     status: 'Scheduled',
-    image: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=400&q=80'
+    image: '/images/crack_real.jpg'
   },
   {
     id: 'gis-4',
@@ -199,7 +199,7 @@ export const GIS_DAMAGE_POINTS = [
     date: '2026-08-19 08:45',
     inspectorUnit: 'KA-25-Citizen Report #88',
     status: 'Urgent Dispatch',
-    image: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=400&q=80'
+    image: '/images/pothole_survey.jpg'
   },
   {
     id: 'gis-5',
@@ -211,7 +211,7 @@ export const GIS_DAMAGE_POINTS = [
     date: '2026-08-16 15:40',
     inspectorUnit: 'KA-22-Survey-Unit 01',
     status: 'Monitored',
-    image: 'https://images.unsplash.com/photo-1498084393753-b411b2d26b34?auto=format&fit=crop&w=400&q=80'
+    image: '/images/crack_real.jpg'
   },
   {
     id: 'gis-6',
@@ -223,7 +223,7 @@ export const GIS_DAMAGE_POINTS = [
     date: '2026-08-19 09:12',
     inspectorUnit: 'KA-32-Drone Alpha',
     status: 'Pending Review',
-    image: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=400&q=80'
+    image: '/images/pothole_real.jpg'
   },
   {
     id: 'gis-7',
@@ -235,7 +235,7 @@ export const GIS_DAMAGE_POINTS = [
     date: '2026-08-15 13:00',
     inspectorUnit: 'KA-14-Audit Bot',
     status: 'Closed & Verified',
-    image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=400&q=80'
+    image: '/images/pothole_survey.jpg'
   },
   {
     id: 'gis-8',
@@ -247,7 +247,7 @@ export const GIS_DAMAGE_POINTS = [
     date: '2026-08-18 10:20',
     inspectorUnit: 'KA-13-Survey-Unit 03',
     status: 'Pending Work Order',
-    image: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=400&q=80'
+    image: '/images/pothole_real.jpg'
   }
 ];
 
