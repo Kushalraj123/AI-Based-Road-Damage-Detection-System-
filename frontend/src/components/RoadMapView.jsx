@@ -561,14 +561,26 @@ export default function RoadMapView({ onInspectItem, syncedIncident }) {
                 </span>
               </div>
 
-              {/* Photo Preview */}
-              <div style={{ width: '100%', height: '160px', borderRadius: '10px', overflow: 'hidden', marginBottom: '1.25rem', border: '1px solid var(--border-subtle)', position: 'relative' }}>
-                <img
-                  src={selectedDamage.image}
-                  alt={selectedDamage.type}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-                <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.7)', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.65rem', color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+              {/* Photo or Video Preview */}
+              <div style={{ width: '100%', height: '170px', borderRadius: '10px', overflow: 'hidden', marginBottom: '1.25rem', border: '1px solid var(--border-subtle)', position: 'relative', background: '#000' }}>
+                {selectedDamage.videoUrl || selectedDamage.mediaType === 'video' ? (
+                  <video
+                    src={selectedDamage.videoUrl || "https://assets.mixkit.co/videos/preview/mixkit-driving-on-a-highway-at-sunset-12497-large.mp4"}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    controls
+                    style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                  />
+                ) : (
+                  <img
+                    src={selectedDamage.image}
+                    alt={selectedDamage.type}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                )}
+                <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.7)', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.65rem', color: '#ffffff', fontFamily: 'var(--font-mono)', pointerEvents: 'none', zIndex: 10 }}>
                   📍 {selectedDamage.coordinates[0].toFixed(5)}°N, {selectedDamage.coordinates[1].toFixed(5)}°E
                 </div>
               </div>

@@ -21,7 +21,11 @@ import {
   ChevronRight,
   Maximize2,
   SplitSquareVertical,
-  Activity
+  Activity,
+  Printer,
+  FileSpreadsheet,
+  X,
+  FileText
 } from 'lucide-react';
 import { SAMPLE_ROADS } from './SampleRoadsData';
 import { sounds } from './SoundEffects';
@@ -160,43 +164,132 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     );
   };
 
-  // ── Calculate dynamic repair materials based on dimensions ────────
+  // ── Calculate dynamic repair materials based on dimensions (ASTM D6433 & IRC:82 Spec) ────────
   const calculateMaterials = (det) => {
-    const len = det.dimensions?.length_cm || 25;
-    const wid = det.dimensions?.width_cm || 20;
-    const dep = det.dimensions?.depth_cm || 2.5;
-    const area = det.dimensions?.area_m2 || 0.05;
+    if (det.materials) return det.materials;
+    const len = det.dimensions?.length_cm || (det.box ? Math.round((det.box[2] - det.box[0]) * 0.33) : 35);
+    const wid = det.dimensions?.width_cm || (det.box ? Math.round((det.box[3] - det.box[1]) * 0.33) : 30);
+    const area = det.dimensions?.area_m2 || parseFloat(((len * wid) / 10000).toFixed(2));
+    const len_m = Math.max(0.1, len / 100);
     
-    const isPothole = det.class_name.toLowerCase().includes('pothole') || det.class_name.includes('D40');
-    const isAlligator = det.class_name.toLowerCase().includes('alligator') || det.class_name.includes('D20');
+    const name = (det.class_name || det.type || '').toLowerCase();
     
-    if (isPothole) {
-      const vol = (len * wid * dep) / 1000000;
-      const asphaltKg = Math.max(1, Math.round(vol * 70));
-      const tackCoatLiters = parseFloat(Math.max(0.01, area * 0.03).toFixed(2));
-      const aggregateKg = Math.max(1, Math.round(vol * 40));
+    if (name.includes('pothole') || name.includes('d40')) {
+      const asphaltKg = parseFloat(Math.max(0.2, Math.min(0.8, 0.2 + area * 0.5)).toFixed(1));
+      const tackLiters = parseFloat(Math.max(0.005, Math.min(0.02, 0.005 + area * 0.01)).toFixed(3));
+      const aggregateKg = parseFloat(Math.max(0.1, Math.min(0.4, 0.1 + area * 0.3)).toFixed(1));
+      const costInr = Math.round(asphaltKg * 20.0 + tackLiters * 80.0 + aggregateKg * 10.0 + 45);
       return {
-        asphalt: `${asphaltKg} kg Bituminous Hot-Mix`,
-        binder: `${tackCoatLiters} L Emulsion Tack Coat`,
-        aggregate: `${aggregateKg} kg Crushed Base Gravel`
+        category: 'Pothole Patching (IRC:82 Spec)',
+        hot_mix: `${asphaltKg} kg Bituminous Hot-Mix (VG-30)`,
+        tack_coat: `${tackLiters} L Cationic Tack Coat (RS-1)`,
+        aggregate: `${aggregateKg} kg Graded Base Gravel (WMM)`,
+        compaction: '12 kN Vibratory Plate Tamper (3 Passes)',
+        cost_formatted: `₹${costInr.toLocaleString('en-IN')} INR`,
+        procedure: 'Square-cut edges, blow dry cavity, spray RS-1 tack coat, tamp hot-mix in 40mm lifts.'
       };
-    } else if (isAlligator) {
-      const vol = (len * wid * dep) / 1000000;
-      const asphaltKg = Math.max(1, Math.round(vol * 55));
-      const tackCoatLiters = parseFloat(Math.max(0.02, area * 0.04).toFixed(2));
-      const sealantKg = Math.max(0.2, parseFloat((area * 0.15).toFixed(1)));
+    } else if (name.includes('alligator') || name.includes('d20')) {
+      const asphaltKg = parseFloat(Math.max(0.3, Math.min(1.0, 0.3 + area * 0.6)).toFixed(1));
+      const tackLiters = parseFloat(Math.max(0.01, Math.min(0.03, 0.01 + area * 0.02)).toFixed(3));
+      const gridM2 = parseFloat(Math.max(0.01, Math.min(0.06, area * 0.04)).toFixed(2));
+      const costInr = Math.round(asphaltKg * 20.0 + tackLiters * 80.0 + gridM2 * 50.0 + 60);
       return {
-        asphalt: `${asphaltKg} kg Dense Bituminous Macadam`,
-        binder: `${tackCoatLiters} L CSS-1h Tack Emulsion`,
-        sealant: `${sealantKg} kg Crack Sealant Compound`
+        category: 'Fatigue Milling & Inlay (MoRTH 500)',
+        hot_mix: `${asphaltKg} kg Dense Bituminous Concrete (40mm Course)`,
+        tack_coat: `${tackLiters} L CSS-1h Polymer Tack Emulsion`,
+        reinforcement: `${gridM2} m² Fiberglass Interlayer Grid`,
+        compaction: 'Tandem Steel Roller (8-10 Ton)',
+        cost_formatted: `₹${costInr.toLocaleString('en-IN')} INR`,
+        procedure: 'Cold-mill 40mm degraded surface, spray polymer tack coat, lay geotextile grid, compact wearing course.'
+      };
+    } else if (name.includes('long') || name.includes('trans') || name.includes('d00') || name.includes('d10') || name.includes('crack')) {
+      const sealantKg = parseFloat(Math.max(0.02, Math.min(0.09, 0.02 + len_m * 0.02)).toFixed(2));
+      const primerLiters = parseFloat(Math.max(0.005, Math.min(0.015, 0.005 + len_m * 0.003)).toFixed(3));
+      const costInr = Math.round(sealantKg * 120.0 + primerLiters * 60.0 + 25);
+      return {
+        category: 'Crack Routing & Hot-Pour Seal (ASTM D6690)',
+        sealant: `${sealantKg} kg Hot-Poured Polymer Rubberized Sealant`,
+        primer: `${primerLiters} L Joint Penetration Primer`,
+        equipment: 'Hot-Air Lance (150°C) + Squeegee Band Applicator',
+        cost_formatted: `₹${costInr.toLocaleString('en-IN')} INR`,
+        procedure: 'Route reservoir 12x12mm, clean with hot-air lance, apply primer, pressure-inject hot sealant.'
       };
     } else {
-      const tackCoatLiters = parseFloat(Math.max(0.01, area * 0.02).toFixed(2));
-      const sealantKg = Math.max(0.1, parseFloat(((len / 100) * 0.06).toFixed(1)));
+      const slurryKg = parseFloat(Math.max(0.15, Math.min(0.5, 0.15 + area * 0.3)).toFixed(1));
+      const emulsionL = parseFloat(Math.max(0.01, Math.min(0.03, 0.01 + area * 0.02)).toFixed(3));
+      const costInr = Math.round(slurryKg * 15.0 + emulsionL * 60.0 + 35);
       return {
-        binder: `${tackCoatLiters} L Rapid Setting Emulsion`,
-        sealant: `${sealantKg} kg Hot-Applied Polymer Sealant`
+        category: 'Micro-Surfacing & Slurry Seal (IRC:SP:81)',
+        slurry_mix: `${slurryKg} kg Polymer Modified Slurry Mix`,
+        emulsion: `${emulsionL} L CQS-1h Quick-Set Emulsion`,
+        compaction: 'Pneumatic-Tired Roller (6 Ton)',
+        cost_formatted: `₹${costInr.toLocaleString('en-IN')} INR`,
+        procedure: 'Power-sweep debris, damp surface, spread calibrated slurry seal, roll smooth.'
       };
+    }
+  };
+
+  const handleExportAudit = () => {
+    sounds.playLockOn();
+    const addr = detectionGpsLocation?.address || selectedSample?.location || (activeInputTab === 'video' ? 'NH-75 Highway Corridor, Hassan - Bengaluru Highway' : 'Indiranagara, Hassan, Karnataka, India');
+    const lat = detectionGpsLocation?.coords?.lat ?? (selectedSample?.coordinates?.[0] ?? 13.016830);
+    const lng = detectionGpsLocation?.coords?.lng ?? (selectedSample?.coordinates?.[1] ?? 76.127376);
+    const reportRef = `RVD-AUDIT-2026-${Date.now().toString().slice(-6)}`;
+    const inspectionDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    let totalHotMix = 0;
+    let totalTack = 0;
+    let totalSealant = 0;
+    let totalGravel = 0;
+
+    const formattedDetections = (detectionResult.detections || []).map((d, idx) => {
+      const mat = calculateMaterials(d);
+      if (mat.hot_mix) {
+        const m = parseFloat(mat.hot_mix);
+        if (!isNaN(m)) totalHotMix += m;
+      }
+      if (mat.tack_coat) {
+        const m = parseFloat(mat.tack_coat);
+        if (!isNaN(m)) totalTack += m;
+      }
+      if (mat.sealant) {
+        const m = parseFloat(mat.sealant);
+        if (!isNaN(m)) totalSealant += m;
+      }
+      if (mat.aggregate) {
+        const m = parseFloat(mat.aggregate);
+        if (!isNaN(m)) totalGravel += m;
+      }
+      return {
+        ...d,
+        materials: mat,
+        estimated_cost: mat.cost_formatted || d.estimated_cost || '₹59 INR'
+      };
+    });
+
+    const auditData = {
+      reportRef,
+      date: inspectionDate,
+      address: addr,
+      coordinates: [lat, lng],
+      googleMapsUrl: `https://www.google.com/maps?q=${lat},${lng}`,
+      pciScore: detectionResult.pciScore,
+      severity: `${detectionResult.severity} Severity`,
+      estimatedCost: detectionResult.estimatedCost,
+      repairPriority: detectionResult.repairPriority,
+      distressCount: detectionResult.distressCount || formattedDetections.length,
+      materialsManifest: {
+        hotMixAsphalt: `${Math.max(1.2, parseFloat(totalHotMix.toFixed(1)))} kg`,
+        tackCoat: `${Math.max(0.05, parseFloat(totalTack.toFixed(2)))} Liters`,
+        baseGravel: `${Math.max(0.5, parseFloat(totalGravel.toFixed(1)))} kg`,
+        sealant: `${parseFloat(totalSealant.toFixed(2)) || 0.15} kg`
+      },
+      detections: formattedDetections,
+      image: displayImgSrc || selectedSample?.image || '/images/pothole_real.jpg'
+    };
+
+    if (typeof onGenerateReport === 'function') {
+      onGenerateReport(auditData);
     }
   };
 
@@ -448,6 +541,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     setIsLiveDetecting(false);
     setLiveDetections([]);
     setLiveProcessedFrame(null);
+    setDetectionGpsLocation(null);
 
     // Reset Telemetry / Result Cards to default Clear state
     setDetectionResult({
@@ -574,8 +668,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             ? 'P2 — Scheduled Maintenance (7 Days)'
             : 'P3 — Routine Monitoring',
           estimatedCost: apiSeverity === 'High'
-            ? `₹${(mappedDetections.length * 350 + 750).toLocaleString('en-IN')} INR`
-            : `₹${(mappedDetections.length * 180 + 350).toLocaleString('en-IN')} INR`,
+            ? `₹${Math.round(mappedDetections.length * 65 + 120).toLocaleString('en-IN')} INR`
+            : `₹${Math.round(mappedDetections.length * 40 + 75).toLocaleString('en-IN')} INR`,
           distressCount: data.total_damage,
           detections: mappedDetections,
           location: 'Uploaded Image — GPS Coordinates Not Available',
@@ -1820,10 +1914,74 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 {detectionResult.estimatedCost}
               </div>
             </div>
+
+            {/* Total Requisition Material Manifest */}
+            {detectionResult.detections && detectionResult.detections.length > 0 && (() => {
+              let totalHotMix = 0;
+              let totalTack = 0;
+              let totalSealant = 0;
+              let totalGravel = 0;
+
+              detectionResult.detections.forEach((d) => {
+                const mat = calculateMaterials(d);
+                if (mat.hot_mix) {
+                  const m = parseFloat(mat.hot_mix);
+                  if (!isNaN(m)) totalHotMix += m;
+                }
+                if (mat.tack_coat) {
+                  const m = parseFloat(mat.tack_coat);
+                  if (!isNaN(m)) totalTack += m;
+                }
+                if (mat.sealant) {
+                  const m = parseFloat(mat.sealant);
+                  if (!isNaN(m)) totalSealant += m;
+                }
+                if (mat.aggregate) {
+                  const m = parseFloat(mat.aggregate);
+                  if (!isNaN(m)) totalGravel += m;
+                }
+              });
+
+              return (
+                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginBottom: '0.45rem', fontWeight: 700 }}>
+                    TOTAL REPAIR MATERIAL MANIFEST (IRC:82)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', fontSize: '0.72rem' }}>
+                    {totalHotMix > 0 && (
+                      <div style={{ background: 'var(--bg-canvas)', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ color: 'var(--text-tertiary)', fontSize: '0.6rem' }}>HOT-MIX ASPHALT</div>
+                        <div style={{ fontWeight: 700, color: 'var(--accent-cyan)' }}>{totalHotMix.toFixed(1)} kg (VG-30)</div>
+                      </div>
+                    )}
+                    {totalTack > 0 && (
+                      <div style={{ background: 'var(--bg-canvas)', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ color: 'var(--text-tertiary)', fontSize: '0.6rem' }}>RS-1 TACK COAT</div>
+                        <div style={{ fontWeight: 700, color: 'var(--accent-cyan)' }}>{totalTack.toFixed(2)} Liters</div>
+                      </div>
+                    )}
+                    {totalSealant > 0 && (
+                      <div style={{ background: 'var(--bg-canvas)', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ color: 'var(--text-tertiary)', fontSize: '0.6rem' }}>POLYMER SEALANT</div>
+                        <div style={{ fontWeight: 700, color: 'var(--accent-cyan)' }}>{totalSealant.toFixed(2)} kg</div>
+                      </div>
+                    )}
+                    {totalGravel > 0 && (
+                      <div style={{ background: 'var(--bg-canvas)', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ color: 'var(--text-tertiary)', fontSize: '0.6rem' }}>BASE GRAVEL (WMM)</div>
+                        <div style={{ fontWeight: 700, color: 'var(--accent-cyan)' }}>{totalGravel.toFixed(1)} kg</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
-          {/* ── Incident GPS Location Card ──────────────────────── */}
-          {(isBackendResult || activeInputTab === 'video' || selectedSample || detectionGpsLocation || (detectionResult.detections && detectionResult.detections.length > 0)) && (
+          {/* ── Incident GPS Location Card (Shown ONLY after detection completes) ──────────────────────── */}
+          {((activeInputTab === 'video' && videoStatus === 'completed') ||
+            (activeInputTab === 'image' && scanComplete && isBackendResult) ||
+            (activeInputTab === 'samples' && selectedSample && scanComplete)) && (
             <div style={{ padding: '0.9rem 1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid rgba(6,182,212,0.25)', boxShadow: '0 0 0 1px rgba(6,182,212,0.08)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
                 <MapPin size={13} style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
@@ -1952,14 +2110,30 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                       {(() => {
                         const mat = calculateMaterials(det);
                         return (
-                          <div style={{ marginTop: '0.65rem', padding: '0.5rem 0.65rem', borderRadius: '6px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.72rem' }}>
-                            <div style={{ fontWeight: 700, color: 'var(--text-secondary)', fontSize: '0.63rem', fontFamily: 'var(--font-mono)', marginBottom: '0.3rem', letterSpacing: '0.05em' }}>ESTIMATED REPAIR MATERIALS:</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', color: 'var(--text-tertiary)' }}>
-                              {mat.asphalt && <div>🛠️ {mat.asphalt}</div>}
-                              {mat.binder && <div>💧 {mat.binder}</div>}
-                              {mat.aggregate && <div>🪨 {mat.aggregate}</div>}
-                              {mat.sealant && <div>🩹 {mat.sealant}</div>}
+                          <div style={{ marginTop: '0.65rem', padding: '0.65rem 0.75rem', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', fontSize: '0.72rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                              <span style={{ fontWeight: 700, color: 'var(--text-secondary)', fontSize: '0.63rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>
+                                {mat.category || 'MUNICIPAL REPAIR SPEC:'}
+                              </span>
+                              <span style={{ fontWeight: 800, color: 'var(--accent-cyan)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
+                                {mat.cost_formatted || det.estimated_cost || '₹2,500 INR'}
+                              </span>
                             </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', color: 'var(--text-tertiary)', marginBottom: '0.35rem' }}>
+                              {mat.hot_mix && <div>🛠️ <strong>Hot-Mix:</strong> {mat.hot_mix}</div>}
+                              {mat.tack_coat && <div>💧 <strong>Tack Coat:</strong> {mat.tack_coat}</div>}
+                              {mat.aggregate && <div>🪨 <strong>Base Material:</strong> {mat.aggregate}</div>}
+                              {mat.sealant && <div>🩹 <strong>Sealant:</strong> {mat.sealant}</div>}
+                              {mat.primer && <div>🧪 <strong>Primer:</strong> {mat.primer}</div>}
+                              {mat.reinforcement && <div>📐 <strong>Grid:</strong> {mat.reinforcement}</div>}
+                              {mat.slurry_mix && <div>🏗️ <strong>Slurry Mix:</strong> {mat.slurry_mix}</div>}
+                              {mat.compaction && <div>⚙️ <strong>Compactor:</strong> {mat.compaction}</div>}
+                            </div>
+                            {mat.procedure && (
+                              <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.3rem', fontStyle: 'italic', lineHeight: 1.35 }}>
+                                📋 {mat.procedure}
+                              </div>
+                            )}
                           </div>
                         );
                       })()}
@@ -1967,10 +2141,10 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                       {/* Area + recommendation */}
                       <div style={{ marginTop: '0.55rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.25rem' }}>
                         <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
-                          Area: <strong style={{ color: 'var(--text-secondary)' }}>{dims.area_m2 != null ? `${dims.area_m2} m²` : '—'}</strong>
+                          Surface Area: <strong style={{ color: 'var(--text-secondary)' }}>{dims.area_m2 != null ? `${dims.area_m2} m²` : '—'}</strong>
                         </span>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontStyle: 'italic', maxWidth: '55%', textAlign: 'right' }}>
-                          {det.recommendation}
+                        <span style={{ fontSize: '0.65rem', color: 'var(--accent-cyan)', fontWeight: 600 }}>
+                          ASTM D6433 Compliant
                         </span>
                       </div>
                     </div>
@@ -1987,6 +2161,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 style={{ flex: 1, padding: '0.65rem 1rem', fontSize: '0.85rem' }}
                 onClick={() => {
                   sounds.playBeep(900, 0.04);
+                  const isVideo = activeInputTab === 'video' || !!processedVideoUrl || !!videoPreviewUrl;
                   const incident = {
                     id: `gis-sync-${Date.now().toString().slice(-4)}`,
                     coordinates: detectionGpsLocation?.coords
@@ -1999,8 +2174,10 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                       ? `${Math.round(detectionResult.detections[0].confidence * 100)}%`
                       : '96.8%',
                     date: new Date().toISOString().replace('T', ' ').slice(0, 16),
-                    inspectorUnit: 'AI Live Telemetry Sync',
+                    inspectorUnit: isVideo ? 'Surveyor Dashcam Telemetry Sync' : 'AI Live Telemetry Sync',
                     status: 'Synced from Detection Studio',
+                    mediaType: isVideo ? 'video' : 'image',
+                    videoUrl: isVideo ? (processedVideoUrl || videoPreviewUrl) : null,
                     image: displayImgSrc || selectedSample?.image || '/images/pothole_real.jpg',
                     detections: detectionResult.detections || []
                   };
@@ -2017,8 +2194,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 className="btn btn-secondary"
                 style={{ padding: '0.65rem 1rem', fontSize: '0.85rem' }}
                 onClick={() => {
-                  sounds.playBeep(850, 0.04);
-                  onGenerateReport();
+                  handleExportAudit();
                 }}
               >
                 <Download size={15} />

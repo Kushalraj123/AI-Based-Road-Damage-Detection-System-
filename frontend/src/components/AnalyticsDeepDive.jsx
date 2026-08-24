@@ -18,12 +18,17 @@ export default function AnalyticsDeepDive() {
   const [liveStats, setLiveStats] = useState(null);
   const [milesToAudit, setMilesToAudit] = useState(250);
   const [potholeFrequency, setPotholeFrequency] = useState(14); // potholes per km/mile
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Load real telemetry on mount
-  useEffect(() => {
-    fetch(`${BACKEND_URL}/api/stats`)
-      .then(res => res.json())
-      .then(data => {
+  const fetchAnalyticsStats = async (isManual = false) => {
+    if (isManual) {
+      setIsLoading(true);
+      sounds.playLaserScan();
+    }
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/stats`);
+      if (res.ok) {
+        const data = await res.json();
         if (data.success) {
           setLiveStats(data);
           if (data.total_scans > 0) {
@@ -32,8 +37,22 @@ export default function AnalyticsDeepDive() {
             setPotholeFrequency(freq);
           }
         }
-      })
-      .catch(() => {});
+      }
+      if (isManual) sounds.playLockOn();
+    } catch (err) {
+      console.warn("Analytics telemetry sync notice:", err);
+    } finally {
+      if (isManual) setIsLoading(false);
+    }
+  };
+
+  // Load real telemetry on mount + auto-poll every 4s
+  useEffect(() => {
+    fetchAnalyticsStats(false);
+    const interval = setInterval(() => {
+      fetchAnalyticsStats(false);
+    }, 4000);
+    return () => clearInterval(interval);
   }, []);
 
   // ROI Calculations in Indian Rupees (INR)
@@ -97,22 +116,34 @@ export default function AnalyticsDeepDive() {
 
   return (
     <div style={{ maxWidth: '1300px', margin: '0 auto 5rem auto', padding: '0 1rem' }}>
-      <div style={{ marginBottom: '2.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.5rem' }}>
-          <div className="badge badge-purple">
-            <BarChart3 size={13} /> INFRASTRUCTURE DEEP-DIVE
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2.5rem' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.5rem' }}>
+            <div className="badge badge-purple">
+              <BarChart3 size={13} /> INFRASTRUCTURE DEEP-DIVE
+            </div>
+            <div className="badge badge-cyan" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+              <span>LIVE TELEMETRY</span>
+            </div>
           </div>
-          <div className="badge badge-cyan" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-            <span>REAL-TIME TELEMETRY</span>
-          </div>
+          <h1 style={{ fontSize: '2.25rem', fontWeight: 800 }}>
+            Pavement Life-Cycle & <span className="text-gradient">ROI Telemetry</span>
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+            Predictive pavement degradation modelling, capital allocation optimization, and preventive maintenance ROI calculator powered by real AI scans.
+          </p>
         </div>
-        <h1 style={{ fontSize: '2.25rem', fontWeight: 800 }}>
-          Pavement Life-Cycle & <span className="text-gradient">ROI Telemetry</span>
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-          Predictive pavement degradation modelling, capital allocation optimization, and preventive maintenance ROI calculator powered by real AI scans.
-        </p>
+
+        <button
+          onClick={() => fetchAnalyticsStats(true)}
+          className="btn btn-secondary"
+          title="Refresh Real-time Backend Telemetry"
+          style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+        >
+          <RefreshCw size={13} className={isLoading ? 'spin-anim' : ''} />
+          <span>Sync Live Telemetry</span>
+        </button>
       </div>
 
       {/* Interactive ROI Calculator Card */}

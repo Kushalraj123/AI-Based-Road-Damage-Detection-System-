@@ -14,589 +14,644 @@ import {
   Building2,
   Wrench,
   Compass,
-  RefreshCw
+  RefreshCw,
+  ArrowLeft
 } from 'lucide-react';
 import { GIS_DAMAGE_POINTS } from './SampleRoadsData';
 import { sounds } from './SoundEffects';
 
 const BACKEND_URL = 'http://127.0.0.1:8000';
 
-// Corridor configurations with real-world geographical profiles
-const CORRIDOR_PROFILES = {
-  'Hassan Urban Corridor Grid': {
-    code: 'KA-HAS-01',
-    district: 'Hassan Central Urban Zone',
-    baseMiles: 34.0,
-    filterKeyword: 'Hassan',
-    pciScore: 72.8,
-    budgetMultiplier: 1.0,
-    wardTeam: 'Ward 15 Road Maintenance Division',
-    authority: 'Hassan City Municipal Corporation (HCMC)'
+// Default live baseline if user directly navigates to reports without fresh scan
+const DEFAULT_INSPECTION_MANIFEST = {
+  reportRef: 'RVD-AUDIT-2026-805297',
+  date: 'August 25, 2026 at 12:26 AM',
+  address: 'Indiranagara, Hassan, Karnataka, India',
+  coordinates: [13.016830, 76.127376],
+  pciScore: 38,
+  severity: 'High Severity',
+  distressCount: 5,
+  estimatedCost: '₹445 INR',
+  repairPriority: 'P1 — Immediate Hot-Mix Asphalt Patch (24h)',
+  materialsManifest: {
+    hotMixAsphalt: '2.6 kg',
+    tackCoat: '0.06 Liters',
+    baseGravel: '1.4 kg',
+    sealant: '0.15 kg'
   },
-  'National Highway 75 (NH-75) Hassan Bypass': {
-    code: 'NH-75-KA',
-    district: 'NHAI Regional Division Karnataka',
-    baseMiles: 95.0,
-    filterKeyword: 'NH-75',
-    pciScore: 84.8,
-    budgetMultiplier: 1.35,
-    wardTeam: 'NHAI Highway Patrol & Engineering Unit 03',
-    authority: 'National Highways Authority of India (NHAI)'
-  },
-  'Bengaluru-Mysuru Expressway (NH-275)': {
-    code: 'NH-275-EXP',
-    district: 'Bengaluru-Mysuru Expressway Corridor',
-    baseMiles: 72.0,
-    filterKeyword: 'Bengaluru',
-    pciScore: 88.5,
-    budgetMultiplier: 1.25,
-    wardTeam: 'Expressway Rapid Response Engineering Unit',
-    authority: 'Karnataka State Highway Improvement Project (KSHIP)'
-  },
-  'Karnataka State Highway Corridor (SH-1)': {
-    code: 'SH-01-KA',
-    district: 'State Arterial Highway Grid',
-    baseMiles: 128.0,
-    filterKeyword: 'Highway',
-    pciScore: 68.4,
-    budgetMultiplier: 1.5,
-    wardTeam: 'PWD State Highway Division 04',
-    authority: 'Public Works Department (PWD) Karnataka'
-  }
+  detections: [
+    {
+      id: 'det-1',
+      class_name: 'Pothole',
+      confidence: 0.88,
+      dimensions: { length_cm: 87.6, width_cm: 62.2, depth_cm: 12.8, area_m2: 0.54 },
+      materials: {
+        hot_mix: '0.5 kg Bituminous Hot-Mix (VG-30)',
+        tack_coat: '0.01 L Cationic Tack Coat (RS-1)',
+        aggregate: '0.3 kg Graded Base Gravel (WMM)'
+      },
+      estimated_cost: '₹59 INR'
+    },
+    {
+      id: 'det-2',
+      class_name: 'Pothole',
+      confidence: 0.79,
+      dimensions: { length_cm: 65.4, width_cm: 48.0, depth_cm: 9.5, area_m2: 0.31 },
+      materials: {
+        hot_mix: '0.4 kg Bituminous Hot-Mix (VG-30)',
+        tack_coat: '0.01 L Cationic Tack Coat (RS-1)',
+        aggregate: '0.2 kg Graded Base Gravel (WMM)'
+      },
+      estimated_cost: '₹56 INR'
+    },
+    {
+      id: 'det-3',
+      class_name: 'Pothole',
+      confidence: 0.72,
+      dimensions: { length_cm: 52.0, width_cm: 40.2, depth_cm: 8.2, area_m2: 0.21 },
+      materials: {
+        hot_mix: '0.3 kg Bituminous Hot-Mix (VG-30)',
+        tack_coat: '0.01 L Cationic Tack Coat (RS-1)',
+        aggregate: '0.2 kg Graded Base Gravel (WMM)'
+      },
+      estimated_cost: '₹54 INR'
+    },
+    {
+      id: 'det-4',
+      class_name: 'Pothole',
+      confidence: 0.65,
+      dimensions: { length_cm: 44.0, width_cm: 32.5, depth_cm: 6.0, area_m2: 0.14 },
+      materials: {
+        hot_mix: '0.3 kg Bituminous Hot-Mix (VG-30)',
+        tack_coat: '0.01 L Cationic Tack Coat (RS-1)',
+        aggregate: '0.2 kg Graded Base Gravel (WMM)'
+      },
+      estimated_cost: '₹52 INR'
+    },
+    {
+      id: 'det-5',
+      class_name: 'Pothole',
+      confidence: 0.54,
+      dimensions: { length_cm: 38.2, width_cm: 28.0, depth_cm: 5.5, area_m2: 0.11 },
+      materials: {
+        hot_mix: '0.2 kg Bituminous Hot-Mix (VG-30)',
+        tack_coat: '0.01 L Cationic Tack Coat (RS-1)',
+        aggregate: '0.1 kg Graded Base Gravel (WMM)'
+      },
+      estimated_cost: '₹49 INR'
+    }
+  ]
 };
 
-const DATE_INTERVAL_MULTIPLIERS = {
-  'Last 7 Days': { factor: 0.25, label: '7-Day Inspection Sweep' },
-  'Last 30 Days': { factor: 1.0, label: 'Monthly DOT Routine Audit' },
-  'Current Fiscal Quarter': { factor: 2.5, label: 'Quarterly Infrastructure Audit (Q3 FY26)' },
-  'Full Year 2026': { factor: 6.0, label: 'Annual Capital Asset Audit FY2026' }
-};
-
-export default function ReportsGenerator() {
-  const [reportType, setReportType] = useState('pci'); // 'pci' | 'municipal'
+export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetection }) {
+  const [reportType, setReportType] = useState('inspection-manifest'); // 'inspection-manifest' | 'pci' | 'municipal'
   const [dateRange, setDateRange] = useState('Last 30 Days');
   const [selectedCorridor, setSelectedCorridor] = useState('Hassan Urban Corridor Grid');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [liveNotifications, setLiveNotifications] = useState([]);
   const [auditTimestamp, setAuditTimestamp] = useState(new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }));
   const [auditSeed, setAuditSeed] = useState(1);
 
-  // Fetch live work order notifications from backend
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const res = await fetch(`${BACKEND_URL}/api/notifications`);
-        if (res.ok) {
-          const data = await res.json();
-          setLiveNotifications(data);
-        }
-      } catch (err) {
-        console.error("Error fetching notifications for report:", err);
-      }
-    };
-    fetchNotifications();
-  }, []);
+  // Active Live Inspection Data: Use synced report or fallback default
+  const activeReport = syncedAuditReport || DEFAULT_INSPECTION_MANIFEST;
 
-  // Compute active corridor stats dynamically
-  const profile = CORRIDOR_PROFILES[selectedCorridor] || CORRIDOR_PROFILES['Hassan Urban Corridor Grid'];
-  const intervalConfig = DATE_INTERVAL_MULTIPLIERS[dateRange] || DATE_INTERVAL_MULTIPLIERS['Last 30 Days'];
+  const handlePrintPDF = () => {
+    sounds.playBeep(950, 0.04);
+    
+    // Create clean high-contrast print frame
+    const rowsHtml = (activeReport.detections || []).map((det, idx) => {
+      const mat = det.materials || {};
+      const dims = det.dimensions || {};
+      const matList = [
+        mat.hot_mix ? `• ${mat.hot_mix}` : '',
+        mat.tack_coat ? `• ${mat.tack_coat}` : '',
+        mat.aggregate ? `• ${mat.aggregate}` : '',
+        mat.sealant ? `• ${mat.sealant}` : ''
+      ].filter(Boolean).join('<br/>');
 
-  // Filter GIS points matching the selected corridor or use all if generic
-  const filteredPoints = GIS_DAMAGE_POINTS.filter((p) => {
-    if (selectedCorridor.includes('Hassan')) return p.street.includes('Hassan') || p.street.includes('B.M. Road') || p.street.includes('MG Road') || p.street.includes('Salagame');
-    if (selectedCorridor.includes('NH-75')) return p.street.includes('NH-75') || p.street.includes('Hassan') || p.street.includes('Bypass');
-    if (selectedCorridor.includes('Bengaluru')) return p.street.includes('Bengaluru') || p.street.includes('Ring Road') || p.street.includes('Corridor');
-    return true;
-  });
+      return `
+        <tr>
+          <td style="padding: 7px 9px; border-bottom: 1px solid #cbd5e1; font-family: monospace; text-align: center;">${idx + 1}</td>
+          <td style="padding: 7px 9px; border-bottom: 1px solid #cbd5e1; font-weight: 700; color: #0f172a;">${det.class_name || det.type}</td>
+          <td style="padding: 7px 9px; border-bottom: 1px solid #cbd5e1; color: #0284c7; font-weight: 700; font-family: monospace;">${Math.round((det.confidence || 0.9) * 100)}%</td>
+          <td style="padding: 7px 9px; border-bottom: 1px solid #cbd5e1; font-family: monospace;">${dims.length_cm ? `${dims.length_cm} × ${dims.width_cm} × ${dims.depth_cm} cm` : '35 × 30 × 4.0 cm'}</td>
+          <td style="padding: 7px 9px; border-bottom: 1px solid #cbd5e1; font-family: monospace;">${dims.area_m2 ? `${dims.area_m2} m²` : '0.10 m²'}</td>
+          <td style="padding: 7px 9px; border-bottom: 1px solid #cbd5e1; font-size: 11px; line-height: 1.35; color: #334155;">${matList || 'Micro-spot patch'}</td>
+          <td style="padding: 7px 9px; border-bottom: 1px solid #cbd5e1; font-weight: 700; color: #0f172a; font-family: monospace;">${det.estimated_cost || '₹59 INR'}</td>
+        </tr>
+      `;
+    }).join('');
 
-  const displayPoints = filteredPoints.length > 0 ? filteredPoints : GIS_DAMAGE_POINTS;
+    const lat = activeReport.coordinates?.[0] ?? 13.016830;
+    const lng = activeReport.coordinates?.[1] ?? 76.127376;
 
-  // Computed dynamic metrics (balanced realistic road repair values)
-  const totalSurveyedMiles = (profile.baseMiles * intervalConfig.factor).toFixed(1);
-  const totalDefectsCount = Math.max(2, Math.round(displayPoints.length * intervalConfig.factor * 1.8 * (auditSeed % 2 === 0 ? 1.05 : 0.95)));
-  const criticalHazards = Math.max(1, Math.round(displayPoints.filter(p => p.severity === 'Critical' || p.severity === 'High').length * intervalConfig.factor * 1.5));
-  const calculatedPCI = (profile.pciScore - (criticalHazards > 5 ? 2.5 : 0) + (auditSeed % 3) * 0.4).toFixed(1);
-  const estRemediationCost = Math.round((totalDefectsCount * 1200 + criticalHazards * 3800) * profile.budgetMultiplier);
+    const printHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>RoadVision AI - Infrastructure Audit ${activeReport.reportRef}</title>
+        <meta charset="utf-8" />
+        <style>
+          @page { size: A4 portrait; margin: 12mm 15mm; }
+          * { box-sizing: border-box; }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #0f172a;
+            background: #ffffff;
+            margin: 0;
+            padding: 15px;
+            font-size: 12.5px;
+            line-height: 1.45;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+          }
+          .badge {
+            display: inline-block;
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 7px;
+            border-radius: 4px;
+            margin-right: 6px;
+            text-transform: uppercase;
+          }
+          .title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 5px 0 2px 0;
+          }
+          .meta {
+            font-size: 10.5px;
+            color: #64748b;
+            font-family: monospace;
+          }
+          .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+          }
+          .card {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 10px 12px;
+          }
+          .card-label {
+            font-size: 9.5px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+          }
+          .card-value {
+            font-size: 17px;
+            font-weight: 800;
+            color: #0f172a;
+          }
+          .materials-box {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+          }
+          .mat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 6px;
+          }
+          .mat-item {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 6px 8px;
+          }
+          .mat-val {
+            font-size: 14px;
+            font-weight: 800;
+            color: #15803d;
+            margin-top: 2px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11.5px;
+            margin-top: 6px;
+          }
+          th {
+            background: #f1f5f9;
+            padding: 7px 9px;
+            text-align: left;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #334155;
+            border-bottom: 2px solid #94a3b8;
+            text-transform: uppercase;
+          }
+          .footer {
+            margin-top: 20px;
+            border-top: 1px solid #cbd5e1;
+            padding-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #64748b;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div>
+              <span class="badge">Official Infrastructure Audit</span>
+              <span class="badge" style="background: #fef3c7; color: #b45309;">IRC:82 & ASTM D6433</span>
+            </div>
+            <div class="title">Road Distress Inspection & Material Manifest</div>
+            <div class="meta">AUDIT REF: <strong>${activeReport.reportRef}</strong> • DATE: ${activeReport.date}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 10px; color: #64748b; font-weight: 700;">MUNICIPAL HIGHWAY AUTHORITY</div>
+            <div style="font-size: 12px; font-weight: 800; color: #0f172a;">Public Works & Highway Authority</div>
+            <div style="font-size: 10.5px; color: #0284c7;">RoadVision AI Infrastructure Core</div>
+          </div>
+        </div>
 
-  // Handle re-generation
-  const handleRegenerateAudit = () => {
-    sounds.playLaserScan();
-    setIsGenerating(true);
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-label">Audited Corridor Location</div>
+            <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 2px; line-height: 1.3;">${activeReport.address}</div>
+            <div style="font-size: 10.5px; color: #64748b; font-family: monospace;">GPS: ${lat.toFixed(6)}°N, ${lng.toFixed(6)}°E</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Pavement Condition & Risk</div>
+            <div class="card-value">${activeReport.pciScore} <span style="font-size: 11px; color: #64748b; font-weight: normal;">/ 100 PCI Score</span></div>
+            <div style="font-size: 10.5px; color: #475569; margin-top: 2px;">${activeReport.distressCount} Defect(s) Detected • ${activeReport.severity}</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Estimated Remediation Budget</div>
+            <div class="card-value">${activeReport.estimatedCost}</div>
+            <div style="font-size: 10.5px; color: #0369a1; font-weight: 600; margin-top: 2px;">Priority: ${activeReport.repairPriority}</div>
+          </div>
+        </div>
+
+        <div class="materials-box">
+          <div style="font-size: 10.5px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.5px;">
+            Cumulative Material Requisition Manifest (IRC:82 Specification)
+          </div>
+          <div class="mat-grid">
+            <div class="mat-item">
+              <div style="font-size: 9.5px; color: #64748b;">HOT-MIX BITUMINOUS ASPHALT</div>
+              <div class="mat-val">${activeReport.materialsManifest?.hotMixAsphalt || '2.6 kg'}</div>
+            </div>
+            <div class="mat-item">
+              <div style="font-size: 9.5px; color: #64748b;">CATIONIC TACK COAT (RS-1)</div>
+              <div class="mat-val">${activeReport.materialsManifest?.tackCoat || '0.06 Liters'}</div>
+            </div>
+            <div class="mat-item">
+              <div style="font-size: 9.5px; color: #64748b;">GRADED BASE GRAVEL (WMM)</div>
+              <div class="mat-val">${activeReport.materialsManifest?.baseGravel || '1.4 kg'}</div>
+            </div>
+            <div class="mat-item">
+              <div style="font-size: 9.5px; color: #64748b;">POLYMER CRACK SEALANT</div>
+              <div class="mat-val">${activeReport.materialsManifest?.sealant || '0.15 kg'}</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size: 11px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin-bottom: 4px;">
+            Itemized Detected Distress Log & Remediation Procedures:
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 30px; text-align: center;">#</th>
+                <th>Distress Type</th>
+                <th>Conf</th>
+                <th>Dimensions (L×W×D)</th>
+                <th>Area</th>
+                <th>Material Allocation</th>
+                <th>Est. Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="footer">
+          <div>Generated by RoadVision AI Infrastructure Intelligence Platform</div>
+          <div>Official PWD / NHAI Compliance Verified</div>
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    const printFrame = document.createElement('iframe');
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = '0';
+    document.body.appendChild(printFrame);
+
+    const frameDoc = printFrame.contentWindow.document;
+    frameDoc.open();
+    frameDoc.write(printHtml);
+    frameDoc.close();
+
     setTimeout(() => {
-      setAuditSeed(prev => prev + 1);
-      setAuditTimestamp(new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }));
-      setIsGenerating(false);
-      sounds.playLockOn();
-    }, 550);
+      printFrame.contentWindow.focus();
+      printFrame.contentWindow.print();
+      setTimeout(() => {
+        document.body.removeChild(printFrame);
+      }, 2000);
+    }, 400);
   };
 
   const handleExportCSV = () => {
     sounds.playBeep(900, 0.05);
-    let headers = '';
-    let rows = '';
+    const lat = activeReport.coordinates?.[0] ?? 13.016830;
+    const lng = activeReport.coordinates?.[1] ?? 76.127376;
 
-    if (reportType === 'pci') {
-      headers = 'ID,DistressType,Corridor,Severity,Confidence,SurveyDate,InspectorUnit,Status\n';
-      rows = displayPoints.map(
-        (p) =>
-          `"${p.id}","${p.type}","${p.street}","${p.severity}","${p.confidence}","${p.date}","${p.inspectorUnit}","${p.status}"`
-      ).join('\n');
-    } else {
-      headers = 'TicketID,Location,Latitude,Longitude,Severity,DistressCount,MaterialsAllocated\n';
-      const sourceData = liveNotifications.length > 0 ? liveNotifications : displayPoints.map(p => ({
-        id: p.id,
-        address: p.street,
-        coords: { lat: p.coordinates[0], lng: p.coordinates[1] },
-        severity: p.severity,
-        distress_count: 1,
-        materials: ['45 kg Bituminous Hot-Mix, 1.5 L Emulsion Tack Coat, 15 kg Crushed Base']
-      }));
-      rows = sourceData.map(
-        (n) =>
-          `"${n.id}","${n.address || n.street}","${n.coords?.lat ?? ''}","${n.coords?.lng ?? ''}","${n.severity}","${n.distress_count ?? 1}","${(n.materials || []).join('; ')}"`
-      ).join('\n');
-    }
+    let csv = `ROADVISION AI - INFRASTRUCTURE AUDIT EXPORT MANIFEST\n`;
+    csv += `Audit Reference,${activeReport.reportRef}\n`;
+    csv += `Audit Date,${activeReport.date}\n`;
+    csv += `Audit Location,"${activeReport.address}"\n`;
+    csv += `GPS Coordinates,"${lat.toFixed(6)}°N, ${lng.toFixed(6)}°E"\n`;
+    csv += `Pavement Condition Index (PCI),${activeReport.pciScore}/100\n`;
+    csv += `Overall Severity,${activeReport.severity}\n`;
+    csv += `Estimated Remediation Budget,"${activeReport.estimatedCost}"\n`;
+    csv += `Total Anomalies Detected,${activeReport.distressCount}\n\n`;
 
-    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+    csv += `Defect ID,Class Name,Confidence,Length (cm),Width (cm),Depth (cm),Area (m2),Material Allocation,Estimated Cost (INR)\n`;
+
+    (activeReport.detections || []).forEach((d, idx) => {
+      const mat = d.materials || {};
+      const dims = d.dimensions || {};
+      const matSummary = [mat.hot_mix, mat.tack_coat, mat.aggregate, mat.sealant].filter(Boolean).join('; ');
+      csv += `DEF-${idx + 1},"${d.class_name || d.type}",${Math.round((d.confidence || 0.9) * 100)}%,${dims.length_cm || '—'},${dims.width_cm || '—'},${dims.depth_cm || '—'},${dims.area_m2 || '—'},"${matSummary || 'Spot repair'}","${d.estimated_cost || '₹59 INR'}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `RoadVision_AI_${profile.code}_${reportType === 'pci' ? 'Pavement_Audit' : 'Municipal_Dispatch'}_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `RoadVision_Audit_Manifest_${activeReport.reportRef}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const handlePrintPDF = () => {
-    sounds.playBeep(950, 0.04);
-    window.print();
-  };
+  const lat = activeReport.coordinates?.[0] ?? 13.016830;
+  const lng = activeReport.coordinates?.[1] ?? 76.127376;
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto 5rem auto', padding: '0 1rem' }}>
-      {/* Reports Header */}
-      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
+      {/* Top Header & Actions Bar */}
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.75rem' }}>
         <div>
-          <div className="badge badge-cyan" style={{ marginBottom: '0.5rem' }}>
-            <FileText size={13} /> MUNICIPAL AUDIT & COMPLIANCE
-          </div>
-          <h1 style={{ fontSize: '2.25rem', fontWeight: 800 }}>
-            Automated Road Condition <span className="text-gradient">Report Generator</span>
+          {onNavigateToDetection && (
+            <button
+              className="btn btn-secondary"
+              onClick={onNavigateToDetection}
+              style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.6rem' }}
+            >
+              <ArrowLeft size={14} />
+              <span>Back to Detection Studio</span>
+            </button>
+          )}
+          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, margin: 0 }}>
+            Infrastructure Audit <span className="text-gradient">& Material Reports</span>
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            Generate DOT-compliant structural road inspection audits, distress logs, and capital remediation work orders.
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.2rem' }}>
+            Official Road Distress Inspection Manifest adhering to IRC:82 and ASTM D6433 standards.
           </p>
         </div>
 
-        {/* Export Actions */}
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button className="btn btn-secondary" onClick={handleExportCSV}>
-            <FileSpreadsheet size={16} color="var(--severity-clear)" />
-            <span>Export CSV Dataset</span>
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <FileSpreadsheet size={15} color="var(--accent-cyan)" />
+            <span>Download CSV Manifest</span>
           </button>
-          <button className="btn btn-primary btn-glow" onClick={handlePrintPDF}>
-            <Printer size={16} />
-            <span>Export PDF Report</span>
+          <button className="btn btn-primary btn-glow" onClick={handlePrintPDF} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Printer size={15} />
+            <span>Print / Save PDF</span>
           </button>
         </div>
       </div>
 
-      {/* Filter Selector Bar */}
+      {/* Main Report Document Sheet — Matches the Photo Exactly */}
       <div
-        className="glass-panel no-print"
+        className="glass-panel report-sheet"
         style={{
-          padding: '1.25rem 1.5rem',
-          marginBottom: '2rem',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '1.25rem',
-          alignItems: 'end'
+          width: '100%',
+          background: 'var(--bg-glass-strong)',
+          border: '1px solid var(--border-glass)',
+          borderRadius: '16px',
+          padding: '2.5rem',
+          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.7)',
+          position: 'relative'
         }}
       >
-        <div>
-          <label style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.4rem', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-            REPORT CATEGORY
-          </label>
-          <select
-            value={reportType}
-            onChange={(e) => {
-              sounds.playBeep(850, 0.02);
-              setReportType(e.target.value);
-            }}
-            style={{
-              width: '100%',
-              background: '#0d1322',
-              border: '1px solid var(--border-glass)',
-              color: '#ffffff',
-              padding: '0.6rem 0.85rem',
-              borderRadius: '8px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              outline: 'none'
-            }}
-          >
-            <option value="pci">Pavement Condition Index (PCI) Audit</option>
-            <option value="municipal">Municipal Rebuild & Materials Requisition (HCMC)</option>
-          </select>
+        {/* Official Audit Document Header */}
+        <div style={{ borderBottom: '2px solid var(--border-subtle)', paddingBottom: '1.25rem', marginBottom: '1.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                <span className="badge badge-blue">
+                  <FileText size={12} /> OFFICIAL INFRASTRUCTURE AUDIT
+                </span>
+                <span className="badge badge-cyan">
+                  IRC:82 & ASTM D6433
+                </span>
+              </div>
+              <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                Road Distress Inspection & Material Manifest
+              </h2>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginTop: '0.4rem', fontFamily: 'var(--font-mono)' }}>
+                AUDIT REF: <strong style={{ color: 'var(--accent-cyan)' }}>{activeReport.reportRef}</strong> • GENERATED: {activeReport.date}
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>MUNICIPAL AUTHORITY</div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Public Works & Highway Authority</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>RoadVision AI Infrastructure Core</div>
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.4rem', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-            DATE INTERVAL
-          </label>
-          <select
-            value={dateRange}
-            onChange={(e) => {
-              sounds.playBeep(850, 0.02);
-              setDateRange(e.target.value);
-            }}
-            style={{
-              width: '100%',
-              background: '#0d1322',
-              border: '1px solid var(--border-glass)',
-              color: '#ffffff',
-              padding: '0.6rem 0.85rem',
-              borderRadius: '8px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              outline: 'none'
-            }}
-          >
-            <option>Last 7 Days</option>
-            <option>Last 30 Days</option>
-            <option>Current Fiscal Quarter</option>
-            <option>Full Year 2026</option>
-          </select>
+        {/* 3-Column Executive Summary Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
+          {/* Location Card */}
+          <div style={{ padding: '1.1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-cyan)', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'var(--font-mono)', marginBottom: '0.4rem' }}>
+              <MapPin size={13} /> AUDITED CORRIDOR LOCATION
+            </div>
+            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.4, marginBottom: '0.45rem' }}>
+              {activeReport.address}
+            </div>
+            <div style={{ fontSize: '0.74rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>{lat.toFixed(6)}°N, {lng.toFixed(6)}°E</span>
+              <a
+                href={`https://www.google.com/maps?q=${lat},${lng}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: 'var(--accent-cyan)', fontWeight: 700, textDecoration: 'none', fontSize: '0.72rem' }}
+              >
+                Maps ↗
+              </a>
+            </div>
+          </div>
+
+          {/* Condition Card */}
+          <div style={{ padding: '1.1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginBottom: '0.35rem' }}>
+              PAVEMENT CONDITION & RISK
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.35rem' }}>
+              <span style={{ fontSize: '1.75rem', fontWeight: 800, color: activeReport.pciScore < 60 ? 'var(--severity-critical)' : 'var(--severity-clear)' }}>
+                {activeReport.pciScore}
+              </span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>/ 100 PCI Score</span>
+            </div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              {activeReport.distressCount} Defect(s) Detected • <span style={{ color: 'var(--accent-blue)' }}>{activeReport.severity}</span>
+            </div>
+          </div>
+
+          {/* Estimated Budget Card */}
+          <div style={{ padding: '1.1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginBottom: '0.35rem' }}>
+              ESTIMATED REMEDIATION BUDGET
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              {activeReport.estimatedCost}
+            </div>
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+              Priority: <strong style={{ color: 'var(--accent-blue)' }}>{activeReport.repairPriority}</strong>
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.4rem', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-            SURVEY CORRIDOR DISTRICT
-          </label>
-          <select
-            value={selectedCorridor}
-            onChange={(e) => {
-              sounds.playBeep(850, 0.02);
-              setSelectedCorridor(e.target.value);
-            }}
-            style={{
-              width: '100%',
-              background: '#0d1322',
-              border: '1px solid var(--border-glass)',
-              color: '#ffffff',
-              padding: '0.6rem 0.85rem',
-              borderRadius: '8px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              outline: 'none'
-            }}
-          >
-            <option>Hassan Urban Corridor Grid</option>
-            <option>National Highway 75 (NH-75) Hassan Bypass</option>
-            <option>Bengaluru-Mysuru Expressway (NH-275)</option>
-            <option>Karnataka State Highway Corridor (SH-1)</option>
-          </select>
+        {/* Total Material Requisition Summary Block */}
+        <div style={{ padding: '1.35rem', borderRadius: '12px', background: 'rgba(6, 182, 212, 0.06)', border: '1px solid rgba(6, 182, 212, 0.25)', marginBottom: '1.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem' }}>
+            <span style={{ fontSize: '0.8rem', fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--accent-cyan)' }}>
+              CUMULATIVE MATERIAL REQUISITION MANIFEST (IRC:82 SPECIFICATION)
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.85rem' }}>
+            <div style={{ background: 'var(--bg-canvas)', padding: '0.75rem 0.95rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ color: 'var(--text-tertiary)', fontSize: '0.68rem', fontFamily: 'var(--font-mono)' }}>HOT-MIX BITUMINOUS ASPHALT</div>
+              <div style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--accent-cyan)', marginTop: '0.25rem' }}>
+                {activeReport.materialsManifest?.hotMixAsphalt || '2.6 kg'}
+              </div>
+              <div style={{ fontSize: '0.66rem', color: 'var(--text-tertiary)', marginTop: '0.15rem' }}>Grade VG-30 / Bituminous Concrete</div>
+            </div>
+
+            <div style={{ background: 'var(--bg-canvas)', padding: '0.75rem 0.95rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ color: 'var(--text-tertiary)', fontSize: '0.68rem', fontFamily: 'var(--font-mono)' }}>CATIONIC TACK COAT (RS-1)</div>
+              <div style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--accent-cyan)', marginTop: '0.25rem' }}>
+                {activeReport.materialsManifest?.tackCoat || '0.06 Liters'}
+              </div>
+              <div style={{ fontSize: '0.66rem', color: 'var(--text-tertiary)', marginTop: '0.15rem' }}>Rapid-Setting Emulsion Bonding</div>
+            </div>
+
+            <div style={{ background: 'var(--bg-canvas)', padding: '0.75rem 0.95rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ color: 'var(--text-tertiary)', fontSize: '0.68rem', fontFamily: 'var(--font-mono)' }}>GRADED BASE GRAVEL (WMM)</div>
+              <div style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--accent-cyan)', marginTop: '0.25rem' }}>
+                {activeReport.materialsManifest?.baseGravel || '1.4 kg'}
+              </div>
+              <div style={{ fontSize: '0.66rem', color: 'var(--text-tertiary)', marginTop: '0.15rem' }}>Wet Mix Macadam Cavity Base</div>
+            </div>
+
+            <div style={{ background: 'var(--bg-canvas)', padding: '0.75rem 0.95rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ color: 'var(--text-tertiary)', fontSize: '0.68rem', fontFamily: 'var(--font-mono)' }}>POLYMER CRACK SEALANT</div>
+              <div style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--accent-cyan)', marginTop: '0.25rem' }}>
+                {activeReport.materialsManifest?.sealant || '0.15 kg'}
+              </div>
+              <div style={{ fontSize: '0.66rem', color: 'var(--text-tertiary)', marginTop: '0.15rem' }}>ASTM D6690 Type II Hot-Pour</div>
+            </div>
+          </div>
         </div>
 
+        {/* Detected Distress Catalog Table */}
         <div>
-          <button
-            className="btn btn-primary btn-glow"
-            style={{
-              width: '100%',
-              padding: '0.65rem 1.25rem',
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem'
-            }}
-            disabled={isGenerating}
-            onClick={handleRegenerateAudit}
-          >
-            <Sparkles size={16} className={isGenerating ? 'animate-spin' : ''} />
-            <span>{isGenerating ? 'Synthesizing Audit…' : 'Re-Generate Audit'}</span>
-          </button>
+          <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', marginBottom: '0.75rem' }}>
+            ITEMIZED DETECTED DISTRESS LOG & REMEDIATION PROCEDURES:
+          </div>
+          <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ background: 'var(--bg-surface-elevated)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: '0.7rem' }}>
+                  <th style={{ padding: '0.65rem 0.85rem' }}>#</th>
+                  <th style={{ padding: '0.65rem 0.85rem' }}>DISTRESS TYPE</th>
+                  <th style={{ padding: '0.65rem 0.85rem' }}>CONF</th>
+                  <th style={{ padding: '0.65rem 0.85rem' }}>DIMENSIONS (L×W×D)</th>
+                  <th style={{ padding: '0.65rem 0.85rem' }}>AREA</th>
+                  <th style={{ padding: '0.65rem 0.85rem' }}>MATERIAL ALLOCATION</th>
+                  <th style={{ padding: '0.65rem 0.85rem' }}>EST. COST</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(activeReport.detections || []).map((det, idx) => {
+                  const mat = det.materials || {};
+                  const dims = det.dimensions || {};
+                  return (
+                    <tr key={idx} style={{ borderBottom: '1px solid var(--border-subtle)', background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
+                      <td style={{ padding: '0.7rem 0.85rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' }}>{idx + 1}</td>
+                      <td style={{ padding: '0.7rem 0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {det.class_name || det.type}
+                      </td>
+                      <td style={{ padding: '0.7rem 0.85rem', fontFamily: 'var(--font-mono)', color: 'var(--accent-cyan)', fontWeight: 700 }}>
+                        {Math.round((det.confidence || 0.9) * 100)}%
+                      </td>
+                      <td style={{ padding: '0.7rem 0.85rem', fontFamily: 'var(--font-mono)' }}>
+                        {dims.length_cm ? `${dims.length_cm}×${dims.width_cm}×${dims.depth_cm} cm` : '35×30×4.0 cm'}
+                      </td>
+                      <td style={{ padding: '0.7rem 0.85rem', fontFamily: 'var(--font-mono)' }}>
+                        {dims.area_m2 ? `${dims.area_m2} m²` : '0.10 m²'}
+                      </td>
+                      <td style={{ padding: '0.7rem 0.85rem', color: 'var(--text-secondary)' }}>
+                        {mat.hot_mix && <div>• {mat.hot_mix}</div>}
+                        {mat.tack_coat && <div>• {mat.tack_coat}</div>}
+                        {mat.aggregate && <div>• {mat.aggregate}</div>}
+                        {mat.sealant && <div>• {mat.sealant}</div>}
+                      </td>
+                      <td style={{ padding: '0.7rem 0.85rem', fontWeight: 800, color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
+                        {det.estimated_cost || '₹59 INR'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-
-      {/* Printable Report Document Sheet */}
-      {isGenerating ? (
-        <div
-          className="glass-panel"
-          style={{
-            padding: '5rem 2rem',
-            textAlign: 'center',
-            background: 'var(--bg-glass-strong)',
-            borderRadius: 'var(--radius-xl)',
-            border: '1px solid var(--border-glass)'
-          }}
-        >
-          <div className="animate-spin" style={{ width: '48px', height: '48px', margin: '0 auto 1.5rem auto', border: '3px solid rgba(6,182,212,0.2)', borderTopColor: 'var(--accent-cyan)', borderRadius: '50%' }} />
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#ffffff', marginBottom: '0.5rem' }}>
-            Compiling Spatial Infrastructure Telemetry…
-          </h3>
-          <p style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
-            Aggregating neural detections, corridor mesh data, and PCI distress scores for {selectedCorridor}.
-          </p>
-        </div>
-      ) : reportType === 'pci' ? (
-        <div
-          className="glass-panel report-sheet"
-          style={{
-            padding: '3rem',
-            background: 'var(--bg-glass-strong)',
-            border: '1px solid var(--border-glass)',
-            borderRadius: 'var(--radius-xl)',
-            boxShadow: 'var(--shadow-lg)'
-          }}
-        >
-          {/* Report Header Branding */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid var(--border-glass)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #06b6d4, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', fontWeight: 800 }}>
-                  RV
-                </div>
-                <span style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem', fontWeight: 800 }}>RoadVision AI</span>
-                <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>OFFICIAL DOT AUDIT</span>
-              </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 600 }}>
-                {profile.authority} — Pavement Infrastructure Quality Audit
-              </div>
-              <div style={{ color: 'var(--accent-cyan)', fontSize: '0.78rem', marginTop: '0.2rem', fontFamily: 'var(--font-mono)' }}>
-                Corridor: {selectedCorridor} ({profile.code})
-              </div>
-            </div>
-
-            <div style={{ textAlign: 'right', fontSize: '0.78rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-              <div>AUDIT ID: <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>RVA-2026-{profile.code}-{auditSeed}</span></div>
-              <div>DATE: <span style={{ color: 'var(--text-primary)' }}>{auditTimestamp}</span></div>
-              <div>INTERVAL: <span style={{ color: 'var(--accent-cyan)', fontWeight: 600 }}>{intervalConfig.label}</span></div>
-              <div>STATUS: <span style={{ color: 'var(--status-active)', fontWeight: 700 }}>VERIFIED</span></div>
-            </div>
-          </div>
-
-          {/* Executive Summary Metrics */}
-          <div style={{ marginBottom: '2.5rem' }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-primary)' }}>
-              1. Executive Infrastructure Summary
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-              <div style={{ padding: '1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>TOTAL MILES SURVEYED</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.2rem' }}>{totalSurveyedMiles} mi</div>
-              </div>
-              <div style={{ padding: '1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>EST. DEFECTS LOGGED</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-blue)', marginTop: '0.2rem' }}>{totalDefectsCount.toLocaleString()}</div>
-              </div>
-              <div style={{ padding: '1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>CRITICAL P1 HAZARDS</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--severity-critical)', marginTop: '0.2rem' }}>{criticalHazards}</div>
-              </div>
-              <div style={{ padding: '1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>CORRIDOR PCI SCORE</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: calculatedPCI > 75 ? 'var(--severity-clear)' : 'var(--severity-medium)', marginTop: '0.2rem' }}>{calculatedPCI} / 100</div>
-              </div>
-              <div style={{ padding: '1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>EST. REMEDIATION BUDGET</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-purple)', marginTop: '0.2rem' }}>₹{estRemediationCost.toLocaleString('en-IN')}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Detailed Defect Inventory Table */}
-          <div style={{ marginBottom: '2.5rem' }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-primary)' }}>
-              2. Geo-Referenced Distress Inventory ({selectedCorridor})
-            </h3>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem' }}>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>ID</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>DISTRESS TYPE</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>GEO LOCATION</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>SEVERITY</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>CONFIDENCE</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>STATUS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayPoints.map((pt, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                      <td style={{ padding: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' }}>{profile.code}-{pt.id}</td>
-                      <td style={{ padding: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>{pt.type}</td>
-                      <td style={{ padding: '0.75rem', color: 'var(--text-secondary)' }}>{pt.street}</td>
-                      <td style={{ padding: '0.75rem' }}>
-                        <span className={`badge ${pt.severity === 'Critical' ? 'badge-critical' : pt.severity === 'High' ? 'badge-high' : pt.severity === 'Medium' ? 'badge-medium' : 'badge-low'}`}>
-                          {pt.severity}
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--accent-cyan)' }}>{pt.confidence}</td>
-                      <td style={{ padding: '0.75rem', fontWeight: 600 }}>{pt.status}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Remediation Work Order Recommendations */}
-          <div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>
-              3. Recommended Remediation & Capital Schedule
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '1rem' }}>
-              Immediate prioritization is allocated to pothole anomalies along <strong>{selectedCorridor}</strong> to prevent vehicular rim and tire damage claims. Micro-surfacing and polymer bitumen sealing recommended for arterial segments to arrest progressive alligator cracking.
-            </p>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--border-glass)', paddingTop: '1.5rem', fontSize: '0.78rem', color: 'var(--text-tertiary)', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <div>CERTIFIED BY: <strong style={{ color: 'var(--text-primary)' }}>RoadVision Automated AI Neural Inspector V4.2</strong></div>
-              <div>SUPERVISOR: <strong style={{ color: 'var(--text-primary)' }}>{profile.wardTeam}</strong></div>
-              <div>VERIFIED BY: <strong style={{ color: 'var(--text-primary)' }}>Chief Municipal Pavement Engineer</strong></div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div
-          className="glass-panel report-sheet"
-          style={{
-            padding: '3rem',
-            background: 'var(--bg-glass-strong)',
-            border: '1px solid var(--border-glass)',
-            borderRadius: 'var(--radius-xl)',
-            boxShadow: 'var(--shadow-lg)'
-          }}
-        >
-          {/* Report Header Branding */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid var(--border-glass)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, var(--accent-purple), #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', fontWeight: 800 }}>
-                  HCMC
-                </div>
-                <span style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem', fontWeight: 800 }}>{profile.authority}</span>
-                <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>CAPITAL DISPATCH TICKET</span>
-              </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 600 }}>
-                Municipal Road Rebuild & Materials Requisition Log
-              </div>
-              <div style={{ color: 'var(--accent-purple)', fontSize: '0.78rem', marginTop: '0.2rem', fontFamily: 'var(--font-mono)' }}>
-                Jurisdiction: {selectedCorridor}
-              </div>
-            </div>
-
-            <div style={{ textAlign: 'right', fontSize: '0.78rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-              <div>ORDER ID: <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>HCMC-DISPATCH-2026-{auditSeed}</span></div>
-              <div>DATE: <span style={{ color: 'var(--text-primary)' }}>{auditTimestamp}</span></div>
-              <div>REPAIR SLA: <span style={{ color: 'var(--status-active)', fontWeight: 700 }}>ACTIVE (72 Hours)</span></div>
-            </div>
-          </div>
-
-          {/* Rebuild Executive Summary Metrics */}
-          <div style={{ marginBottom: '2.5rem' }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-primary)' }}>
-              1. Work Order Rebuild Summary
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-              <div style={{ padding: '1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>TOTAL DISPATCHED TICKETS</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.2rem' }}>{liveNotifications.length > 0 ? liveNotifications.length : displayPoints.length} Jobs</div>
-              </div>
-              <div style={{ padding: '1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>TOTAL MATERIALS ALLOCATED</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-blue)', marginTop: '0.2rem' }}>{((liveNotifications.length > 0 ? liveNotifications.length : displayPoints.length) * 45).toLocaleString()} kg hot-mix</div>
-              </div>
-              <div style={{ padding: '1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>ASSIGNED WORK CREW</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-purple)', marginTop: '0.3rem' }}>{profile.wardTeam}</div>
-              </div>
-              <div style={{ padding: '1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>TARGET RESTORATION</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--severity-clear)', marginTop: '0.2rem' }}>Grade A Surface</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Active Municipal Rebuild Orders Table */}
-          <div style={{ marginBottom: '2.5rem' }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-primary)' }}>
-              2. Active Rebuild Tickets & Coordinates ({selectedCorridor})
-            </h3>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem' }}>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>TICKET ID</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>DAMAGE LOCATION</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>GPS COORDINATES</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>SEVERITY</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>ALLOCATED MATERIALS SUMMARY</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {liveNotifications.length > 0 ? (
-                    liveNotifications.map((notif, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                        <td style={{ padding: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--accent-purple)', fontWeight: 700 }}>{notif.id}</td>
-                        <td style={{ padding: '0.75rem', color: 'var(--text-primary)', fontWeight: 600 }}>{notif.address}</td>
-                        <td style={{ padding: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-                          {notif.coords?.lat?.toFixed ? notif.coords.lat.toFixed(5) : notif.coords?.lat}°N, {notif.coords?.lng?.toFixed ? notif.coords.lng.toFixed(5) : notif.coords?.lng}°E
-                        </td>
-                        <td style={{ padding: '0.75rem' }}>
-                          <span className={`badge ${notif.severity === 'Critical' || notif.severity === 'High' ? 'badge-critical' : 'badge-medium'}`}>
-                            {notif.severity}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-                          {(notif.materials || []).join(' | ')}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    displayPoints.map((pt, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                        <td style={{ padding: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--accent-purple)', fontWeight: 700 }}>{profile.code}-{pt.id.toUpperCase()}</td>
-                        <td style={{ padding: '0.75rem', color: 'var(--text-primary)', fontWeight: 600 }}>{pt.street}</td>
-                        <td style={{ padding: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-                          {pt.coordinates[0].toFixed(5)}°N, {pt.coordinates[1].toFixed(5)}°E
-                        </td>
-                        <td style={{ padding: '0.75rem' }}>
-                          <span className={`badge ${pt.severity === 'High' || pt.severity === 'Critical' ? 'badge-critical' : pt.severity === 'Medium' ? 'badge-medium' : 'badge-low'}`}>
-                            {pt.severity}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-                          45 kg Bituminous Hot-Mix, 1.2 L Emulsion Tack Coat, 12 kg Crushed Gravel
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Quality commitment signature */}
-          <div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>
-              3. Quality Rebuild Commitment & Timeline SLA
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-              All dispatched tickets for <strong>{selectedCorridor}</strong> must be completed within the 72-hour Service Level Agreement (SLA). {profile.authority} guarantees full structural restoration to Grade A Good Pavement Quality. Repairs will be verified using the automated audit scan.
-            </p>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--border-glass)', paddingTop: '1.5rem', fontSize: '0.78rem', color: 'var(--text-tertiary)', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <div>ISSUED BY: <strong style={{ color: 'var(--text-primary)' }}>{profile.wardTeam}</strong></div>
-              <div>APPROVED BY: <strong style={{ color: 'var(--text-primary)' }}>{profile.authority} Commissioner</strong></div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

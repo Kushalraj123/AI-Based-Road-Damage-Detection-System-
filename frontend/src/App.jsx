@@ -20,6 +20,7 @@ export default function App() {
   const [theme, setTheme] = useState('dark');
   const [backendOnline, setBackendOnline] = useState(false);
   const [syncedIncident, setSyncedIncident] = useState(null);
+  const [syncedAuditReport, setSyncedAuditReport] = useState(null);
 
   // Initialize theme on mount
   useEffect(() => {
@@ -183,7 +184,10 @@ export default function App() {
                 setSyncedIncident(incidentData);
                 handleNavigate('roadmap');
               }}
-              onGenerateReport={() => handleNavigate('reports')}
+              onGenerateReport={(auditData) => {
+                if (auditData) setSyncedAuditReport(auditData);
+                handleNavigate('reports');
+              }}
             />
           </div>
         )}
@@ -214,7 +218,10 @@ export default function App() {
 
         {activeTab === 'reports' && (
           <div className="animate-fade-in" style={{ paddingTop: '1rem' }}>
-            <ReportsGenerator />
+            <ReportsGenerator
+              syncedAuditReport={syncedAuditReport}
+              onNavigateToDetection={() => handleNavigate('detection')}
+            />
           </div>
         )}
 
