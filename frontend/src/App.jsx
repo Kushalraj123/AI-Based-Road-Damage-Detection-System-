@@ -19,6 +19,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [theme, setTheme] = useState('dark');
   const [backendOnline, setBackendOnline] = useState(false);
+  const [syncedIncident, setSyncedIncident] = useState(null);
 
   // Initialize theme on mount
   useEffect(() => {
@@ -178,7 +179,10 @@ export default function App() {
         {activeTab === 'detection' && (
           <div className="animate-fade-in" style={{ paddingTop: '1rem' }}>
             <DetectionStudio
-              onPushToMap={() => handleNavigate('roadmap')}
+              onPushToMap={(incidentData) => {
+                setSyncedIncident(incidentData);
+                handleNavigate('roadmap');
+              }}
               onGenerateReport={() => handleNavigate('reports')}
             />
           </div>
@@ -196,6 +200,7 @@ export default function App() {
         {activeTab === 'roadmap' && (
           <div className="animate-fade-in" style={{ paddingTop: '1rem' }}>
             <RoadMapView
+              syncedIncident={syncedIncident}
               onInspectItem={(item) => handleNavigate('detection')}
             />
           </div>

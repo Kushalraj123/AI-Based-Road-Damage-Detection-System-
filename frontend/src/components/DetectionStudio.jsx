@@ -1967,7 +1967,26 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 style={{ flex: 1, padding: '0.65rem 1rem', fontSize: '0.85rem' }}
                 onClick={() => {
                   sounds.playBeep(900, 0.04);
-                  onPushToMap();
+                  const incident = {
+                    id: `gis-sync-${Date.now().toString().slice(-4)}`,
+                    coordinates: detectionGpsLocation?.coords
+                      ? [detectionGpsLocation.coords.lat, detectionGpsLocation.coords.lng]
+                      : (selectedSample?.coordinates || [12.9716, 77.5946]),
+                    street: detectionGpsLocation?.address || selectedSample?.location || selectedSample?.title || 'M.G. Road Corridor, Bengaluru (Live Sync)',
+                    type: detectionResult.detections?.[0]?.class_name || selectedSample?.title || 'Pothole (D40)',
+                    severity: (detectionResult.severity === 'Clear' || !detectionResult.severity) ? 'High' : detectionResult.severity,
+                    confidence: detectionResult.detections?.[0]?.confidence
+                      ? `${Math.round(detectionResult.detections[0].confidence * 100)}%`
+                      : '96.8%',
+                    date: new Date().toISOString().replace('T', ' ').slice(0, 16),
+                    inspectorUnit: 'AI Live Telemetry Sync',
+                    status: 'Synced from Detection Studio',
+                    image: displayImgSrc || selectedSample?.image || '/images/pothole_real.jpg',
+                    detections: detectionResult.detections || []
+                  };
+                  if (typeof onPushToMap === 'function') {
+                    onPushToMap(incident);
+                  }
                 }}
               >
                 <MapPin size={15} />
