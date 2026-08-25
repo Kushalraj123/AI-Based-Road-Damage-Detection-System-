@@ -1,87 +1,98 @@
-# 🛣️ AI-Based Road Damage Detection System
+# 🛣️ AI-Based Road Damage Detection System (RoadVision AI)
 
-An end-to-end AI-powered web application that detects and classifies road damage from images, videos, and live webcam feeds using state-of-the-art YOLO object detection models. Built with a **FastAPI** backend and a **React + Vite** frontend.
-
----
-
-## 📸 Features
-
-- **🖼️ Image Detection** — Upload road images and get instant damage detection with annotated bounding boxes
-- **🎥 Video Detection** — Process full video files frame-by-frame with real-time progress tracking
-- **📷 Webcam / Live Feed** — Detect road damage in real-time using your browser webcam
-- **🗺️ Road Map View** — Visualize detected damage locations on an interactive Leaflet.js map
-- **📊 Dashboard & Analytics** — View damage summaries, severity breakdowns, and historical trends
-- **📄 Report Generator** — Generate structured detection reports from scan history
-- **🌗 Dark / Light Mode** — Smooth theme toggling with persistent user preference
-- **🔊 UI Sound Effects** — Subtle audio feedback for navigation and interactions
+An end-to-end, enterprise-grade AI infrastructure inspection platform that detects, classifies, and quantifies road defects from images, dashcam videos, and real-time camera feeds. Powered by state-of-the-art YOLO object detection neural networks, an **IRC:82 & ASTM D6433 certified material estimation engine**, and a high-performance **FastAPI + React 19 / Vite** architecture.
 
 ---
 
-## 🧠 AI Models
+## 🌟 Key Features
 
-| Model ID | Name | Description |
-|---|---|---|
-| `pothole-yolov8` | Pothole Detection (YOLOv8) | Detects potholes and surface voids. Best for quick scans. |
-| `damage-yolo12s` | Road Damage RDD2022 (YOLOv12s) | Comprehensive detector covering longitudinal cracks, transverse cracks, alligator cracks, rutting, and repairs. |
+### 🔍 1. Neural Detection Studio
+- **🖼️ High-Precision Image Detection** — Upload road imagery with instant distress localization, bounding boxes, and confidence metrics.
+- **🎥 Dashcam Video Analysis** — Asynchronous background video processing pipeline with real-time frame progress, ETA estimation, and web-optimized H.264 MP4 streaming.
+- **📷 Real-Time Webcam / Mobile Feed** — Live frame-by-frame inference directly in the browser via base64 websocket/HTTP streaming.
+- **🎛️ Interactive Comparison Modes** — Split-screen before/after slider, processed view, raw view, and density heatmaps.
+- **📍 Automated GPS & Reverse Geocoding** — Geotags inspection sites automatically via browser geolocation and OpenStreetMap Nominatim.
 
-### Damage Classes
+### 📋 2. IRC:82 Certified Material & Cost Engine
+- **Bituminous Hot-Mix Asphalt (VG-30)** — Calculated from cavity and depression volume ($L \times W \times D$).
+- **Cationic Tack Coat (RS-1 / CSS-1h)** — Calibrated bonding emulsion quantities.
+- **Graded Base Gravel (WMM)** — Wet-mix macadam structural base gravel estimation.
+- **Polymer Crack Sealant (ASTM D6690 Type II)** — Hot-pour joint sealant per linear meter of crack routing.
+- **Polymer Modified Slurry Seal (IRC:SP:81)** — Calibrated micro-surfacing for surface distortion and ravelling.
+- **Remediation Budget Estimation** — Realistic municipal contractor pricing per defect and total corridor budget.
 
-**YOLOv8 (pothole-yolov8)**
-- Longitudinal Crack
-- Transverse Crack
-- Alligator Crack
-- Pothole
-- Other
+### 📊 3. Flexible Multi-Scope Reports Generator
+- **Audit Timeframe Segmentation** — Segment reports by **Days**, **Weeks**, **Months**, **Yearly**, or **Overall (All-Time)**.
+- **Dynamic Numeric Steppers** — Adjust custom periods (`N Days`, `N Weeks`, `N Months`, `N Years`) or choose overall record limits (`50`, `100`, `150+` records).
+- **Executive Inspection Manifests** — PCI (Pavement Condition Index) score (0–100), severity ratings, and itemized distress catalogs.
+- **Export Capabilities** — One-click **Print to PDF** formatted for municipal road audits and structured **CSV Data Export**.
 
-**YOLOv12s (damage-yolo12s) — RDD2022 Standard**
-- D00 – Longitudinal Crack
-- D10 – Transverse Crack
-- D20 – Alligator Crack
-- D40 – Rutting / Pothole
-- Repair
-
-Models are automatically downloaded from **Hugging Face Hub** on first use.
+### 🗺️ 4. GIS Road Map & Analytics Dashboard
+- **Interactive Leaflet.js Corridor Map** — Filter and inspect geotagged damage markers color-coded by severity level.
+- **Executive KPI Cards** — Total media analyzed, verified defect counts, severity ratios (High/Medium/Low), and state PCI metrics.
+- **Deep Dive Visual Analytics** — Distress frequency distributions and severity breakdowns.
 
 ---
 
-## 🏗️ Project Structure
+## 🧠 AI Neural Models
+
+| Model ID | Model Name | Architecture | Specialization |
+|---|---|---|---|
+| `damage-ensemble` *(Default)* | **RoadVision AI Ensemble Fusion** | YOLOv8 + YOLOv12s Fusion | Potholes, extensive alligator fatigue, longitudinal & transverse cracks, base erosion. |
+| `damage-yolo12s` | **Road Damage RDD2022** | YOLOv12s (RDD2022) | Structural fatigue, wide alligator cracking, longitudinal & transverse cracks. |
+| `damage-yolov8` | **Road Damage Pro** | YOLOv8 | High-sensitivity detector for cracks, potholes, and surface distortion. |
+| `pothole-yolov8` | **Pothole Specialist** | YOLOv8 | Fast inference optimized for potholes and road voids. |
+
+### Supported Distress Classes
+- **Potholes & Road Voids** (IRC:82 Cavity Patching)
+- **Alligator & Fatigue Cracks** (MoRTH 500 Fatigue Inlay & Milling)
+- **Longitudinal Cracks** (ASTM D6690 Crack Routing & Polymer Seal)
+- **Transverse Cracks** (ASTM D6690 Polymer Seal)
+- **Surface Distortion & Ravelling** (IRC:SP:81 Micro-Surfacing & Slurry Seal)
+- **Repair Patches**
+
+> **Note:** Neural model weights (`best.pt`, `yolo12s_RDD2022_best.pt`) are automatically downloaded from Hugging Face Hub on first run.
+
+---
+
+## 🏗️ Project Architecture
 
 ```
 Road11/
 ├── backend/
-│   ├── main.py              # FastAPI app — detection logic, routes, video processing
+│   ├── main.py              # FastAPI application, YOLO inference, video queue & history
 │   ├── requirements.txt     # Python dependencies
-│   ├── uploads/             # Uploaded original images/videos
-│   └── processed/           # Annotated output images/videos
+│   ├── history.json         # Scan telemetry & historical inspection store
+│   ├── uploads/             # Original media storage
+│   └── processed/           # Processed annotated media & H.264 videos
 │
 ├── frontend/
 │   ├── index.html
 │   ├── vite.config.js
 │   ├── package.json
 │   └── src/
-│       ├── App.jsx                          # Root component & tab router
-│       ├── theme.js                         # Dark/Light theme manager
+│       ├── App.jsx                          # Root application router & state sync
+│       ├── theme.js                         # Dark / Light theme manager
 │       ├── components/
-│       │   ├── Navbar.jsx                   # Glassmorphic sticky navbar
-│       │   ├── HeroSection.jsx              # 3D animated landing hero
+│       │   ├── Navbar.jsx                   # Sticky glassmorphic navigation
+│       │   ├── HeroSection.jsx              # 3D interactive hero scene
 │       │   ├── TechPipeline.jsx             # AI pipeline visualization
-│       │   ├── FeatureGrid.jsx              # 3D tilt feature showcase
-│       │   ├── DetectionStudio.jsx          # Image / video / webcam detection UI
-│       │   ├── DashboardView.jsx            # Stats & damage overview
-│       │   ├── RoadMapView.jsx              # Leaflet.js interactive map
-│       │   ├── AnalyticsDeepDive.jsx        # Charts and analytics
-│       │   ├── ReportsGenerator.jsx         # PDF/report exporter
-│       │   ├── AboutArchitecture.jsx        # Tech stack & architecture page
-│       │   ├── Footer.jsx                   # Site footer
-│       │   ├── SampleRoadsData.js           # Demo map data
-│       │   └── SoundEffects.js              # UI audio feedback
+│       │   ├── FeatureGrid.jsx              # Interactive 3D tilt feature showcase
+│       │   ├── DetectionStudio.jsx          # Neural detection studio (Image / Video / Webcam)
+│       │   ├── DashboardView.jsx            # High-level metrics & stats
+│       │   ├── RoadMapView.jsx              # Leaflet.js interactive map view
+│       │   ├── AnalyticsDeepDive.jsx        # Analytics charts & trend deep dives
+│       │   ├── ReportsGenerator.jsx         # Multi-scope IRC:82 reports & PDF/CSV exporter
+│       │   ├── AboutArchitecture.jsx        # System architecture documentation
+│       │   ├── Footer.jsx                   # Footer component
+│       │   ├── SampleRoadsData.js           # Preset sample corridors
+│       │   └── SoundEffects.js              # Synthesized audio feedback engine
 │       ├── App.css
 │       ├── index.css
 │       ├── animations.css
 │       └── components.css
 │
-├── history.json             # Local detection history store
-└── test_pothole.jpg         # Sample test image
+└── README.md
 ```
 
 ---
@@ -89,39 +100,30 @@ Road11/
 ## ⚙️ Tech Stack
 
 ### Backend
-| Tech | Purpose |
-|---|---|
-| **FastAPI** | REST API framework |
-| **Uvicorn** | ASGI server |
-| **Ultralytics YOLO** | Object detection models |
-| **OpenCV** | Image/video processing & annotation |
-| **PyTorch** | Deep learning inference (GPU/CPU) |
-| **Hugging Face Hub** | Model weight downloading |
-| **Pydantic** | Request/response validation |
+- **FastAPI** — High-performance asynchronous REST API framework
+- **Ultralytics YOLO** (YOLOv8 & YOLOv12s) — Deep learning object detection
+- **OpenCV & PyTorch** — Image manipulation, video transcoding, and GPU/CPU inference
+- **Hugging Face Hub** — Automated model downloading and caching
+- **Uvicorn** — ASGI production server
 
 ### Frontend
-| Tech | Purpose |
-|---|---|
-| **React 19** | UI framework |
-| **Vite 8** | Build tool & dev server |
-| **Three.js** | 3D animated hero scene |
-| **Leaflet.js** | Interactive damage map |
-| **Lucide React** | Icon library |
-| **canvas-confetti** | Celebration animations |
+- **React 19 & Vite 8** — Reactive UI and lightning-fast build tooling
+- **Leaflet.js & React-Leaflet** — Interactive GIS corridor mapping
+- **Lucide React** — Modern UI icons
+- **Web Audio API** — Synthesized procedural audio feedback
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start Guide
 
 ### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- (Optional) CUDA-capable GPU for faster inference
+- **Python 3.10+**
+- **Node.js 18+** & **npm**
+- *(Optional)* CUDA-compatible GPU for accelerated inference
 
 ---
 
 ### 1. Clone the Repository
-
 ```bash
 git clone https://github.com/Kushalraj123/AI-Based-Road-Damage-Detection-System-.git
 cd AI-Based-Road-Damage-Detection-System-
@@ -130,130 +132,50 @@ cd AI-Based-Road-Damage-Detection-System-
 ---
 
 ### 2. Backend Setup
-
 ```bash
 cd backend
+python -m venv venv
+
+# Windows:
+.\venv\Scripts\activate
+# Linux / macOS:
+# source venv/bin/activate
+
 pip install -r requirements.txt
 python main.py
 ```
-
-The API server will start at **http://127.0.0.1:8000**
-
-> **Note:** YOLO model weights are downloaded automatically from Hugging Face on first use. Ensure you have an internet connection.
+> The API server runs at **http://127.0.0.1:8000** (Swagger docs available at `http://127.0.0.1:8000/docs`).
 
 ---
 
 ### 3. Frontend Setup
-
 ```bash
+# In a new terminal:
 cd frontend
 npm install
 npm run dev
 ```
-
-The frontend will be available at **http://localhost:5173**
+> The web application will launch at **http://localhost:5173**.
 
 ---
 
-## 🔌 API Reference
+## 🔌 API Endpoints Summary
 
-### `GET /api/status`
-Health check — returns GPU availability and model status.
-
-### `GET /api/models`
-Returns available detection models and their class labels.
-
-### `POST /api/detect`
-Detect damage in an uploaded image.
-
-| Field | Type | Description |
+| Method | Endpoint | Description |
 |---|---|---|
-| `file` | File | Image file (JPG, PNG, etc.) |
-| `model_id` | string | `pothole-yolov8` or `damage-yolo12s` |
-| `conf_threshold` | float | Confidence threshold (default: `0.15`) |
-
-**Response:** Annotated image (base64), bounding boxes, damage counts, and severity level.
-
-### `POST /api/detect-video`
-Queue a video for background processing.
-
-| Field | Type | Description |
-|---|---|---|
-| `file` | File | Video file (MP4, AVI, etc.) |
-| `model_id` | string | Model to use |
-| `conf_threshold` | float | Confidence threshold |
-
-**Response:** `task_id` for polling status.
-
-### `GET /api/video-status/{task_id}`
-Poll the processing progress of a queued video task.
-
-### `POST /api/detect-frame`
-Detect damage in a single base64-encoded webcam frame (used for live detection).
-
-### `GET /api/history`
-Returns the last 50 detection records.
-
-### `POST /api/history/clear`
-Clears all detection history.
+| `GET` | `/api/status` | Health check, GPU status, and model availability |
+| `GET` | `/api/models` | List of available neural models and class labels |
+| `POST` | `/api/detect` | Run inference on uploaded image |
+| `POST` | `/api/detect-video` | Enqueue video for frame-by-frame background tracking |
+| `GET` | `/api/video-status/{task_id}` | Poll progress and retrieve processed video URL |
+| `POST` | `/api/detect-frame` | Real-time inference on webcam frame (base64) |
+| `GET` | `/api/history` | Retrieve timestamped detection records |
+| `POST` | `/api/history/clear` | Clear local detection history |
+| `GET` | `/api/stats` | Aggregated state PCI metrics, severity, and distress counts |
 
 ---
 
-## 🎯 Severity Levels
+## 📄 License & Credits
 
-| Severity | Criteria |
-|---|---|
-| **Clear** | No damage detected |
-| **Low** | 1 detection, no potholes |
-| **Medium** | 2+ detections OR 1 pothole |
-| **High** | 4+ detections OR 2+ with potholes |
-
----
-
-## 🗂️ Detection History
-
-All scans are automatically saved to `history.json` (up to 50 most recent entries). Each entry includes:
-- Timestamp
-- Model used
-- Original & processed file URLs
-- Damage count & severity
-- Detected damage classes
-
----
-
-## 📦 Python Dependencies
-
-```
-fastapi
-uvicorn
-python-multipart
-ultralytics
-opencv-python-headless
-torch
-torchvision
-pydantic
-pandas
-huggingface_hub
-```
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Commit your changes (`git commit -m 'Add your feature'`)
-4. Push to the branch (`git push origin feature/your-feature`)
-5. Open a Pull Request
-
----
-
-## 📝 License
-
-This project is open source. Feel free to use, modify, and distribute.
-
----
-
-## 👨‍💻 Author
-
-**Kushalraj** — [GitHub](https://github.com/Kushalraj123)
+- **Author**: [Kushalraj](https://github.com/Kushalraj123)
+- **License**: MIT License. Open for educational and municipal infrastructure applications.
