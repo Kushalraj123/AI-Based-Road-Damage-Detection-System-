@@ -26,8 +26,7 @@ import {
   Minus
 } from 'lucide-react';
 import { sounds } from './SoundEffects';
-
-const BACKEND_URL = 'http://127.0.0.1:8000';
+import { BACKEND_URL } from '../apiConfig';
 
 // Precise ASTM D6433 & IRC:82 Spec material & cost engine based on distress type and physical geometry
 export const calculatePavementMaterials = (className, dimensions = null) => {

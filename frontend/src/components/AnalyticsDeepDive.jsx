@@ -11,8 +11,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { sounds } from './SoundEffects';
-
-const BACKEND_URL = 'http://127.0.0.1:8000';
+import { BACKEND_URL } from '../apiConfig';
 
 export default function AnalyticsDeepDive() {
   const [liveStats, setLiveStats] = useState(null);
