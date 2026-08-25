@@ -13,7 +13,7 @@ import Footer from './components/Footer';
 import { initTheme, toggleTheme } from './theme';
 import { sounds } from './components/SoundEffects';
 
-import { BACKEND_URL } from './apiConfig';
+const BACKEND_URL = 'http://127.0.0.1:8000';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');

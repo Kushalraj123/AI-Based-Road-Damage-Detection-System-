@@ -17,7 +17,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { sounds } from './SoundEffects';
-import { BACKEND_URL } from '../apiConfig';
+
+const BACKEND_URL = 'http://127.0.0.1:8000';
 
 export default function DashboardView({ onNavigateToDetection, onNavigateToMap }) {
   const [timeRange, setTimeRange] = useState('week'); // 'week' | 'month' | 'quarter' | 'year'

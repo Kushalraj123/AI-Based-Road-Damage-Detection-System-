@@ -30,7 +30,8 @@ import {
 import { SAMPLE_ROADS } from './SampleRoadsData';
 import { sounds } from './SoundEffects';
 import LiveTrackMap from './LiveTrackMap';
-import { BACKEND_URL } from '../apiConfig';
+
+const BACKEND_URL = 'http://127.0.0.1:8000';
 
 export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
   const [activeInputTab, setActiveInputTab] = useState('image'); // 'image' | 'video' | 'camera' | 'samples'
