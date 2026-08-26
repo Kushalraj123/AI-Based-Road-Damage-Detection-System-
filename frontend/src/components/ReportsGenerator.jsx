@@ -275,17 +275,6 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
 
     const now = new Date();
     const count = Math.max(1, parseInt(unitCounts[timeframe], 10) || 1);
-    let maxHours = 24;
-
-    if (timeframe === 'days') {
-      maxHours = count * 24;
-    } else if (timeframe === 'weeks') {
-      maxHours = count * 7 * 24;
-    } else if (timeframe === 'months') {
-      maxHours = count * 30 * 24;
-    } else if (timeframe === 'yearly') {
-      maxHours = count * 365 * 24;
-    }
 
     return historyList.filter(item => {
       if (!item.timestamp) return false;
@@ -293,12 +282,21 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
         const itemDate = new Date(item.timestamp.replace(' ', 'T'));
         if (isNaN(itemDate.getTime())) return false;
         
-        // Check for calendar day if 1 day
+        // Strict calendar-day check if 1 day (today's fresh detections)
         if (timeframe === 'days' && count === 1) {
           const isToday = itemDate.getFullYear() === now.getFullYear() &&
                           itemDate.getMonth() === now.getMonth() &&
                           itemDate.getDate() === now.getDate();
-          if (isToday) return true;
+          return isToday;
+        }
+
+        let maxHours = count * 24;
+        if (timeframe === 'weeks') {
+          maxHours = count * 7 * 24;
+        } else if (timeframe === 'months') {
+          maxHours = count * 30 * 24;
+        } else if (timeframe === 'yearly') {
+          maxHours = count * 365 * 24;
         }
 
         const diffMs = now.getTime() - itemDate.getTime();
@@ -1348,10 +1346,54 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
 
             {/* Table */}
             {finalDisplayList.length === 0 ? (
-              <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-tertiary)' }}>
-                <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📷</div>
-                <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>No scans recorded in {activeTimeframeLabel}.</div>
-                <p style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>Upload an image or video in Detection Studio to populate the live log.</p>
+              <div
+                style={{
+                  padding: '3rem 1.5rem',
+                  textAlign: 'center',
+                  background: 'rgba(255, 255, 255, 0.01)',
+                  borderRadius: '12px',
+                  border: '1px dashed var(--border-subtle)',
+                  margin: '0.5rem 0'
+                }}
+              >
+                <div style={{ fontSize: '2rem', marginBottom: '0.6rem' }}>✨</div>
+                <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  Fresh Log — No Detections Recorded Yet for {activeTimeframeLabel}
+                </div>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: '520px', margin: '0.4rem auto 1.25rem auto', lineHeight: 1.5 }}>
+                  Today's inspection corridor is clean and fresh. Run a live photo or dashcam analysis in Detection Studio, or trigger a live simulated on-demand audit.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  {onNavigateToDetection && (
+                    <button
+                      className="btn btn-primary btn-glow"
+                      onClick={onNavigateToDetection}
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      <Camera size={14} />
+                      <span>Start New Detection in Studio</span>
+                    </button>
+                  )}
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handleGenerateLiveSample}
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                  >
+                    <Sparkles size={14} color="var(--accent-cyan)" />
+                    <span>Generate Fresh Live Audit</span>
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setTimeframe('overall');
+                      setUnitCounts(prev => ({ ...prev, overall: 50 }));
+                    }}
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                  >
+                    <Layers size={14} />
+                    <span>View All Past History Log</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>

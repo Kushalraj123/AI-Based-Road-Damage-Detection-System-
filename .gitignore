@@ -31,3 +31,4 @@ build/
 *.sln
 *.sw?
 .DS_Store
+hf_space/
