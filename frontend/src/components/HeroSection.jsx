@@ -50,7 +50,7 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
         style={{
           position: 'absolute',
           top: '12%',
-          right: '5%',
+          right: '3%',
           zIndex: 5,
           pointerEvents: 'auto',
           display: 'flex',
@@ -125,31 +125,31 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.5rem',
-            padding: '0.4rem 1rem',
+            padding: '0.35rem 0.85rem',
             borderRadius: 'var(--radius-full)',
             background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(99, 102, 241, 0.15) 100%)',
             border: '1px solid rgba(56, 189, 248, 0.35)',
             color: 'var(--accent-cyan)',
-            fontSize: '0.825rem',
+            fontSize: '0.78rem',
             fontWeight: 700,
             letterSpacing: '0.04em',
-            marginBottom: '1.5rem',
+            marginBottom: '1.25rem',
             boxShadow: '0 0 20px rgba(6, 182, 212, 0.2)'
           }}
           className="animate-float"
         >
-          <Sparkles size={15} />
+          <Sparkles size={14} />
           <span>SMART CITY GIS & COMPUTER VISION PLATFORM</span>
         </div>
 
         {/* Cinematic Main Heading */}
         <h1
           style={{
-            fontSize: 'clamp(2.5rem, 5.5vw, 4.2rem)',
+            fontSize: 'clamp( 3.5rem, 3.8vw, 3rem)',
             fontWeight: 800,
-            lineHeight: 1.08,
-            letterSpacing: '-0.035em',
-            marginBottom: '1.25rem',
+            lineHeight: 1.15,
+            letterSpacing: '-0.03em',
+            marginBottom: '1.1rem',
             fontFamily: 'var(--font-heading)'
           }}
         >
@@ -160,12 +160,12 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
         {/* Subheading */}
         <p
           style={{
-            fontSize: 'clamp(1.05rem, 2vw, 1.25rem)',
+            fontSize: 'clamp(0.95rem, 1.4vw, 1.1rem)',
             lineHeight: 1.6,
             color: 'var(--text-secondary)',
-            marginBottom: '2.5rem',
-            maxWidth: '680px',
-            margin: '0 auto 2.5rem auto'
+            marginBottom: '2rem',
+            maxWidth: '620px',
+            margin: '0 auto 2rem auto'
           }}
         >
           AI-powered road damage detection that transforms images into intelligent infrastructure insights.

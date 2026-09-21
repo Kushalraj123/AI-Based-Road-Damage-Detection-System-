@@ -47,12 +47,13 @@ export default function Hero({ onStartScan }) {
         </div>
 
         <h1 style={{
-          fontSize: '2.75rem',
+          fontSize: '2.25rem',
           fontWeight: 800,
-          lineHeight: 1.15,
+          lineHeight: 1.2,
           fontFamily: 'var(--font-heading)',
           background: 'linear-gradient(135deg, #ffffff 0%, #a5b4fc 50%, var(--accent-secondary) 100%)',
           WebkitBackgroundClip: 'text',
+          backgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           marginBottom: '1rem',
           letterSpacing: '-0.03em'
