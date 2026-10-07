@@ -272,13 +272,24 @@ export default function ThreeRoadHero({ onDamageClick }) {
     };
     window.addEventListener('themeChanged', handleThemeSwitch);
 
-    // --- Animation Loop ---
+    // --- Animation Loop with IntersectionObserver Optimization ---
     let animId;
     let clock = new THREE.Clock();
     let speed = 12.0;
+    let isVisible = true;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(container);
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
+      if (!isVisible) return;
+
       const delta = clock.getDelta();
       const time = clock.getElapsedTime();
 
@@ -337,6 +348,7 @@ export default function ThreeRoadHero({ onDamageClick }) {
 
     return () => {
       cancelAnimationFrame(animId);
+      observer.disconnect();
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('themeChanged', handleThemeSwitch);
