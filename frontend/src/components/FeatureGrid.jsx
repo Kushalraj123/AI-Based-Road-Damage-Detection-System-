@@ -211,7 +211,7 @@ export default function FeatureGrid({ onNavigate }) {
   return (
     <section
       style={{
-        maxWidth: '1200px',
+        maxWidth: '1600px',
         margin: '0 auto 5rem auto',
         padding: '0 1.5rem'
       }}

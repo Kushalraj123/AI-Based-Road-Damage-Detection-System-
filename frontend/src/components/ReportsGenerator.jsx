@@ -926,7 +926,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
   const lng = activeReport?.coordinates?.[1] ?? 76.127376;
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto 5rem auto', padding: '0 1rem' }}>
+    <div style={{ maxWidth: '1600px', margin: '0 auto 5rem auto', padding: '0 1.5rem' }}>
       {/* Top Navigation & Action Header */}
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
         <div>

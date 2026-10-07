@@ -244,7 +244,7 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
           gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '1rem',
           width: '100%',
-          maxWidth: '1100px',
+          maxWidth: '1400px',
           margin: '0 auto'
         }}
       >

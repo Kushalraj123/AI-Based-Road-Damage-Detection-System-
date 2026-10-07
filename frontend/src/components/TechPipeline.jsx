@@ -77,7 +77,7 @@ export default function TechPipeline() {
   return (
     <section
       style={{
-        maxWidth: '1200px',
+        maxWidth: '1600px',
         margin: '0 auto 4rem auto',
         padding: '0 1.5rem'
       }}
