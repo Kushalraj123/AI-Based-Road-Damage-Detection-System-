@@ -348,7 +348,7 @@ export default function RoadMapView({ onInspectItem, syncedIncident }) {
   };
 
   return (
-    <div style={{ maxWidth: '1760px', margin: '0 auto 5rem auto', padding: '0 1rem' }}>
+    <div style={{ maxWidth: '1350px', margin: '0 auto 5rem auto', padding: '0 1rem' }}>
       {/* View Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
         <div>

@@ -16,7 +16,7 @@ export default function Footer({ onNavigate }) {
     >
       <div
         style={{
-          maxWidth: '1600px',
+          maxWidth: '1200px',
           margin: '0 auto',
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
@@ -165,7 +165,7 @@ export default function Footer({ onNavigate }) {
       </div>
 
       {/* Footer Bottom Line */}
-      <div style={{ maxWidth: '1600px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
         <div>
           &copy; {new Date().getFullYear()} RoadVision AI Inc. All rights reserved.
         </div>

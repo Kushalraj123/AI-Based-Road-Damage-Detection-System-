@@ -114,7 +114,7 @@ export default function AnalyticsDeepDive() {
   ];
 
   return (
-    <div style={{ maxWidth: '1760px', margin: '0 auto 5rem auto', padding: '0 1rem' }}>
+    <div style={{ maxWidth: '1300px', margin: '0 auto 5rem auto', padding: '0 1rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2.5rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.5rem' }}>

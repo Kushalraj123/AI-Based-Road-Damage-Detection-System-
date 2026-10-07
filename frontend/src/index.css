@@ -624,23 +624,6 @@ html, body {
   display: none !important;
 }
 
-/* Responsive Navbar Styling */
-.navbar-header {
-  position: sticky;
-  top: 10px;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  max-width: 1760px;
-  width: calc(100% - 1.5rem);
-  margin: 0 auto 1.25rem auto;
-  padding: 0.55rem 1.5rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-glass);
-  box-shadow: var(--shadow-glass);
-  backdrop-filter: blur(20px);
-}
-
 .mobile-menu-drawer {
   display: flex;
   flex-direction: column;
@@ -682,59 +665,21 @@ html, body {
   .user-badge {
     display: none !important;
   }
-
-  .navbar-header {
-    margin: 0 0.5rem 1rem 0.5rem !important;
-    padding: 0.5rem 0.85rem !important;
-  }
 }
 
 /* Responsive Breakpoints: Mobile Phones (<= 640px) */
 @media (max-width: 640px) {
-  :root {
-    --nav-height: 56px;
-  }
-
-  /* Reduce typography sizes on small screens */
-  h1 {
-    font-size: 1.75rem !important;
-    line-height: 1.2 !important;
-  }
-
-  h2 {
-    font-size: 1.4rem !important;
-  }
-
-  h3 {
-    font-size: 1.15rem !important;
-  }
-
-  /* Padding reductions */
-  .glass-panel {
-    padding: 1rem !important;
-    border-radius: var(--radius-md) !important;
-  }
-
-  /* Buttons on mobile */
-  .btn {
-    padding: 0.65rem 1.1rem !important;
-    font-size: 0.88rem !important;
-  }
-
-  /* Horizontal scroll for wide elements */
   .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     width: 100%;
   }
 
-  /* Detection studio preview canvas height adjustment */
   .preview-canvas-container {
     min-height: 280px !important;
     max-height: 380px !important;
   }
 
-  /* Leaflet map height on mobile */
   .leaflet-map-wrapper {
     height: 380px !important;
   }

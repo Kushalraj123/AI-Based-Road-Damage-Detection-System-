@@ -920,7 +920,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
   const displayImgSrc = (viewMode === 'original' && originalImageUrl) ? originalImageUrl : imagePreviewUrl;
 
   return (
-    <div style={{ maxWidth: '1760px', margin: '0 auto 5rem auto', padding: '0 1rem' }}>
+    <div style={{ maxWidth: '1300px', margin: '0 auto 5rem auto', padding: '0 1rem' }}>
 
       {/* Error Banner */}
       {scanError && (

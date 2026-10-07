@@ -13,7 +13,7 @@ import {
 
 export default function AboutArchitecture() {
   return (
-    <div style={{ maxWidth: '1600px', margin: '0 auto 5rem auto', padding: '0 1.5rem' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto 5rem auto', padding: '0 1rem' }}>
       {/* About Header */}
       <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
         <div className="badge badge-purple" style={{ marginBottom: '0.75rem' }}>
