@@ -629,8 +629,10 @@ html, body {
   left: 0;
   right: 0;
   z-index: 100;
-  margin: 0 1.25rem 1.25rem 1.25rem;
-  padding: 0.5rem 1.25rem;
+  max-width: 1760px;
+  width: calc(100% - 1.5rem);
+  margin: 0 auto 1.25rem auto;
+  padding: 0.55rem 1.5rem;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-glass);
   box-shadow: var(--shadow-glass);

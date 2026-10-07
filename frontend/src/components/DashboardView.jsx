@@ -261,7 +261,7 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
   const lowPct = Math.max(0, 100 - criticalPct - mediumPct);
 
   return (
-    <div style={{ maxWidth: '1600px', margin: '0 auto 5rem auto', padding: '0 1.5rem' }}>
+    <div style={{ maxWidth: '1760px', margin: '0 auto 5rem auto', padding: '0 1rem' }}>
       {/* Dashboard Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
         <div>
