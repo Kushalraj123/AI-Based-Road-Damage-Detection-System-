@@ -1402,7 +1402,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
 
 
       {/* MAIN DETECTION WORKSPACE CANVAS & RESULTS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1.2fr)', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="detection-workspace-grid">
         {/* Left Column: Interactive Image / Video Preview Canvas */}
         <div className="glass-panel" style={{ padding: '1.25rem', overflow: 'hidden', position: 'relative' }}>
           {/* Canvas View Mode Toolbar */}

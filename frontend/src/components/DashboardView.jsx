@@ -362,7 +362,7 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
       </div>
 
       {/* Main Analytics Row: Line Chart + Pavement Condition Gauge */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
+      <div className="dashboard-analytics-grid">
         {/* Distress Detection Trend Velocity (Dynamic Real-Time SVG Line Chart) */}
         <div className="glass-panel" style={{ padding: '1.5rem', background: 'var(--bg-glass-strong)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>

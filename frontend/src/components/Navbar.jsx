@@ -62,23 +62,8 @@ export default function Navbar({
   };
 
   return (
-    <header
-      className="glass-panel"
-      style={{
-        position: 'sticky',
-        top: '13px',
-        left: 0,
-        right: 0,
-        zIndex: 100,
-        margin: '0 1.5rem 1.25rem 1rem',
-        padding: '0.48rem 1.25rem',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border-glass)',
-        boxShadow: 'var(--shadow-glass)',
-        backdropFilter: 'blur(20px)'
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '1rem' }}>
+    <header className="glass-panel navbar-header">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '0.75rem' }}>
         {/* Brand Logo */}
         <div
           onClick={() => handleTabClick('home')}
@@ -369,6 +354,7 @@ export default function Navbar({
 
           {/* User / Smart-City DOT Profile */}
           <div
+            className="user-badge"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -378,7 +364,6 @@ export default function Navbar({
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-glass)'
             }}
-            className="user-badge"
           >
             <div
               style={{
@@ -401,8 +386,80 @@ export default function Navbar({
               <div style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)' }}>Admin Hub</div>
             </div>
           </div>
+
+          {/* Mobile Menu Hamburger Button */}
+          <button
+            onClick={() => {
+              sounds.playBeep(900, 0.03);
+              setMobileMenuOpen(!mobileMenuOpen);
+            }}
+            className="mobile-only"
+            title="Toggle Mobile Navigation"
+            style={{
+              background: 'var(--bg-surface-elevated)',
+              border: '1px solid var(--border-glass)',
+              color: 'var(--text-primary)',
+              padding: '0.42rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Navigation Drawer */}
+      {mobileMenuOpen && (
+        <div className="mobile-menu-drawer">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleTabClick(item.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.7rem 1rem',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: isActive ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(99, 102, 241, 0.25) 100%)' : 'transparent',
+                  color: isActive ? 'var(--accent-blue)' : 'var(--text-primary)',
+                  fontWeight: isActive ? 700 : 500,
+                  fontSize: '0.92rem',
+                  cursor: 'pointer',
+                  width: '100%'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                </div>
+                {item.badge && (
+                  <span
+                    style={{
+                      fontSize: '0.65rem',
+                      fontFamily: 'var(--font-mono)',
+                      padding: '0.15rem 0.45rem',
+                      borderRadius: '4px',
+                      background: isActive ? 'var(--accent-blue)' : 'rgba(56, 189, 248, 0.15)',
+                      color: isActive ? '#ffffff' : 'var(--accent-blue)',
+                      fontWeight: 700
+                    }}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </header>
   );
 }

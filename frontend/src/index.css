@@ -576,3 +576,163 @@ button, input, select, textarea {
   animation: toast-ping 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
+/* ==========================================================================
+   Comprehensive Mobile & Tablet Responsive Architecture
+   ========================================================================== */
+
+/* Global container safeguard */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Responsive Grid Utility Classes */
+.detection-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.2fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.dashboard-analytics-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.roadmap-split-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* Mobile Visibility Utilities */
+.desktop-only {
+  display: flex !important;
+}
+
+.mobile-only {
+  display: none !important;
+}
+
+/* Responsive Navbar Styling */
+.navbar-header {
+  position: sticky;
+  top: 10px;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  margin: 0 1.25rem 1.25rem 1.25rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-glass);
+  backdrop-filter: blur(20px);
+}
+
+.mobile-menu-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1rem;
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+  animation: slide-in-toast 0.25s ease forwards;
+}
+
+/* Responsive Breakpoints: Tablets & Laptops (<= 1024px) */
+@media (max-width: 1024px) {
+  .detection-workspace-grid,
+  .dashboard-analytics-grid,
+  .roadmap-split-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+  }
+
+  .hero-floating-hud {
+    display: none !important;
+  }
+}
+
+/* Responsive Breakpoints: Tablets & Phones (<= 900px) */
+@media (max-width: 900px) {
+  .desktop-nav {
+    display: none !important;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: flex !important;
+  }
+
+  .user-badge {
+    display: none !important;
+  }
+
+  .navbar-header {
+    margin: 0 0.5rem 1rem 0.5rem !important;
+    padding: 0.5rem 0.85rem !important;
+  }
+}
+
+/* Responsive Breakpoints: Mobile Phones (<= 640px) */
+@media (max-width: 640px) {
+  :root {
+    --nav-height: 56px;
+  }
+
+  /* Reduce typography sizes on small screens */
+  h1 {
+    font-size: 1.75rem !important;
+    line-height: 1.2 !important;
+  }
+
+  h2 {
+    font-size: 1.4rem !important;
+  }
+
+  h3 {
+    font-size: 1.15rem !important;
+  }
+
+  /* Padding reductions */
+  .glass-panel {
+    padding: 1rem !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  /* Buttons on mobile */
+  .btn {
+    padding: 0.65rem 1.1rem !important;
+    font-size: 0.88rem !important;
+  }
+
+  /* Horizontal scroll for wide elements */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+
+  /* Detection studio preview canvas height adjustment */
+  .preview-canvas-container {
+    min-height: 280px !important;
+    max-height: 380px !important;
+  }
+
+  /* Leaflet map height on mobile */
+  .leaflet-map-wrapper {
+    height: 380px !important;
+  }
+}
+

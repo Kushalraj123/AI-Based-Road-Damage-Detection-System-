@@ -491,7 +491,7 @@ export default function RoadMapView({ onInspectItem, syncedIncident }) {
       </div>
 
       {/* Main Map + Details Split Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="roadmap-split-grid">
         {/* Leaflet Map Container */}
         <div
           className="glass-panel"
