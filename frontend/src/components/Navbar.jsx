@@ -9,8 +9,6 @@ import {
   Sun,
   Moon,
   Bell,
-  Volume2,
-  VolumeX,
   Radio,
   CheckCircle2,
   AlertTriangle,
@@ -19,7 +17,6 @@ import {
   Sparkles,
   ShieldCheck
 } from 'lucide-react';
-import { sounds } from './SoundEffects';
 
 export default function Navbar({
   activeTab,
@@ -32,7 +29,6 @@ export default function Navbar({
   notificationCount
 }) {
   const [showNotifs, setShowNotifs] = useState(false);
-  const [soundActive, setSoundActive] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
@@ -45,14 +41,7 @@ export default function Navbar({
     { id: 'about', label: 'About', icon: Info },
   ];
 
-  const handleSoundToggle = () => {
-    const newState = sounds.toggle();
-    setSoundActive(newState);
-    if (newState) sounds.playBeep(900, 0.05);
-  };
-
   const handleTabClick = (tabId) => {
-    sounds.playBeep(700, 0.04);
     if (typeof onNavigate === 'function') {
       onNavigate(tabId);
     } else if (typeof setActiveTab === 'function') {
@@ -210,30 +199,9 @@ export default function Navbar({
 
         {/* Right Side Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexShrink: 0 }}>
-          {/* Sound FX Toggle */}
-          <button
-            onClick={handleSoundToggle}
-            title={soundActive ? 'Audio FX Enabled' : 'Audio FX Muted'}
-            style={{
-              background: 'var(--bg-surface-elevated)',
-              border: '1px solid var(--border-glass)',
-              color: soundActive ? 'var(--accent-cyan)' : 'var(--text-tertiary)',
-              padding: '0.42rem',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            {soundActive ? <Volume2 size={15} /> : <VolumeX size={15} />}
-          </button>
-
           {/* Theme Toggle */}
           <button
             onClick={() => {
-              sounds.playBeep(1100, 0.04);
               onToggleTheme();
             }}
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
