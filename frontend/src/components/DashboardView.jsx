@@ -13,12 +13,10 @@ import {
   Zap,
   Clock,
   MapPin,
-  FileSpreadsheet,
-  RefreshCw
+  FileSpreadsheet
 } from 'lucide-react';
 import { sounds } from './SoundEffects';
-
-const BACKEND_URL = 'http://127.0.0.1:8000';
+import { BACKEND_URL, API_ENDPOINTS } from '../config';
 
 export default function DashboardView({ onNavigateToDetection, onNavigateToMap }) {
   const [timeRange, setTimeRange] = useState('week'); // 'week' | 'month' | 'quarter' | 'year'
@@ -284,18 +282,8 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
           </p>
         </div>
 
-        {/* Controls: Time Period Filter Pills + Refresh button */}
+        {/* Controls: Time Period Filter Pills */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => fetchDashboardStats(true)}
-            className="btn btn-secondary"
-            title="Refresh Real-time Backend Telemetry"
-            style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-          >
-            <RefreshCw size={13} className={isLoading ? 'spin-anim' : ''} />
-            <span>Sync Live Data</span>
-          </button>
-
           <div className="glass-panel" style={{ padding: '0.35rem', display: 'flex', gap: '0.35rem' }}>
             {[
               { id: 'week', label: '7 Days' },

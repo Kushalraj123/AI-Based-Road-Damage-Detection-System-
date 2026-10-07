@@ -10,6 +10,9 @@ backend/uploads/
 backend/processed/
 backend/__pycache__/
 backend/history.json
+backend/venv/
+.env
+*.env
 
 # Dependency directories
 node_modules/

@@ -32,8 +32,7 @@ import { SAMPLE_ROADS } from './SampleRoadsData';
 import { sounds } from './SoundEffects';
 import LiveTrackMap from './LiveTrackMap';
 import ThreeRoadDepthViewer from './ThreeRoadDepthViewer';
-
-const BACKEND_URL = 'http://127.0.0.1:8000';
+import { BACKEND_URL, API_ENDPOINTS } from '../config';
 
 export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
   const [activeInputTab, setActiveInputTab] = useState('image'); // 'image' | 'video' | 'camera' | 'samples'

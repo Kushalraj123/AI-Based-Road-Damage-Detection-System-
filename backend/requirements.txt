@@ -9,3 +9,8 @@ pydantic
 pandas
 imageio
 imageio-ffmpeg
+pymongo
+dnspython
+python-dotenv
+certifi
+gunicorn

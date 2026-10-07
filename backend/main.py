@@ -72,19 +72,22 @@ def convert_video_to_h264(input_raw_path: str, output_h264_path: str) -> bool:
 
 app = FastAPI(title="AI Road Damage Detection System API")
 
-# Configure CORS
+# Configure Environment & CORS
+CORS_ORIGINS_RAW = os.getenv("CORS_ORIGINS", "*")
+CORS_ORIGINS = [o.strip() for o in CORS_ORIGINS_RAW.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS if CORS_ORIGINS != ["*"] else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Directories for saving media
-UPLOAD_DIR = os.path.abspath("uploads")
-PROCESSED_DIR = os.path.abspath("processed")
-HISTORY_FILE = os.path.abspath("history.json")
+UPLOAD_DIR = os.path.abspath(os.getenv("UPLOAD_DIR", "uploads"))
+PROCESSED_DIR = os.path.abspath(os.getenv("PROCESSED_DIR", "processed"))
+HISTORY_FILE = os.path.abspath(os.getenv("HISTORY_FILE", "history.json"))
 
 for directory in [UPLOAD_DIR, PROCESSED_DIR]:
     if not os.path.exists(directory):
@@ -239,28 +242,25 @@ async def startup_warmup():
                 print(f"Preload notice for {mid}: {e}")
     threading.Thread(target=_preload, daemon=True).start()
 
-# History Database helpers
+from db import (
+    get_detection_history,
+    add_detection_record,
+    clear_detection_history,
+    add_municipal_notification,
+    get_municipal_notifications,
+    get_db_status
+)
+
+# History Database helpers (backed by MongoDB Atlas + local backup)
 def load_history() -> List[Dict[str, Any]]:
-    if not os.path.exists(HISTORY_FILE):
-        return []
-    try:
-        with open(HISTORY_FILE, "r") as f:
-            return json.load(f)
-    except Exception:
-        return []
+    return get_detection_history()
 
 def save_history(history: List[Dict[str, Any]]):
-    try:
-        with open(HISTORY_FILE, "w") as f:
-            json.dump(history, f, indent=4)
-    except Exception as e:
-        print(f"Error saving history: {e}")
+    # Backward-compatible helper
+    pass
 
 def add_history_entry(entry: Dict[str, Any]):
-    history = load_history()
-    history.insert(0, entry) # Add to the beginning
-    # Keep history to max 5000 items for long-term historical audit tracking
-    save_history(history[:5000])
+    add_detection_record(entry)
 
 # Drawing helper functions
 def draw_stylized_box(image: np.ndarray, x1: int, y1: int, x2: int, y2: int, label: str, conf: float, color: tuple, depth_cm: Optional[float] = None):
@@ -1270,58 +1270,50 @@ def get_video_status(task_id: str):
 @app.get("/api/stats")
 def get_stats():
     history = load_history()
-    # Baseline stats + dynamic user scan accumulation
-    base_scans = 50
-    base_damage = 584
-    base_high = 45
-    base_medium = 25
-    base_low = 14
     
-    user_scans = len(history)
-    user_damage = sum(h.get("total_damage", 0) for h in history)
-    user_high = sum(1 for h in history if h.get("severity") in ("High", "Critical"))
-    user_medium = sum(1 for h in history if h.get("severity") == "Medium")
-    user_low = sum(1 for h in history if h.get("severity") == "Low")
+    total_scans = len(history)
+    total_damage = sum(int(h.get("total_damage", 0)) for h in history)
+    total_high = sum(1 for h in history if str(h.get("severity", "")).lower() in ("high", "critical"))
+    total_medium = sum(1 for h in history if str(h.get("severity", "")).lower() == "medium")
+    total_low = sum(1 for h in history if str(h.get("severity", "")).lower() == "low")
+    total_clear = sum(1 for h in history if str(h.get("severity", "")).lower() in ("clear", "none") or int(h.get("total_damage", 0)) == 0)
     
-    total_scans = base_scans + user_scans
-    total_damage = base_damage + user_damage
-    total_high = base_high + user_high
-    total_medium = base_medium + user_medium
-    total_low = base_low + user_low
-    
-    # Calculate aggregate state PCI (Pavement Condition Index)
-    deductions = min(55.0, (total_high * 0.4) + (total_medium * 0.2) + (total_low * 0.05))
-    current_pci = round(max(35.0, 92.0 - deductions), 1)
+    # Calculate aggregate state PCI (Pavement Condition Index) dynamically
+    if total_scans > 0:
+        deductions = min(65.0, (total_high * 1.8) + (total_medium * 0.8) + (total_low * 0.25))
+        current_pci = round(max(25.0, 95.0 - deductions), 1)
+    else:
+        current_pci = 100.0
+        
     pci_status = "GOOD / SATISFACTORY" if current_pci >= 75 else ("FAIR / MONITOR" if current_pci >= 55 else "CRITICAL / EMERGENCY")
     
-    # Class frequency distribution
-    class_counts = {
-        "Pothole": 142,
-        "Alligator Crack": 218,
-        "Transverse Crack": 115,
-        "Longitudinal Crack": 89,
-        "Surface Ravelling": 20
-    }
+    # Class frequency distribution calculated purely from detection dataset
+    class_counts: Dict[str, int] = {}
     for h in history:
         for cls in h.get("classes_detected", []):
             clean_cls = clean_class_name(cls)
             class_counts[clean_cls] = class_counts.get(clean_cls, 0) + 1
+            
+    total_class_instances = sum(class_counts.values()) or 1
+    category_percentages = {k: round((v / total_class_instances) * 100, 1) for k, v in class_counts.items()}
 
     return {
         "success": True,
         "total_scans": total_scans,
         "total_damage": total_damage,
-        "user_scans_count": user_scans,
+        "user_scans_count": total_scans,
         "severity": {
             "high": total_high,
             "medium": total_medium,
             "low": total_low,
-            "clear": 18
+            "clear": total_clear
         },
         "classes": class_counts,
+        "category_counts": class_counts,
+        "category_percentages": category_percentages,
         "pci": current_pci,
         "pci_status": pci_status,
-        "recent_scans": history[-10:][::-1]
+        "recent_scans": history[:10]
     }
 
 @app.get("/api/history")
@@ -1330,8 +1322,12 @@ def get_history():
 
 @app.post("/api/history/clear")
 def clear_history():
-    save_history([])
+    clear_detection_history()
     return {"success": True, "message": "History cleared."}
+
+@app.get("/api/db/status")
+def get_database_status():
+    return get_db_status()
 
 # Webcam frames endpoint: receives frame as JPEG image base64, runs detection, returns detections and processed base64 frame
 class FramePayload(BaseModel):
@@ -1427,8 +1423,6 @@ class RequisitionNotification(BaseModel):
     severity: str
     materials: List[str]
 
-municipal_notifications: List[Dict[str, Any]] = []
-
 @app.post("/api/notifications/submit")
 def submit_notification(payload: RequisitionNotification):
     notification_entry = {
@@ -1441,14 +1435,18 @@ def submit_notification(payload: RequisitionNotification):
         "materials": payload.materials,
         "status": "received"
     }
-    municipal_notifications.append(notification_entry)
+    add_municipal_notification(notification_entry)
     print(f"🔊 HCMC Dispatch Alert: Potholes detected at {payload.address} ({payload.latitude}, {payload.longitude}). Work order queued.")
     return {"success": True, "message": "Notification successfully submitted to HCMC Municipal system."}
 
 @app.get("/api/notifications")
 def get_notifications():
-    return municipal_notifications
+    return get_municipal_notifications()
 
+# Road Damage Detection System - MongoDB Atlas Integrated
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", 8000))
+    reload = os.getenv("RELOAD", "False").lower() == "true"
+    uvicorn.run("main:app", host=host, port=port, reload=reload)
