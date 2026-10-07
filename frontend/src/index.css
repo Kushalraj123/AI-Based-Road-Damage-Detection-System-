@@ -634,6 +634,23 @@ html, body {
   animation: slide-in-toast 0.25s ease forwards;
 }
 
+/* Core Grid System Defaults */
+.pipeline-stage-deepdive {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 2rem;
+  padding: 2rem;
+  align-items: center;
+}
+
+.features-grid-layout {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.hero-stats-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
 /* Responsive Breakpoints: Tablets & Laptops (<= 1024px) */
 @media (max-width: 1024px) {
   .detection-workspace-grid,
@@ -665,10 +682,37 @@ html, body {
   .user-badge {
     display: none !important;
   }
+
+  .pipeline-stage-deepdive {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+    padding: 1.5rem !important;
+  }
 }
 
 /* Responsive Breakpoints: Mobile Phones (<= 640px) */
 @media (max-width: 640px) {
+  .hero-container-wrapper {
+    padding: 2rem 1rem 2.5rem 1rem !important;
+    margin: 0 0.5rem 2rem 0.5rem !important;
+    min-height: auto !important;
+  }
+
+  .hero-stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  .features-grid-layout {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .pipeline-stage-deepdive {
+    padding: 1.25rem !important;
+    gap: 1.25rem !important;
+  }
+
   .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;

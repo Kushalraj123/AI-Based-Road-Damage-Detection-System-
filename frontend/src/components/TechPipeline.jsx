@@ -200,20 +200,15 @@ export default function TechPipeline() {
 
       {/* Selected Step Deep Dive Card */}
       <div
-        className="glass-panel"
+        className="glass-panel pipeline-stage-deepdive"
         style={{
-          padding: '2rem',
           border: `1px solid ${steps[selectedStep].color}55`,
           background: 'var(--bg-glass-strong)',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '2rem',
-          alignItems: 'center',
           boxShadow: `0 8px 32px 0 ${steps[selectedStep].color}20`
         }}
       >
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
             <span
               className="mono-tag"
               style={{
@@ -221,7 +216,8 @@ export default function TechPipeline() {
                 background: `${steps[selectedStep].color}15`,
                 padding: '0.2rem 0.5rem',
                 borderRadius: '4px',
-                border: `1px solid ${steps[selectedStep].color}33`
+                border: `1px solid ${steps[selectedStep].color}33`,
+                whiteSpace: 'nowrap'
               }}
             >
               PIPELINE STAGE 0{steps[selectedStep].id + 1}
@@ -254,7 +250,8 @@ export default function TechPipeline() {
                   fontSize: '0.78rem',
                   fontWeight: 600,
                   color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-mono)'
+                  fontFamily: 'var(--font-mono)',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <Zap size={12} color={steps[selectedStep].color} />
@@ -272,19 +269,21 @@ export default function TechPipeline() {
             padding: '1.5rem',
             border: '1px solid var(--border-glass)',
             fontFamily: 'var(--font-mono)',
-            fontSize: '0.78rem'
+            fontSize: '0.78rem',
+            minWidth: 0,
+            overflowX: 'auto'
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem', marginBottom: '0.75rem', whiteSpace: 'nowrap', gap: '1rem' }}>
             <span>// TENSOR PIPELINE TRACE</span>
-            <span style={{ color: 'var(--status-active)' }}>ACTIVE</span>
+            <span style={{ color: 'var(--status-active)', fontWeight: 700 }}>ACTIVE</span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', color: 'var(--text-secondary)' }}>
-            <div><span style={{ color: 'var(--accent-blue)' }}>const</span> stage = <span style={{ color: '#ffffff' }}>"{steps[selectedStep].title}"</span>;</div>
-            <div><span style={{ color: 'var(--accent-blue)' }}>const</span> status = <span style={{ color: 'var(--status-active)' }}>"OPTIMAL_INFERENCE"</span>;</div>
-            <div><span style={{ color: 'var(--accent-blue)' }}>const</span> frameLatency = <span style={{ color: 'var(--accent-cyan)' }}>12.4ms</span>;</div>
-            <div><span style={{ color: 'var(--accent-blue)' }}>const</span> precisionRecall = <span style={{ color: 'var(--accent-purple)' }}>0.987</span>;</div>
-            <div style={{ color: 'var(--text-tertiary)', marginTop: '0.5rem' }}>// Neural weights loaded into CUDA memory</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', color: 'var(--text-secondary)', overflowX: 'auto' }}>
+            <div style={{ whiteSpace: 'nowrap' }}><span style={{ color: 'var(--accent-blue)' }}>const</span> stage = <span style={{ color: '#ffffff' }}>"{steps[selectedStep].title}"</span>;</div>
+            <div style={{ whiteSpace: 'nowrap' }}><span style={{ color: 'var(--accent-blue)' }}>const</span> status = <span style={{ color: 'var(--status-active)' }}>"OPTIMAL_INFERENCE"</span>;</div>
+            <div style={{ whiteSpace: 'nowrap' }}><span style={{ color: 'var(--accent-blue)' }}>const</span> frameLatency = <span style={{ color: 'var(--accent-cyan)' }}>12.4ms</span>;</div>
+            <div style={{ whiteSpace: 'nowrap' }}><span style={{ color: 'var(--accent-blue)' }}>const</span> precisionRecall = <span style={{ color: 'var(--accent-purple)' }}>0.987</span>;</div>
+            <div style={{ color: 'var(--text-tertiary)', marginTop: '0.5rem', whiteSpace: 'nowrap' }}>// Neural weights loaded into CUDA memory</div>
           </div>
         </div>
       </div>

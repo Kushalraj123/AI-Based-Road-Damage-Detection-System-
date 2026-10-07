@@ -27,6 +27,7 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
 
   return (
     <section
+      className="hero-container-wrapper"
       style={{
         position: 'relative',
         minHeight: '88vh',
@@ -237,11 +238,11 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
 
       {/* Floating Statistics Grid */}
       <div
+        className="hero-stats-grid"
         style={{
           position: 'relative',
           zIndex: 10,
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '1rem',
           width: '100%',
           maxWidth: '1100px',

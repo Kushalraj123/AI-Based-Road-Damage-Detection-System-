@@ -229,9 +229,9 @@ export default function FeatureGrid({ onNavigate }) {
       </div>
 
       <div
+        className="features-grid-layout"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
           gap: '1.5rem'
         }}
       >
