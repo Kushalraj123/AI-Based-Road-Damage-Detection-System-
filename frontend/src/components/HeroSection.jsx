@@ -145,7 +145,7 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
         {/* Cinematic Main Heading */}
         <h1
           style={{
-            fontSize: 'clamp( 3.5rem, 3.8vw, 3rem)',
+            fontSize: 'clamp(2.5rem, 4.2vw, 3.75rem)',
             fontWeight: 800,
             lineHeight: 1.15,
             letterSpacing: '-0.03em',
