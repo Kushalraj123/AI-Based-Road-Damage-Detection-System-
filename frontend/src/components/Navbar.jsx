@@ -52,19 +52,20 @@ export default function Navbar({
 
   return (
     <header
-      className="glass-panel"
+      className="glass-panel navbar-header"
       style={{
         position: 'sticky',
-        top: '13px',
+        top: '10px',
         left: 0,
         right: 0,
-        zIndex: 100,
-        margin: '0 1.5rem 1.25rem 1rem',
+        zIndex: 1000,
+        maxWidth: '1760px',
+        width: 'calc(100% - 1.5rem)',
+        margin: '0 auto 1.25rem auto',
         padding: '0.48rem 1.25rem',
         borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--border-glass)',
-        boxShadow: 'var(--shadow-glass)',
-        backdropFilter: 'blur(20px)'
+        boxShadow: 'var(--shadow-glass)'
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '1rem' }}>
@@ -372,55 +373,77 @@ export default function Navbar({
 
           {/* Mobile Menu Hamburger Button */}
           <button
-            onClick={() => {
-              sounds.playBeep(900, 0.03);
-              setMobileMenuOpen(!mobileMenuOpen);
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMobileMenuOpen((prev) => !prev);
             }}
             className="mobile-only"
-            title="Toggle Mobile Navigation"
+            aria-label={mobileMenuOpen ? 'Close Menu' : 'Open Menu'}
             style={{
-              background: 'var(--bg-surface-elevated)',
-              border: '1px solid var(--border-glass)',
-              color: 'var(--text-primary)',
+              background: mobileMenuOpen ? 'var(--bg-surface)' : 'var(--bg-surface-elevated)',
+              border: mobileMenuOpen ? '1px solid var(--accent-blue)' : '1px solid var(--border-glass)',
+              color: mobileMenuOpen ? 'var(--accent-blue)' : 'var(--text-primary)',
+              minWidth: '38px',
+              minHeight: '38px',
               padding: '0.42rem',
               borderRadius: '8px',
               cursor: 'pointer',
+              display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              touchAction: 'manipulation',
+              transition: 'all 0.2s ease'
             }}
           >
-            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
       </div>
 
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="mobile-menu-drawer">
+        <div
+          className="mobile-menu-drawer animate-fade-in"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.45rem',
+            paddingTop: '0.85rem',
+            marginTop: '0.75rem',
+            borderTop: '1px solid var(--border-subtle)',
+            width: '100%'
+          }}
+        >
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
               <button
+                type="button"
                 key={item.id}
                 onClick={() => handleTabClick(item.id)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '0.7rem 1rem',
+                  padding: '0.75rem 1rem',
                   borderRadius: '10px',
-                  border: 'none',
-                  background: isActive ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(99, 102, 241, 0.25) 100%)' : 'transparent',
+                  border: isActive ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid transparent',
+                  background: isActive
+                    ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(99, 102, 241, 0.25) 100%)'
+                    : 'rgba(255, 255, 255, 0.03)',
                   color: isActive ? 'var(--accent-blue)' : 'var(--text-primary)',
                   fontWeight: isActive ? 700 : 500,
-                  fontSize: '0.92rem',
+                  fontSize: '0.95rem',
                   cursor: 'pointer',
-                  width: '100%'
+                  width: '100%',
+                  textAlign: 'left',
+                  touchAction: 'manipulation'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <Icon size={18} />
+                  <Icon size={19} color={isActive ? 'var(--accent-blue)' : 'var(--text-secondary)'} />
                   <span>{item.label}</span>
                 </div>
                 {item.badge && (
