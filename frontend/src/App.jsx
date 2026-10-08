@@ -12,7 +12,7 @@ import AboutArchitecture from './components/AboutArchitecture';
 import Footer from './components/Footer';
 import { initTheme, toggleTheme } from './theme';
 import { sounds } from './components/SoundEffects';
-import { BACKEND_URL, API_ENDPOINTS } from './config';
+import { BACKEND_URL, API_ENDPOINTS, apiFetch } from './config';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -29,7 +29,7 @@ export default function App() {
     // Check backend health
     const checkBackend = async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/status`, { signal: AbortSignal.timeout(3000) });
+        const res = await apiFetch(`${BACKEND_URL}/api/status`, { signal: AbortSignal.timeout(8000) });
         if (res.ok) {
           const data = await res.json();
           setBackendOnline(data.status === 'healthy');
@@ -54,7 +54,7 @@ export default function App() {
 
     const pollNotifications = async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/notifications`);
+        const res = await apiFetch(`${BACKEND_URL}/api/notifications`);
         if (res.ok) {
           const data = await res.json();
           setNotifications(data);

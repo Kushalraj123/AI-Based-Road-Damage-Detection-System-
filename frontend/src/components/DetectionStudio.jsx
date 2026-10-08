@@ -32,7 +32,7 @@ import { SAMPLE_ROADS } from './SampleRoadsData';
 import { sounds } from './SoundEffects';
 import LiveTrackMap from './LiveTrackMap';
 import ThreeRoadDepthViewer from './ThreeRoadDepthViewer';
-import { BACKEND_URL, API_ENDPOINTS } from '../config';
+import { BACKEND_URL, API_ENDPOINTS, apiFetch } from '../config';
 
 export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
   const [activeInputTab, setActiveInputTab] = useState('image'); // 'image' | 'video' | 'camera' | 'samples'
@@ -385,7 +385,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     formData.append('conf_threshold', confThreshold);
 
     try {
-      const res = await fetch(`${BACKEND_URL}/api/detect-video`, {
+      const res = await apiFetch(`${BACKEND_URL}/api/detect-video`, {
         method: 'POST',
         body: formData
       });
@@ -409,7 +409,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
   const pollVideoStatus = (taskId) => {
     const poll = async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/video-status/${taskId}`);
+        const res = await apiFetch(`${BACKEND_URL}/api/video-status/${taskId}`);
         if (!res.ok) {
           throw new Error('Failed to fetch video status');
         }
@@ -610,7 +610,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       formData.append('file', uploadedFile);
       formData.append('model_id', selectedModel);
       formData.append('conf_threshold', confThreshold);
-      apiPromise = fetch(`${BACKEND_URL}/api/detect`, { method: 'POST', body: formData });
+      apiPromise = apiFetch(`${BACKEND_URL}/api/detect`, { method: 'POST', body: formData });
 
       // Fire GPS + reverse geocode in parallel — does NOT block detection
       setDetectionGpsLocation(null);
@@ -1030,7 +1030,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     isFrameInFlightRef.current = true;
     const frameStart = performance.now();
     try {
-      const res = await fetch(`${BACKEND_URL}/api/detect-frame`, {
+      const res = await apiFetch(`${BACKEND_URL}/api/detect-frame`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

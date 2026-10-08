@@ -11,7 +11,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { sounds } from './SoundEffects';
-import { BACKEND_URL, API_ENDPOINTS } from '../config';
+import { BACKEND_URL, API_ENDPOINTS, apiFetch } from '../config';
 
 export default function AnalyticsDeepDive() {
   const [liveStats, setLiveStats] = useState(null);
@@ -25,7 +25,7 @@ export default function AnalyticsDeepDive() {
       sounds.playLaserScan();
     }
     try {
-      const res = await fetch(`${BACKEND_URL}/api/stats`);
+      const res = await apiFetch(`${BACKEND_URL}/api/stats`);
       if (res.ok) {
         const data = await res.json();
         if (data.success) {

@@ -1,10 +1,31 @@
 /**
  * Centralized Application Configuration
- * Dynamically resolves backend endpoints and environment options.
+ * Dynamically resolves backend endpoints, bypasses tunnel reminders (localtunnel / ngrok),
+ * and provides robust apiFetch wrapper.
  */
 
 // Backend Base URL from environment variable or default local host
 export const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+
+export const API_HEADERS = {
+  'Bypass-Tunnel-Reminder': 'true',
+  'bypass-tunnel-reminder': 'true',
+  'ngrok-skip-browser-warning': 'true'
+};
+
+/**
+ * Universal API Fetch wrapper that automatically attaches tunnel-bypass headers
+ */
+export const apiFetch = async (url, options = {}) => {
+  const customHeaders = {
+    ...API_HEADERS,
+    ...(options.headers || {})
+  };
+  return fetch(url, {
+    ...options,
+    headers: customHeaders
+  });
+};
 
 // API Endpoints Mapping
 export const API_ENDPOINTS = {
@@ -24,5 +45,7 @@ export const API_ENDPOINTS = {
 
 export default {
   BACKEND_URL,
+  API_HEADERS,
+  apiFetch,
   API_ENDPOINTS
 };

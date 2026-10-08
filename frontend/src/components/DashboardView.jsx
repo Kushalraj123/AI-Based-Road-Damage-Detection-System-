@@ -16,7 +16,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { sounds } from './SoundEffects';
-import { BACKEND_URL, API_ENDPOINTS } from '../config';
+import { BACKEND_URL, API_ENDPOINTS, apiFetch } from '../config';
 
 export default function DashboardView({ onNavigateToDetection, onNavigateToMap }) {
   const [timeRange, setTimeRange] = useState('week'); // 'week' | 'month' | 'quarter' | 'year'
@@ -33,8 +33,8 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
     }
     try {
       const [statsRes, historyRes] = await Promise.all([
-        fetch(`${BACKEND_URL}/api/stats`),
-        fetch(`${BACKEND_URL}/api/history`)
+        apiFetch(`${BACKEND_URL}/api/stats`),
+        apiFetch(`${BACKEND_URL}/api/history`)
       ]);
 
       if (statsRes.ok) {

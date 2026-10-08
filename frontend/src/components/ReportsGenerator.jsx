@@ -26,7 +26,7 @@ import {
   Minus
 } from 'lucide-react';
 import { sounds } from './SoundEffects';
-import { BACKEND_URL, API_ENDPOINTS } from '../config';
+import { BACKEND_URL, API_ENDPOINTS, apiFetch } from '../config';
 
 // Precise ASTM D6433 & IRC:82 Spec material & cost engine based on distress type and physical geometry
 export const calculatePavementMaterials = (className, dimensions = null) => {
@@ -207,8 +207,8 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
     setIsLoadingHistory(true);
     try {
       const [histRes, statsRes] = await Promise.all([
-        fetch(`${BACKEND_URL}/api/history`),
-        fetch(`${BACKEND_URL}/api/stats`)
+        apiFetch(`${BACKEND_URL}/api/history`),
+        apiFetch(`${BACKEND_URL}/api/stats`)
       ]);
 
       if (histRes.ok) {
