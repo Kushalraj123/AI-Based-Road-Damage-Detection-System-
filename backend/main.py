@@ -50,8 +50,10 @@ def convert_video_to_h264(input_raw_path: str, output_h264_path: str) -> bool:
             "-i", input_raw_path,
             "-c:v", "libx264",
             "-pix_fmt", "yuv420p",
-            "-preset", "veryfast",
-            "-crf", "22",
+            "-preset", "ultrafast",
+            "-crf", "24",
+            "-tune", "fastdecode",
+            "-threads", "4",
             "-movflags", "+faststart",
             output_h264_path
         ]
@@ -685,48 +687,57 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     if image is None:
         raise ValueError("Could not load image.")
     
+    orig_h, orig_w = image.shape[:2]
+    # Optimize input resolution: cap at max 1280px to accelerate CPU inference and reduce network payload
+    max_dim = 1280
+    if orig_w > max_dim or orig_h > max_dim:
+        scale = max_dim / float(max(orig_w, orig_h))
+        new_w = int(round(orig_w * scale))
+        new_h = int(round(orig_h * scale))
+        image = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
+    
     height, width = image.shape[:2]
     raw_detections = []
     t0 = time.perf_counter()
 
     # Determine which models to execute
     if model_id == "damage-ensemble" or model_id not in MODEL_CLASSES:
-        models_to_run = [("damage-yolo12s", 800), ("damage-yolov8", 640)]
+        models_to_run = [("damage-yolo12s", 640), ("damage-yolov8", 640)]
         infer_conf = max(0.04, min(conf_threshold, 0.08))
     else:
-        sz = 800 if model_id == "damage-yolo12s" else 640
-        models_to_run = [(model_id, sz)]
+        models_to_run = [(model_id, 640)]
         infer_conf = max(0.04, conf_threshold)
 
-    for mid, imgsz in models_to_run:
-        m = model_manager.get_model(mid)
-        if m is not None:
-            try:
-                # Run YOLO inference with high-recall sensitivity
-                res = m.predict(image, imgsz=imgsz, conf=infer_conf, iou=0.45, verbose=False)
-                if len(res) > 0:
-                    for box in res[0].boxes:
-                        xyxy = box.xyxy[0].cpu().numpy().tolist()
-                        conf = float(box.conf[0].cpu().item())
-                        cls_id = int(box.cls[0].cpu().item())
-                        
-                        raw_name = m.names.get(cls_id, str(cls_id)) if hasattr(m, "names") else str(cls_id)
-                        cls_name = clean_class_name(raw_name, cls_id, mid)
-                        
-                        # In ensemble mode, preserve authentic diffuse road depressions down to 0.08
-                        cutoff = min(conf_threshold, 0.08) if model_id == "damage-ensemble" else conf_threshold
-                        if conf < cutoff:
-                            continue
-                        
-                        box_coords = [int(round(xyxy[0])), int(round(xyxy[1])), int(round(xyxy[2])), int(round(xyxy[3]))]
-                        raw_detections.append({
-                            "box": box_coords,
-                            "class_id": cls_id,
-                            "class_name": cls_name,
-                            "confidence": conf
-                        })
-            except Exception as e:
-                print(f"Error in model {mid} inference: {e}")
+    with torch.inference_mode():
+        for mid, imgsz in models_to_run:
+            m = model_manager.get_model(mid)
+            if m is not None:
+                try:
+                    # Run YOLO inference with high-recall sensitivity
+                    res = m.predict(image, imgsz=imgsz, conf=infer_conf, iou=0.45, verbose=False)
+                    if len(res) > 0:
+                        for box in res[0].boxes:
+                            xyxy = box.xyxy[0].cpu().numpy().tolist()
+                            conf = float(box.conf[0].cpu().item())
+                            cls_id = int(box.cls[0].cpu().item())
+                            
+                            raw_name = m.names.get(cls_id, str(cls_id)) if hasattr(m, "names") else str(cls_id)
+                            cls_name = clean_class_name(raw_name, cls_id, mid)
+                            
+                            # In ensemble mode, preserve authentic diffuse road depressions down to 0.08
+                            cutoff = min(conf_threshold, 0.08) if model_id == "damage-ensemble" else conf_threshold
+                            if conf < cutoff:
+                                continue
+                            
+                            box_coords = [int(round(xyxy[0])), int(round(xyxy[1])), int(round(xyxy[2])), int(round(xyxy[3]))]
+                            raw_detections.append({
+                                "box": box_coords,
+                                "class_id": cls_id,
+                                "class_name": cls_name,
+                                "confidence": conf
+                            })
+                except Exception as e:
+                    print(f"Error in model {mid} inference: {e}")
 
     # Fallback to mock detection if no models could run or no ultralytics
     if len(raw_detections) == 0 and not ULTRALYTICS_AVAILABLE:
@@ -757,6 +768,12 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
                 candidate["class_name"], candidate["dimensions"], candidate["confidence"]
             )
             candidate["estimated_cost"] = candidate["materials"]["cost_formatted"]
+            candidate["normalized_box"] = [
+                round(candidate["box"][0] / max(1, width), 4),
+                round(candidate["box"][1] / max(1, height), 4),
+                round(candidate["box"][2] / max(1, width), 4),
+                round(candidate["box"][3] / max(1, height), 4)
+            ]
             detections.append(candidate)
 
     inference_time_ms = round((time.perf_counter() - t0) * 1000, 1)
@@ -784,16 +801,16 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     # Save processed image with boxes
     filename = os.path.basename(image_path)
     processed_path = os.path.join(PROCESSED_DIR, f"processed_{filename}")
-    cv2.imwrite(processed_path, image)
+    cv2.imwrite(processed_path, image, [int(cv2.IMWRITE_JPEG_QUALITY), 88])
     
     # Generate Calibrated 3D Depth Map & Heightfield Elevation Grid
     depth_data = generate_3d_depth_map(image, detections)
     depth_filename = f"depth_{filename}"
     depth_path = os.path.join(PROCESSED_DIR, depth_filename)
-    cv2.imwrite(depth_path, depth_data["colored_depth_image"])
+    cv2.imwrite(depth_path, depth_data["colored_depth_image"], [int(cv2.IMWRITE_JPEG_QUALITY), 85])
     
     # Encode depth map image to base64
-    _, depth_buffer = cv2.imencode('.jpg', depth_data["colored_depth_image"])
+    _, depth_buffer = cv2.imencode('.jpg', depth_data["colored_depth_image"], [int(cv2.IMWRITE_JPEG_QUALITY), 82])
     depth_map_base64 = f"data:image/jpeg;base64,{base64.b64encode(depth_buffer).decode('utf-8')}"
     
     # Calculate counts and severity
@@ -951,6 +968,19 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         video_tasks[task_id]["total_frames"] = total_frames
         video_tasks[task_id]["fps"] = fps
         
+        # Optimize video resolution if excessively large
+        max_vid_w = 1280
+        if width > max_vid_w:
+            scale_v = max_vid_w / float(width)
+            out_w = max_vid_w
+            out_h = int(round(height * scale_v))
+            # make dimensions even numbers for encoder
+            out_w = out_w if out_w % 2 == 0 else out_w - 1
+            out_h = out_h if out_h % 2 == 0 else out_h - 1
+        else:
+            out_w = width if width % 2 == 0 else width - 1
+            out_h = height if height % 2 == 0 else height - 1
+        
         # Raw temporary video output setup
         raw_output_filename = f"raw_{task_id}.mp4"
         raw_output_path = os.path.join(PROCESSED_DIR, raw_output_filename)
@@ -958,102 +988,107 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         final_output_path = os.path.join(PROCESSED_DIR, final_output_filename)
         
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(raw_output_path, fourcc, fps, (width, height))
+        out = cv2.VideoWriter(raw_output_path, fourcc, fps, (out_w, out_h))
         
-        models_for_video = [("damage-yolov8", 640), ("damage-yolo12s", 640)] if (model_id == "damage-ensemble" or model_id not in MODEL_CLASSES) else [(model_id, 640)]
-        tracker = DistressTracker(max_disappeared=5, min_appearance=1)
+        # Use single fast primary model for video streaming to maintain high throughput
+        primary_model = "damage-yolov8" if (model_id == "damage-ensemble" or model_id not in MODEL_CLASSES) else model_id
+        models_for_video = [(primary_model, 512)]
+        tracker = DistressTracker(max_disappeared=6, min_appearance=1)
         frame_idx = 0
         damage_types_set = set()
         
-        # Smart frame sampling: process YOLO every 2 frames for fast speed while tracker maintains smooth continuous boxes
-        frame_step = 2 if total_frames > 25 else 1
+        # Smart adaptive frame sampling: sample every 2-4 frames while tracker maintains smooth continuous boxes
+        frame_step = max(2, min(5, int(round(fps / 6)))) if total_frames > 20 else 1
         cached_rects = []
         
         start_time = time.time()
         
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
+        with torch.inference_mode():
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if not ret:
+                    break
                 
-            raw_rects = []
-            should_infer = (frame_idx % frame_step == 0)
-            
-            if should_infer:
-                for mid, sz in models_for_video:
-                    m = model_manager.get_model(mid)
-                    if m is not None:
-                        try:
-                            infer_conf = max(0.04, min(conf_threshold, 0.08)) if model_id == "damage-ensemble" else conf_threshold
-                            results = m.predict(frame, imgsz=sz, conf=infer_conf, iou=0.45, verbose=False)
-                            if len(results) > 0:
-                                for box in results[0].boxes:
-                                    xyxy = box.xyxy[0].cpu().numpy().tolist()
-                                    conf = float(box.conf[0].cpu().item())
-                                    cls_id = int(box.cls[0].cpu().item())
-                                    
-                                    raw_name = m.names.get(cls_id, str(cls_id)) if hasattr(m, "names") else str(cls_id)
-                                    cls_name = clean_class_name(raw_name, cls_id, mid)
-                                    
-                                    cutoff = min(conf_threshold, 0.08) if model_id == "damage-ensemble" else conf_threshold
-                                    if conf < cutoff:
-                                        continue
-                                    
-                                    raw_rects.append([
-                                        int(round(xyxy[0])), int(round(xyxy[1])), int(round(xyxy[2])), int(round(xyxy[3])),
-                                        cls_name, conf, cls_id
-                                    ])
-                        except Exception as e:
-                            pass
+                if frame.shape[1] != out_w or frame.shape[0] != out_h:
+                    frame = cv2.resize(frame, (out_w, out_h), interpolation=cv2.INTER_AREA)
+                    
+                raw_rects = []
+                should_infer = (frame_idx % frame_step == 0)
+                
+                if should_infer:
+                    for mid, sz in models_for_video:
+                        m = model_manager.get_model(mid)
+                        if m is not None:
+                            try:
+                                infer_conf = max(0.08, conf_threshold)
+                                results = m.predict(frame, imgsz=sz, conf=infer_conf, iou=0.45, verbose=False)
+                                if len(results) > 0:
+                                    for box in results[0].boxes:
+                                        xyxy = box.xyxy[0].cpu().numpy().tolist()
+                                        conf = float(box.conf[0].cpu().item())
+                                        cls_id = int(box.cls[0].cpu().item())
+                                        
+                                        raw_name = m.names.get(cls_id, str(cls_id)) if hasattr(m, "names") else str(cls_id)
+                                        cls_name = clean_class_name(raw_name, cls_id, mid)
+                                        
+                                        if conf < conf_threshold:
+                                            continue
+                                        
+                                        raw_rects.append([
+                                            int(round(xyxy[0])), int(round(xyxy[1])), int(round(xyxy[2])), int(round(xyxy[3])),
+                                            cls_name, conf, cls_id
+                                        ])
+                            except Exception as e:
+                                pass
 
-                # Category-aware NMS deduplication for video frame
-                raw_rects.sort(key=lambda x: x[5], reverse=True)
-                clean_frame_rects = []
-                for candidate in raw_rects:
-                    cbox = candidate[:4]
-                    dup = False
-                    for kept in clean_frame_rects:
-                        kbox = kept[:4]
-                        iou = calculate_box_iou(cbox, kbox)
-                        if candidate[4] == kept[4] and iou > 0.20:
-                            dup = True
-                            break
-                        elif iou > 0.60:
-                            dup = True
-                            break
-                    if not dup:
-                        clean_frame_rects.append(candidate)
+                    # Category-aware NMS deduplication for video frame
+                    raw_rects.sort(key=lambda x: x[5], reverse=True)
+                    clean_frame_rects = []
+                    for candidate in raw_rects:
+                        cbox = candidate[:4]
+                        dup = False
+                        for kept in clean_frame_rects:
+                            kbox = kept[:4]
+                            iou = calculate_box_iou(cbox, kbox)
+                            if candidate[4] == kept[4] and iou > 0.20:
+                                dup = True
+                                break
+                            elif iou > 0.60:
+                                dup = True
+                                break
+                        if not dup:
+                            clean_frame_rects.append(candidate)
+                    
+                    cached_rects = clean_frame_rects
+                else:
+                    # Reuse cached rects for intermediate frame
+                    clean_frame_rects = cached_rects
                 
-                cached_rects = clean_frame_rects
-            else:
-                # Reuse cached rects for intermediate frame
-                clean_frame_rects = cached_rects
-            
-            # Update tracker and get active tracked objects
-            tracked_objects = tracker.update(clean_frame_rects)
-            
-            # Draw tracked objects
-            for box, class_name, conf, class_id in tracked_objects:
-                x1, y1, x2, y2 = box
-                color = CLASS_COLORS.get(class_name, (0, 255, 255))
-                draw_stylized_box(frame, x1, y1, x2, y2, class_name, conf, color)
-                damage_types_set.add(class_name)
+                # Update tracker and get active tracked objects
+                tracked_objects = tracker.update(clean_frame_rects)
                 
-            out.write(frame)
-            frame_idx += 1
-            
-            # Calculate metrics
-            elapsed = time.time() - start_time
-            current_fps = frame_idx / elapsed if elapsed > 0 else 0
-            percent = min(98, int((frame_idx / total_frames) * 100))
-            
-            # Update task status
-            video_tasks[task_id].update({
-                "current_frame": frame_idx,
-                "progress_percent": percent,
-                "processing_fps": round(current_fps, 1),
-                "eta_seconds": round((total_frames - frame_idx) / current_fps, 1) if current_fps > 0 else 0
-            })
+                # Draw tracked objects
+                for box, class_name, conf, class_id in tracked_objects:
+                    x1, y1, x2, y2 = box
+                    color = CLASS_COLORS.get(class_name, (0, 255, 255))
+                    draw_stylized_box(frame, x1, y1, x2, y2, class_name, conf, color)
+                    damage_types_set.add(class_name)
+                    
+                out.write(frame)
+                frame_idx += 1
+                
+                # Calculate metrics
+                elapsed = time.time() - start_time
+                current_fps = frame_idx / elapsed if elapsed > 0 else 0
+                percent = min(98, int((frame_idx / total_frames) * 100))
+                
+                # Update task status
+                video_tasks[task_id].update({
+                    "current_frame": frame_idx,
+                    "progress_percent": percent,
+                    "processing_fps": round(current_fps, 1),
+                    "eta_seconds": round((total_frames - frame_idx) / current_fps, 1) if current_fps > 0 else 0
+                })
             
         cap.release()
         out.release()
@@ -1338,6 +1373,7 @@ class FramePayload(BaseModel):
 @app.post("/api/detect-frame")
 async def detect_frame(payload: FramePayload):
     try:
+        t_frame_0 = time.perf_counter()
         # Decode base64
         header, encoded = payload.frame.split(",", 1) if "," in payload.frame else ("", payload.frame)
         image_bytes = base64.b64decode(encoded)
@@ -1347,46 +1383,54 @@ async def detect_frame(payload: FramePayload):
         if frame is None:
             raise HTTPException(status_code=400, detail="Cannot decode image frame.")
             
-        # Detect
+        fh, fw = frame.shape[:2]
+        
+        # Detect with fast inference
         detections = []
         actual_model_id = "damage-yolov8" if (payload.model_id == "damage-ensemble" or payload.model_id not in MODEL_CLASSES) else payload.model_id
         model = model_manager.get_model(actual_model_id)
         
         if model is not None:
             try:
-                results = model.predict(frame, imgsz=480, conf=payload.conf_threshold, iou=0.45, verbose=False)
-                if len(results) > 0:
-                    res = results[0]
-                    boxes = res.boxes
-                    classes = getattr(model, "names", MODEL_CLASSES.get(actual_model_id, {}).get("labels", {}))
-                    
-                    for box in boxes:
-                        xyxy = box.xyxy[0].cpu().numpy().tolist()
-                        conf = float(box.conf[0].cpu().item())
-                        cls_id = int(box.cls[0].cpu().item())
-                        raw_name = classes.get(cls_id, f"Class {cls_id}")
-                        cls_name = clean_class_name(raw_name, cls_id, actual_model_id)
+                with torch.inference_mode():
+                    results = model.predict(frame, imgsz=416, conf=payload.conf_threshold, iou=0.45, verbose=False)
+                    if len(results) > 0:
+                        res = results[0]
+                        boxes = res.boxes
+                        classes = getattr(model, "names", MODEL_CLASSES.get(actual_model_id, {}).get("labels", {}))
                         
-                        # Skip very low confidence detections
-                        if conf < payload.conf_threshold:
-                            continue
-                        
-                        # Attach real-world dimensions and depth for live frame
-                        fh, fw = frame.shape[:2]
-                        box_coords = [int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3])]
-                        dims = estimate_damage_dimensions(box_coords, cls_name, conf, fw, fh, frame)
-                        
-                        detections.append({
-                            "box": box_coords,
-                            "class_id": cls_id,
-                            "class_name": cls_name,
-                            "confidence": conf,
-                            "dimensions": dims
-                        })
+                        for box in boxes:
+                            xyxy = box.xyxy[0].cpu().numpy().tolist()
+                            conf = float(box.conf[0].cpu().item())
+                            cls_id = int(box.cls[0].cpu().item())
+                            raw_name = classes.get(cls_id, f"Class {cls_id}")
+                            cls_name = clean_class_name(raw_name, cls_id, actual_model_id)
+                            
+                            # Skip very low confidence detections
+                            if conf < payload.conf_threshold:
+                                continue
+                            
+                            # Attach real-world dimensions and depth for live frame
+                            box_coords = [int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3])]
+                            dims = estimate_damage_dimensions(box_coords, cls_name, conf, fw, fh, frame)
+                            
+                            detections.append({
+                                "box": box_coords,
+                                "normalized_box": [
+                                    round(box_coords[0] / max(1, fw), 4),
+                                    round(box_coords[1] / max(1, fh), 4),
+                                    round(box_coords[2] / max(1, fw), 4),
+                                    round(box_coords[3] / max(1, fh), 4)
+                                ],
+                                "class_id": cls_id,
+                                "class_name": cls_name,
+                                "confidence": conf,
+                                "dimensions": dims
+                            })
             except Exception as e:
                 pass
 
-        # Draw bounding boxes with depth indicator
+        # Optional overlay drawing on server frame
         for det in detections:
             x1, y1, x2, y2 = det["box"]
             class_name = det["class_name"]
@@ -1396,8 +1440,8 @@ async def detect_frame(payload: FramePayload):
             color = CLASS_COLORS.get(class_name, (0, 255, 255))
             draw_stylized_box(frame, x1, y1, x2, y2, class_name, conf, color, depth_cm=depth_val)
             
-        # Re-encode to jpeg base64
-        _, buffer = cv2.imencode('.jpg', frame)
+        # Re-encode to compact jpeg base64
+        _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 65])
         processed_base64 = base64.b64encode(buffer).decode('utf-8')
         
         counts = {}
@@ -1405,11 +1449,16 @@ async def detect_frame(payload: FramePayload):
             name = d["class_name"]
             counts[name] = counts.get(name, 0) + 1
             
+        inference_ms = round((time.perf_counter() - t_frame_0) * 1000, 1)
+            
         return {
             "success": True,
             "detections": detections,
             "processed_frame": f"data:image/jpeg;base64,{processed_base64}",
-            "counts": counts
+            "counts": counts,
+            "frame_width": fw,
+            "frame_height": fh,
+            "inference_time_ms": inference_ms
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

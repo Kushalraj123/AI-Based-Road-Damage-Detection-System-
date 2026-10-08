@@ -101,19 +101,22 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
 
 
 
-  // Camera stream ref
+  // Camera stream refs & state
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const liveDetectRef      = useRef(null);       // interval handle
-  const liveFrameStartRef  = useRef(null);   // time for FPS calculation
-  const liveMapRef         = useRef(null);   // ref to LiveTrackMap for clearPins()
+  const overlayCanvasRef = useRef(null);
+  const liveDetectRef = useRef(null);
+  const isFrameInFlightRef = useRef(false);
+  const liveMapRef = useRef(null);
   const [cameraActive, setCameraActive] = useState(false);
+  const [facingMode, setFacingMode] = useState('environment'); // 'environment' | 'user'
 
   // Live detection state
   const [isLiveDetecting, setIsLiveDetecting] = useState(false);
   const [liveDetections, setLiveDetections] = useState([]);
   const [liveProcessedFrame, setLiveProcessedFrame] = useState(null);
   const [liveFps, setLiveFps] = useState(0);
+  const [liveLatencyMs, setLiveLatencyMs] = useState(0);
   const [liveTotalDetected, setLiveTotalDetected] = useState(0);
   const [liveFrameCount, setLiveFrameCount] = useState(0);
 
@@ -794,44 +797,168 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     runScanProcess(sample.image, sample);
   };
 
+  // Draw AI Detections smoothly onto Overlay Canvas directly synced with Live Video Stream
+  const drawLiveOverlay = (detections = []) => {
+    const canvas = overlayCanvasRef.current;
+    const video = videoRef.current;
+    if (!canvas || !video) return;
+
+    const displayW = video.clientWidth || 640;
+    const displayH = video.clientHeight || 360;
+
+    if (canvas.width !== displayW || canvas.height !== displayH) {
+      canvas.width = displayW;
+      canvas.height = displayH;
+    }
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!detections || detections.length === 0) return;
+
+    const CLASS_COLORS_HEX = {
+      'Pothole': '#f43f5e',
+      'Alligator Crack': '#f97316',
+      'Alligator Crack / Base Failure': '#f97316',
+      'Transverse Crack': '#22c55e',
+      'Longitudinal Crack': '#06b6d4',
+      'Repair Patch': '#a855f7',
+      'Surface Distortion': '#ec4899',
+      'Surface Distress': '#eab308'
+    };
+
+    detections.forEach((det) => {
+      let x1, y1, x2, y2;
+      if (det.normalized_box && det.normalized_box.length === 4) {
+        x1 = det.normalized_box[0] * canvas.width;
+        y1 = det.normalized_box[1] * canvas.height;
+        x2 = det.normalized_box[2] * canvas.width;
+        y2 = det.normalized_box[3] * canvas.height;
+      } else if (det.box && det.box.length === 4) {
+        const vw = det.frame_width || 480;
+        const vh = det.frame_height || 360;
+        x1 = (det.box[0] / vw) * canvas.width;
+        y1 = (det.box[1] / vh) * canvas.height;
+        x2 = (det.box[2] / vw) * canvas.width;
+        y2 = (det.box[3] / vh) * canvas.height;
+      } else {
+        return;
+      }
+
+      const w = Math.max(10, x2 - x1);
+      const h = Math.max(10, y2 - y1);
+      const color = CLASS_COLORS_HEX[det.class_name] || '#06b6d4';
+
+      // 1. Semi-transparent glowing bounding box
+      ctx.save();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 12;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.fillStyle = `${color}25`;
+      ctx.fillRect(x1, y1, w, h);
+      ctx.strokeRect(x1, y1, w, h);
+
+      // 2. High-Tech Corner Brackets
+      const cLen = Math.min(16, w / 3, h / 3);
+      ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.moveTo(x1, y1 + cLen); ctx.lineTo(x1, y1); ctx.lineTo(x1 + cLen, y1); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x2 - cLen, y1); ctx.lineTo(x2, y1); ctx.lineTo(x2, y1 + cLen); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x1, y2 - cLen); ctx.lineTo(x1, y2); ctx.lineTo(x1 + cLen, y2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x2 - cLen, y2); ctx.lineTo(x2, y2); ctx.lineTo(x2, y2 - cLen); ctx.stroke();
+      ctx.restore();
+
+      // 3. Label Pill Badge
+      const confPct = Math.round((det.confidence || 0.8) * 100);
+      const depthVal = det.dimensions?.depth_cm;
+      const labelText = `${det.class_name} ${confPct}%${depthVal ? ` • 🕳 ${depthVal}cm` : ''}`;
+
+      ctx.save();
+      ctx.font = '700 11px Inter, sans-serif';
+      const textMetrics = ctx.measureText(labelText);
+      const pillW = textMetrics.width + 16;
+      const pillH = 22;
+      const pillX = Math.max(2, Math.min(canvas.width - pillW - 2, x1));
+      const pillY = Math.max(2, y1 - pillH - 4);
+
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(pillX, pillY, pillW, pillH, 5);
+      } else {
+        ctx.rect(pillX, pillY, pillW, pillH);
+      }
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(labelText, pillX + 8, pillY + pillH / 2);
+      ctx.restore();
+    });
+  };
+
   // Handle Camera Stream
   const toggleCamera = async () => {
     if (cameraActive) {
       stopLiveDetection();
       if (videoRef.current && videoRef.current.srcObject) {
         videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+        videoRef.current.srcObject = null;
       }
       setCameraActive(false);
       setLiveProcessedFrame(null);
       setLiveDetections([]);
+      if (overlayCanvasRef.current) {
+        const ctx = overlayCanvasRef.current.getContext('2d');
+        ctx.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
+      }
     } else {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+          video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }
         });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.play();
+          await videoRef.current.play();
         }
         setCameraActive(true);
         sounds.playBeep(900, 0.05);
       } catch (err) {
-        alert('Camera access denied or unavailable.');
+        alert('Camera access denied or unavailable: ' + err.message);
+      }
+    }
+  };
+
+  const switchCameraFacing = async () => {
+    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(nextMode);
+    if (cameraActive) {
+      if (videoRef.current && videoRef.current.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: nextMode, width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+      } catch (err) {
+        console.error('Error switching camera:', err);
       }
     }
   };
 
   // Capture one frame from video and run backend detection with downscaling for real-time responsiveness
-  const isFrameInFlightRef = useRef(false);
-
   const captureAndDetect = async () => {
     if (isFrameInFlightRef.current) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas || video.readyState < 2) return;
 
-    // Scale frame down to max 640x360 for high-speed network transmission and inference
-    const maxDim = 640;
+    // Scale frame down to max 480x360 for high-speed network transmission (< 20ms upload)
+    const maxDim = 480;
     let targetW = video.videoWidth || 640;
     let targetH = video.videoHeight || 360;
     if (targetW > maxDim) {
@@ -843,7 +970,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
 
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, targetW, targetH);
-    const base64Frame = canvas.toDataURL('image/jpeg', 0.65);
+    const base64Frame = canvas.toDataURL('image/jpeg', 0.55);
 
     isFrameInFlightRef.current = true;
     const frameStart = performance.now();
@@ -863,20 +990,22 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       }
       const data = await res.json();
 
-      const elapsed = performance.now() - frameStart;
+      const elapsed = Math.round(performance.now() - frameStart);
+      setLiveLatencyMs(elapsed);
       setLiveFps(Math.round(1000 / Math.max(elapsed, 1)));
 
       if (data.success) {
-        setLiveProcessedFrame(data.processed_frame);
-        setLiveDetections(data.detections || []);
-        if ((data.detections || []).length > 0) {
-          setLiveTotalDetected(prev => prev + data.detections.length);
-          sounds.playBeep(600, 0.02);
+        const dets = data.detections || [];
+        setLiveDetections(dets);
+        drawLiveOverlay(dets);
+        if (dets.length > 0) {
+          setLiveTotalDetected(prev => prev + dets.length);
+          sounds.playBeep(650, 0.02);
         }
         setLiveFrameCount(prev => prev + 1);
       }
     } catch (err) {
-      // Network error — silently skip frame
+      // Network error — skip frame smoothly
     } finally {
       isFrameInFlightRef.current = false;
     }
@@ -889,8 +1018,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     setLiveFrameCount(0);
     isFrameInFlightRef.current = false;
     sounds.playLaserScan();
-    // Responsive loop (120ms polling when free)
-    liveDetectRef.current = setInterval(captureAndDetect, 120);
+    // 90ms interval loop for real-time responsiveness
+    liveDetectRef.current = setInterval(captureAndDetect, 90);
   };
 
   const stopLiveDetection = () => {
@@ -900,6 +1029,10 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     }
     isFrameInFlightRef.current = false;
     setIsLiveDetecting(false);
+    if (overlayCanvasRef.current) {
+      const ctx = overlayCanvasRef.current.getContext('2d');
+      ctx.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
+    }
   };
 
   const getSeverityBadge = (sev) => {
@@ -1222,22 +1355,33 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
               <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>Live Dashcam Detection</div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Real-time road damage detection via webcam or dashcam stream</div>
             </div>
-            <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
               {cameraActive && (
-                <button
-                  onClick={isLiveDetecting ? stopLiveDetection : startLiveDetection}
-                  className="btn btn-primary"
-                  style={{
-                    background: isLiveDetecting
-                      ? 'linear-gradient(135deg, rgba(244,63,94,0.8), rgba(220,38,38,0.9))'
-                      : undefined,
-                    gap: '0.5rem', padding: '0.55rem 1.1rem'
-                  }}
-                >
-                  {isLiveDetecting
-                    ? <><Activity size={15} className="animate-pulse" /> Stop Detection</>  
-                    : <><Zap size={15} /> Start Live Detection</> }
-                </button>
+                <>
+                  <button
+                    onClick={switchCameraFacing}
+                    className="btn btn-secondary"
+                    title="Flip camera"
+                    style={{ gap: '0.4rem', padding: '0.55rem 0.85rem' }}
+                  >
+                    <RefreshCw size={14} />
+                    <span>{facingMode === 'environment' ? 'Back Cam' : 'Front Cam'}</span>
+                  </button>
+                  <button
+                    onClick={isLiveDetecting ? stopLiveDetection : startLiveDetection}
+                    className="btn btn-primary"
+                    style={{
+                      background: isLiveDetecting
+                        ? 'linear-gradient(135deg, rgba(244,63,94,0.85), rgba(220,38,38,0.95))'
+                        : undefined,
+                      gap: '0.5rem', padding: '0.55rem 1.1rem'
+                    }}
+                  >
+                    {isLiveDetecting
+                      ? <><Activity size={15} className="animate-pulse" /> Stop AI Scan</>  
+                      : <><Zap size={15} /> Start AI Scan</> }
+                  </button>
+                </>
               )}
               <button className="btn btn-secondary" onClick={toggleCamera} style={{ gap: '0.5rem', padding: '0.55rem 1rem' }}>
                 <Camera size={15} />
@@ -1246,75 +1390,88 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             </div>
           </div>
 
-          {/* Main viewport: processed frame or raw video */}
+          {/* Main viewport: Video Stream + Synced 60FPS AI Overlay Canvas */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', alignItems: 'start' }}>
 
-            {/* Video/Processed Frame viewport */}
-            <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', background: '#000', border: '1px solid var(--border-glass)', minHeight: '320px' }}>
+            {/* Video + Canvas Viewport */}
+            <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', background: '#05070d', border: '1px solid var(--border-glass)', minHeight: '340px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
 
-              {/* Hidden video element — always captures stream */}
+              {/* Live Video Feed - Always active and smoothly playing at native 30/60 FPS */}
               <video
                 ref={videoRef}
                 autoPlay playsInline muted
-                style={{ display: liveProcessedFrame ? 'none' : 'block', width: '100%', maxHeight: '420px', objectFit: 'cover' }}
+                style={{ width: '100%', minHeight: '340px', maxHeight: '460px', objectFit: 'contain', display: 'block', background: '#000' }}
               />
-              {/* Hidden canvas — used for frame capture */}
-              <canvas ref={canvasRef} style={{ display: 'none' }} />
+              
+              {/* Canvas Overlay for crisp real-time bounding boxes and depth labels */}
+              <canvas
+                ref={overlayCanvasRef}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  pointerEvents: 'none',
+                  zIndex: 10
+                }}
+              />
 
-              {/* Processed output image from backend */}
-              {liveProcessedFrame && (
-                <img
-                  src={liveProcessedFrame}
-                  alt="Live Detection"
-                  style={{ width: '100%', maxHeight: '420px', objectFit: 'contain', display: 'block' }}
-                />
-              )}
+              {/* Hidden canvas for high-speed frame sampling */}
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
 
               {/* Idle overlay when camera not active */}
               {!cameraActive && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(7,10,18,0.85)', gap: '0.75rem' }}>
-                  <Camera size={42} style={{ color: 'var(--accent-cyan)', opacity: 0.5 }} />
-                  <div style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Camera not active</div>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(7,10,18,0.92)', gap: '0.75rem', zIndex: 15 }}>
+                  <Camera size={42} style={{ color: 'var(--accent-cyan)', opacity: 0.7 }} />
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Live Camera is currently idle</div>
                   <button className="btn btn-primary" onClick={toggleCamera} style={{ gap: '0.5rem', marginTop: '0.25rem' }}>
-                    <Camera size={15} /> Start Camera
+                    <Camera size={15} /> Start Camera Feed
                   </button>
                 </div>
               )}
 
-              {/* Scanning animation */}
-              {isLiveDetecting && <div className="scan-line" />}
+              {/* High-tech Scanning grid animation */}
+              {isLiveDetecting && <div className="scan-line" style={{ zIndex: 8 }} />}
 
-              {/* Live HUD badges */}
+              {/* Live HUD telemetry badges */}
               {cameraActive && (
                 <>
-                  {/* Top-left: status */}
-                  <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                  {/* Top-left: status & FPS & Latency */}
+                  <div style={{ position: 'absolute', top: '12px', left: '12px', display: 'flex', gap: '0.45rem', alignItems: 'center', zIndex: 12 }}>
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: '0.35rem',
-                      background: isLiveDetecting ? 'rgba(244,63,94,0.85)' : 'rgba(20,20,30,0.85)',
+                      background: isLiveDetecting ? 'rgba(244,63,94,0.9)' : 'rgba(20,20,30,0.85)',
                       border: `1px solid ${isLiveDetecting ? '#f43f5e' : 'rgba(255,255,255,0.15)'}`,
-                      borderRadius: '6px', padding: '0.25rem 0.6rem', fontSize: '0.7rem', fontWeight: 700,
-                      fontFamily: 'var(--font-mono)', backdropFilter: 'blur(8px)'
+                      borderRadius: '6px', padding: '0.28rem 0.65rem', fontSize: '0.7rem', fontWeight: 700,
+                      fontFamily: 'var(--font-mono)', backdropFilter: 'blur(8px)', color: '#fff'
                     }}>
-                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isLiveDetecting ? '#fff' : '#666', display: 'inline-block' }} />
-                      {isLiveDetecting ? 'LIVE AI' : 'PAUSED'}
+                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: isLiveDetecting ? '#fff' : '#888', display: 'inline-block' }} />
+                      {isLiveDetecting ? 'AI ACTIVE' : 'CAM ONLY'}
                     </div>
                     {isLiveDetecting && (
-                      <div style={{ background: 'rgba(6,182,212,0.85)', border: '1px solid var(--accent-cyan)', borderRadius: '6px', padding: '0.25rem 0.6rem', fontSize: '0.7rem', fontWeight: 700, fontFamily: 'var(--font-mono)', backdropFilter: 'blur(8px)' }}>
-                        {liveFps} FPS
-                      </div>
+                      <>
+                        <div style={{ background: 'rgba(6,182,212,0.85)', border: '1px solid var(--accent-cyan)', borderRadius: '6px', padding: '0.28rem 0.65rem', fontSize: '0.7rem', fontWeight: 700, fontFamily: 'var(--font-mono)', backdropFilter: 'blur(8px)', color: '#fff' }}>
+                          {liveFps} FPS
+                        </div>
+                        {liveLatencyMs > 0 && (
+                          <div style={{ background: 'rgba(16,185,129,0.85)', border: '1px solid #10b981', borderRadius: '6px', padding: '0.28rem 0.65rem', fontSize: '0.7rem', fontWeight: 700, fontFamily: 'var(--font-mono)', backdropFilter: 'blur(8px)', color: '#fff' }}>
+                            {liveLatencyMs}ms
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                   {/* Top-right: frame counter */}
                   {isLiveDetecting && (
-                    <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(20,20,30,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '0.25rem 0.6rem', fontSize: '0.7rem', fontFamily: 'var(--font-mono)', backdropFilter: 'blur(8px)' }}>
-                      Frame #{liveFrameCount}
+                    <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(15,23,42,0.85)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', padding: '0.28rem 0.65rem', fontSize: '0.7rem', fontFamily: 'var(--font-mono)', backdropFilter: 'blur(8px)', color: 'var(--accent-cyan)', zIndex: 12 }}>
+                      Scan #{liveFrameCount}
                     </div>
                   )}
                   {/* Bottom-left: detection count */}
                   {liveDetections.length > 0 && (
-                    <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(244,63,94,0.88)', border: '1px solid #f43f5e', borderRadius: '6px', padding: '0.3rem 0.75rem', fontSize: '0.72rem', fontWeight: 700, backdropFilter: 'blur(8px)' }}>
-                      ⚠ {liveDetections.length} Damage{liveDetections.length > 1 ? 's' : ''} Detected
+                    <div style={{ position: 'absolute', bottom: '12px', left: '12px', background: 'rgba(244,63,94,0.92)', border: '1px solid #f43f5e', borderRadius: '6px', padding: '0.35rem 0.8rem', fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(8px)', color: '#fff', zIndex: 12, boxShadow: '0 0 15px rgba(244,63,94,0.5)' }}>
+                      ⚠ {liveDetections.length} Distress Hazard{liveDetections.length > 1 ? 's' : ''} Tracked
                     </div>
                   )}
                 </>
