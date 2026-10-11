@@ -97,7 +97,6 @@ app.add_middleware(
 # Directories for saving media
 UPLOAD_DIR = os.path.abspath(os.getenv("UPLOAD_DIR", "uploads"))
 PROCESSED_DIR = os.path.abspath(os.getenv("PROCESSED_DIR", "processed"))
-HISTORY_FILE = os.path.abspath(os.getenv("HISTORY_FILE", "history.json"))
 
 for directory in [UPLOAD_DIR, PROCESSED_DIR]:
     if not os.path.exists(directory):
