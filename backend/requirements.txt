@@ -14,3 +14,4 @@ dnspython
 python-dotenv
 certifi
 gunicorn
+huggingface-hub

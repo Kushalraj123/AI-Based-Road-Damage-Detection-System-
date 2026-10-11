@@ -23,9 +23,9 @@ if not torch.cuda.is_available():
 # Try loading YOLO from Ultralytics
 try:
     from ultralytics import YOLO
-    from huggingface_hub import hf_hub_download
     ULTRALYTICS_AVAILABLE = True
-except ImportError:
+except Exception as _yolo_err:
+    print(f"[Model Warning] Ultralytics YOLO import failed: {_yolo_err}")
     ULTRALYTICS_AVAILABLE = False
 
 try:
