@@ -1,5 +1,33 @@
 [
     {
+        "id": "e9b513a6-4a7b-4091-ad05-d64a3ab2b0ee",
+        "type": "image",
+        "timestamp": "2026-10-12 12:12:02",
+        "model_id": "damage-ensemble",
+        "filename": "test.jpeg",
+        "original_url": "/uploads/e9b513a6-4a7b-4091-ad05-d64a3ab2b0ee.jpeg",
+        "processed_url": "/processed/processed_e9b513a6-4a7b-4091-ad05-d64a3ab2b0ee.jpeg",
+        "total_damage": 6,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "58e67263-3de0-466f-a0d5-a40018c981bc",
+        "type": "image",
+        "timestamp": "2026-10-12 12:02:26",
+        "model_id": "damage-ensemble",
+        "filename": "road damage8.jpeg",
+        "original_url": "/uploads/58e67263-3de0-466f-a0d5-a40018c981bc.jpeg",
+        "processed_url": "/processed/processed_58e67263-3de0-466f-a0d5-a40018c981bc.jpeg",
+        "total_damage": 6,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
         "id": "3a380eab-2bc9-4a53-8769-c987154f97c0",
         "type": "image",
         "timestamp": "2026-10-12 11:04:50",

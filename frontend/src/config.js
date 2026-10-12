@@ -1,11 +1,31 @@
 /**
  * Centralized Application Configuration
  * Dynamically resolves backend endpoints, bypasses tunnel reminders (localtunnel / ngrok),
- * and provides robust apiFetch wrapper.
+ * and provides robust apiFetch wrapper with localStorage override support.
  */
 
-// Backend Base URL from environment variable or default local host
-export const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+export const getBackendUrl = () => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('ROADVISION_BACKEND_URL');
+    if (saved && saved.trim()) {
+      return saved.trim().replace(/\/+$/, '');
+    }
+  }
+  return (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+};
+
+export const setBackendUrl = (url) => {
+  if (typeof window !== 'undefined') {
+    if (url && url.trim()) {
+      localStorage.setItem('ROADVISION_BACKEND_URL', url.trim().replace(/\/+$/, ''));
+    } else {
+      localStorage.removeItem('ROADVISION_BACKEND_URL');
+    }
+  }
+};
+
+// Default export string for backwards compatibility
+export let BACKEND_URL = getBackendUrl();
 
 export const API_HEADERS = {
   'Bypass-Tunnel-Reminder': 'true',
@@ -14,38 +34,51 @@ export const API_HEADERS = {
 };
 
 /**
- * Universal API Fetch wrapper that automatically attaches tunnel-bypass headers
+ * Universal API Fetch wrapper that automatically prepends backend URL for relative paths
+ * and attaches tunnel-bypass headers
  */
 export const apiFetch = async (url, options = {}) => {
+  let targetUrl = url;
+  const currentBase = getBackendUrl();
+  
+  // If a relative API path was passed
+  if (targetUrl.startsWith('/api')) {
+    targetUrl = `${currentBase}${targetUrl}`;
+  }
+
   const customHeaders = {
     ...API_HEADERS,
     ...(options.headers || {})
   };
-  return fetch(url, {
+
+  return fetch(targetUrl, {
     ...options,
     headers: customHeaders
   });
 };
 
-// API Endpoints Mapping
+// Dynamic API Endpoints Mapping
 export const API_ENDPOINTS = {
-  STATUS: `${BACKEND_URL}/api/status`,
-  MODELS: `${BACKEND_URL}/api/models`,
-  DETECT: `${BACKEND_URL}/api/detect`,
-  DETECT_FRAME: `${BACKEND_URL}/api/detect-frame`,
-  DETECT_VIDEO: `${BACKEND_URL}/api/detect-video`,
-  VIDEO_STATUS: (taskId) => `${BACKEND_URL}/api/video-status/${taskId}`,
-  STATS: `${BACKEND_URL}/api/stats`,
-  HISTORY: `${BACKEND_URL}/api/history`,
-  HISTORY_CLEAR: `${BACKEND_URL}/api/history/clear`,
-  NOTIFICATIONS: `${BACKEND_URL}/api/notifications`,
-  NOTIFICATIONS_SUBMIT: `${BACKEND_URL}/api/notifications/submit`,
-  DB_STATUS: `${BACKEND_URL}/api/db/status`
+  get STATUS() { return `${getBackendUrl()}/api/status`; },
+  get MODELS() { return `${getBackendUrl()}/api/models`; },
+  get DETECT() { return `${getBackendUrl()}/api/detect`; },
+  get DETECT_FRAME() { return `${getBackendUrl()}/api/detect-frame`; },
+  get DETECT_VIDEO() { return `${getBackendUrl()}/api/detect-video`; },
+  VIDEO_STATUS: (taskId) => `${getBackendUrl()}/api/video-status/${taskId}`,
+  get STATS() { return `${getBackendUrl()}/api/stats`; },
+  get HISTORY() { return `${getBackendUrl()}/api/history`; },
+  get HISTORY_CLEAR() { return `${getBackendUrl()}/api/history/clear`; },
+  get NOTIFICATIONS() { return `${getBackendUrl()}/api/notifications`; },
+  get NOTIFICATIONS_SUBMIT() { return `${getBackendUrl()}/api/notifications/submit`; },
+  get DB_STATUS() { return `${getBackendUrl()}/api/db/status`; }
 };
 
 export default {
-  BACKEND_URL,
+  get BACKEND_URL() { return getBackendUrl(); },
+  getBackendUrl,
+  setBackendUrl,
   API_HEADERS,
   apiFetch,
   API_ENDPOINTS
 };
+

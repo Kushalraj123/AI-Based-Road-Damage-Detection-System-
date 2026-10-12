@@ -32,7 +32,7 @@ import { SAMPLE_ROADS } from './SampleRoadsData';
 import { sounds } from './SoundEffects';
 import LiveTrackMap from './LiveTrackMap';
 import ThreeRoadDepthViewer from './ThreeRoadDepthViewer';
-import { BACKEND_URL, API_ENDPOINTS, apiFetch } from '../config';
+import { BACKEND_URL, API_ENDPOINTS, apiFetch, getBackendUrl } from '../config';
 
 export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
   const [activeInputTab, setActiveInputTab] = useState('image'); // 'image' | 'video' | 'camera' | 'samples'
@@ -755,13 +755,14 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
         setIsBackendResult(true);
       } catch (err) {
         console.error('Detection API error:', err);
+        const currentUrl = getBackendUrl();
         const isProd = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-        const isLocalBackend = BACKEND_URL.includes('127.0.0.1') || BACKEND_URL.includes('localhost');
+        const isLocalBackend = currentUrl.includes('127.0.0.1') || currentUrl.includes('localhost');
         
         if (isProd && isLocalBackend) {
-          setScanError('⚠ Live Backend Not Configured: Add VITE_BACKEND_URL to your Vercel Project Settings (pointing to your deployed Render/HuggingFace backend). Running client-side demonstration mode.');
+          setScanError(`⚠ Live Backend Disconnected: Cloud deployment cannot reach local "${currentUrl}". To see real neural network detections, test locally at http://localhost:5173 or set an active public backend URL. Showing demonstration placeholders.`);
         } else {
-          setScanError(`Detection notice: ${err.message}. Running client-side distress estimation mode.`);
+          setScanError(`⚠ AI Backend Unreachable: Could not connect to "${currentUrl}" (${err.message}). The remote inference server may be sleeping or offline. Showing demonstration placeholders.`);
         }
 
         // Smart client-side fallback detection so demo always displays actionable results
