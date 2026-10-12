@@ -15,11 +15,8 @@ import {
   Menu,
   X,
   Sparkles,
-  ShieldCheck,
-  Server,
-  RefreshCw
+  ShieldCheck
 } from 'lucide-react';
-import { getBackendUrl, setBackendUrl } from '../config';
 import { sounds } from './SoundEffects';
 
 export default function Navbar({
@@ -33,35 +30,7 @@ export default function Navbar({
   notificationCount
 }) {
   const [showNotifs, setShowNotifs] = useState(false);
-  const [showServerModal, setShowServerModal] = useState(false);
-  const [serverUrlInput, setServerUrlInput] = useState(getBackendUrl());
-  const [testStatus, setTestStatus] = useState(null);
-  const [isTesting, setIsTesting] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const handleTestConnection = async (urlToTest) => {
-    setIsTesting(true);
-    setTestStatus(null);
-    try {
-      const cleanUrl = (urlToTest || serverUrlInput || '').trim().replace(/\/+$/, '');
-      const res = await fetch(`${cleanUrl}/api/status`, { signal: AbortSignal.timeout(5000) });
-      if (res.ok) {
-        const data = await res.json();
-        setTestStatus({ success: true, message: `Connected! ${data.ultralytics_available ? 'YOLO Neural Engine Ready' : 'Server Online'}` });
-      } else {
-        setTestStatus({ success: false, message: `Server returned HTTP ${res.status}` });
-      }
-    } catch (e) {
-      setTestStatus({ success: false, message: `Connection failed: ${e.message}` });
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
-  const handleSaveServerUrl = () => {
-    setBackendUrl(serverUrlInput);
-    window.location.reload();
-  };
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Sparkles },
@@ -247,174 +216,6 @@ export default function Navbar({
 
         {/* Right Side Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexShrink: 0 }}>
-          {/* AI Backend Connection Status & Switcher */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => {
-                setServerUrlInput(getBackendUrl());
-                setTestStatus(null);
-                setShowServerModal(!showServerModal);
-              }}
-              title={backendOnline ? "AI Neural Engine Online" : "AI Backend Disconnected — Click to Configure"}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                background: backendOnline ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.12)',
-                border: `1px solid ${backendOnline ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`,
-                padding: '0.35rem 0.65rem',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                color: backendOnline ? '#22c55e' : '#ef4444',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <span
-                style={{
-                  width: '7px',
-                  height: '7px',
-                  borderRadius: '50%',
-                  background: backendOnline ? '#22c55e' : '#ef4444',
-                  boxShadow: backendOnline ? '0 0 8px #22c55e' : '0 0 8px #ef4444'
-                }}
-              />
-              <span style={{ fontFamily: 'var(--font-mono)' }}>
-                {backendOnline ? 'AI ONLINE' : 'AI OFFLINE'}
-              </span>
-            </button>
-
-            {/* Server Configuration Floating Modal */}
-            {showServerModal && (
-              <div
-                className="glass-panel animate-fade-in"
-                style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 10px)',
-                  right: 0,
-                  width: '320px',
-                  padding: '1rem',
-                  zIndex: 300,
-                  border: '1px solid var(--border-glass)',
-                  borderRadius: '12px',
-                  boxShadow: 'var(--shadow-xl)',
-                  background: 'var(--bg-surface)'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, fontSize: '0.85rem' }}>
-                    <Server size={14} color="var(--accent-blue)" /> AI Backend Connection
-                  </div>
-                  <button
-                    onClick={() => setShowServerModal(false)}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer' }}
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-
-                <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '0.65rem' }}>
-                  FastAPI service with YOLOv8 & YOLOv12 models:
-                </div>
-
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <label style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.25rem' }}>
-                    BACKEND API URL
-                  </label>
-                  <input
-                    type="text"
-                    value={serverUrlInput}
-                    onChange={(e) => setServerUrlInput(e.target.value)}
-                    placeholder="https://... or http://127.0.0.1:8000"
-                    style={{
-                      width: '100%',
-                      padding: '0.45rem 0.6rem',
-                      borderRadius: '6px',
-                      border: '1px solid var(--border-glass)',
-                      background: 'var(--bg-surface-elevated)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.75rem',
-                      fontFamily: 'var(--font-mono)',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {testStatus && (
-                  <div
-                    style={{
-                      padding: '0.45rem 0.6rem',
-                      borderRadius: '6px',
-                      marginBottom: '0.65rem',
-                      fontSize: '0.72rem',
-                      background: testStatus.success ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                      color: testStatus.success ? '#22c55e' : '#ef4444',
-                      border: `1px solid ${testStatus.success ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
-                    }}
-                  >
-                    {testStatus.message}
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <button
-                    onClick={() => handleTestConnection()}
-                    disabled={isTesting}
-                    style={{
-                      flex: 1,
-                      padding: '0.42rem',
-                      borderRadius: '6px',
-                      border: '1px solid var(--border-glass)',
-                      background: 'var(--bg-surface-elevated)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.72rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.3rem'
-                    }}
-                  >
-                    <RefreshCw size={12} className={isTesting ? 'animate-spin' : ''} />
-                    {isTesting ? 'Testing...' : 'Test'}
-                  </button>
-                  <button
-                    onClick={handleSaveServerUrl}
-                    style={{
-                      flex: 1,
-                      padding: '0.42rem',
-                      borderRadius: '6px',
-                      border: 'none',
-                      background: 'var(--accent-blue)',
-                      color: '#ffffff',
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Save & Reconnect
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid var(--border-glass)' }}>
-                  <button
-                    onClick={() => {
-                      setServerUrlInput('http://127.0.0.1:8000');
-                      handleTestConnection('http://127.0.0.1:8000');
-                    }}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--accent-blue)', fontSize: '0.68rem', cursor: 'pointer', textDecoration: 'underline' }}
-                  >
-                    Use Localhost (8000)
-                  </button>
-                  <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>
-                    Local: http://localhost:5173
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* Theme Toggle */}
           <button
             onClick={() => {

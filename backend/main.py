@@ -16,9 +16,11 @@ import cv2
 import numpy as np
 import torch
 
-# Optimize PyTorch CPU multi-threading for fast multi-core inference
+# Optimize PyTorch CPU and OpenCV multi-threading for fast multi-core inference
+cpu_cores = os.cpu_count() or 4
 if not torch.cuda.is_available():
-    torch.set_num_threads(min(8, os.cpu_count() or 4))
+    torch.set_num_threads(max(1, min(8, cpu_cores)))
+cv2.setNumThreads(max(1, min(8, cpu_cores)))
 
 # Try loading YOLO from Ultralytics
 try:
@@ -59,9 +61,9 @@ def convert_video_to_h264(input_raw_path: str, output_h264_path: str) -> bool:
             "-c:v", "libx264",
             "-pix_fmt", "yuv420p",
             "-preset", "ultrafast",
-            "-crf", "24",
+            "-crf", "25",
             "-tune", "fastdecode",
-            "-threads", "4",
+            "-threads", "0",
             "-movflags", "+faststart",
             output_h264_path
         ]
@@ -608,9 +610,9 @@ def generate_3d_depth_map(image_bgr: np.ndarray, detections: List[Dict[str, Any]
     """
     h, w = image_bgr.shape[:2]
     
-    # Grayscale photometric luminance
-    gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)
-    gray_blur = cv2.GaussianBlur(gray, (15, 15), 0)
+    # Fast photometric luminance using uint8 Gaussian blur with AVX/SIMD acceleration
+    gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+    gray_blur = cv2.GaussianBlur(gray, (9, 9), 0).astype(np.float32)
     
     # Cavity depression depth map in centimeters (0 = surface level, positive depth in cm)
     depth_cm_map = np.zeros((h, w), dtype=np.float32)
@@ -632,7 +634,7 @@ def generate_3d_depth_map(image_bgr: np.ndarray, detections: List[Dict[str, Any]
         
         # Photometric darkness factor inside ROI
         roi_gray = gray_blur[y1:y2, x1:x2]
-        roi_mean = np.mean(roi_gray) + 1e-5
+        roi_mean = float(np.mean(roi_gray)) + 1e-5
         darkness_weight = np.clip((roi_mean - roi_gray) / roi_mean * 1.5 + 0.6, 0.3, 1.8)
         
         # Parabolic cavity profile (max depth in center, decaying to 0 at perimeter)
@@ -698,8 +700,8 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
         raise ValueError("Could not load image.")
     
     orig_h, orig_w = image.shape[:2]
-    # Optimize input resolution: cap at max 1280px to accelerate CPU inference and reduce network payload
-    max_dim = 1280
+    # Optimize input resolution: cap at max 960px to accelerate CPU inference and reduce network payload
+    max_dim = 960
     if orig_w > max_dim or orig_h > max_dim:
         scale = max_dim / float(max(orig_w, orig_h))
         new_w = int(round(orig_w * scale))
@@ -710,21 +712,29 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     raw_detections = []
     t0 = time.perf_counter()
 
-    # Determine which models to execute
+    # Determine effective confidence threshold (enforce at least 0.20 to eliminate noise/hallucinations)
+    effective_conf = max(0.20, float(conf_threshold))
     if model_id == "damage-ensemble" or model_id not in MODEL_CLASSES:
-        models_to_run = [("damage-yolo12s", 640), ("damage-yolov8", 640)]
-        infer_conf = max(0.04, min(conf_threshold, 0.08))
+        models_to_run = [("damage-yolov8", 512), ("damage-yolo12s", 448)]
     else:
-        models_to_run = [(model_id, 640)]
-        infer_conf = max(0.04, conf_threshold)
+        models_to_run = [(model_id, 512)]
 
     with torch.inference_mode():
         for mid, imgsz in models_to_run:
             m = model_manager.get_model(mid)
             if m is not None:
                 try:
-                    # Run YOLO inference with high-recall sensitivity
-                    res = m.predict(image, imgsz=imgsz, conf=infer_conf, iou=0.45, verbose=False)
+                    # Run YOLO inference with clean confidence threshold
+                    res = m.predict(
+                        image,
+                        imgsz=imgsz,
+                        conf=effective_conf,
+                        iou=0.45,
+                        verbose=False,
+                        device="cpu",
+                        half=False,
+                        max_det=25
+                    )
                     if len(res) > 0:
                         for box in res[0].boxes:
                             xyxy = box.xyxy[0].cpu().numpy().tolist()
@@ -734,12 +744,17 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
                             raw_name = m.names.get(cls_id, str(cls_id)) if hasattr(m, "names") else str(cls_id)
                             cls_name = clean_class_name(raw_name, cls_id, mid)
                             
-                            # In ensemble mode, preserve authentic diffuse road depressions down to 0.08
-                            cutoff = min(conf_threshold, 0.08) if model_id == "damage-ensemble" else conf_threshold
-                            if conf < cutoff:
+                            if conf < effective_conf:
                                 continue
                             
                             box_coords = [int(round(xyxy[0])), int(round(xyxy[1])), int(round(xyxy[2])), int(round(xyxy[3]))]
+                            box_w = max(1, box_coords[2] - box_coords[0])
+                            box_h = max(1, box_coords[3] - box_coords[1])
+                            
+                            # Discard absurdly giant boxes (>40% of entire image area) unless high confidence (>0.55)
+                            if (box_w * box_h) > (width * height * 0.40) and conf < 0.55:
+                                continue
+                                
                             raw_detections.append({
                                 "box": box_coords,
                                 "class_id": cls_id,
@@ -751,21 +766,27 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
 
     # Robust fallback: if model is cold-booting, unavailable, or 0 defects were localized, run intelligent distress analysis
     if len(raw_detections) == 0:
-        raw_detections = run_mock_detection(image, conf_threshold, model_id)
+        raw_detections = run_mock_detection(image, effective_conf, model_id)
 
-    # Clean Hierarchical Multi-Model NMS: sort by confidence descending, merge overlapping duplicates
+    # Clean Hierarchical Multi-Model NMS: sort by confidence descending, merge overlapping & contained duplicates
     raw_detections.sort(key=lambda x: x["confidence"], reverse=True)
     detections = []
     for candidate in raw_detections:
+        cbox = candidate["box"]
+        ca = max(1, (cbox[2] - cbox[0]) * (cbox[3] - cbox[1]))
         is_duplicate = False
         for kept in detections:
-            iou = calculate_box_iou(candidate["box"], kept["box"])
-            # If same category covering the same defect (IoU > 0.20), discard duplicate
-            if candidate["class_name"] == kept["class_name"] and iou > 0.20:
-                is_duplicate = True
-                break
-            # If broad overlap > 0.60, discard duplicate
-            elif iou > 0.60:
+            kbox = kept["box"]
+            ka = max(1, (kbox[2] - kbox[0]) * (kbox[3] - kbox[1]))
+            inter_w = max(0, min(cbox[2], kbox[2]) - max(cbox[0], kbox[0]))
+            inter_h = max(0, min(cbox[3], kbox[3]) - max(cbox[1], kbox[1]))
+            inter_area = inter_w * inter_h
+            
+            iou = inter_area / float(ca + ka - inter_area + 1e-6)
+            iom = inter_area / float(min(ca, ka) + 1e-6)
+            
+            # Suppress duplicate if significant overlap (IoU > 0.35) or containment (IoM > 0.50)
+            if iou > 0.35 or iom > 0.50:
                 is_duplicate = True
                 break
         if not is_duplicate:
@@ -978,8 +999,8 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         video_tasks[task_id]["total_frames"] = total_frames
         video_tasks[task_id]["fps"] = fps
         
-        # Optimize video resolution if excessively large
-        max_vid_w = 1280
+        # Optimize video resolution: cap at 640px wide for 4x faster processing on CPU
+        max_vid_w = 640
         if width > max_vid_w:
             scale_v = max_vid_w / float(width)
             out_w = max_vid_w
@@ -991,6 +1012,11 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
             out_w = width if width % 2 == 0 else width - 1
             out_h = height if height % 2 == 0 else height - 1
         
+        # Adaptive frame rate decimation for long or high-FPS videos
+        # Processing every 2nd frame for 24+ FPS videos halves encoding time while keeping smooth playback
+        skip_step = 2 if (fps >= 24 and total_frames > 120) else 1
+        out_fps = round(fps / skip_step, 1)
+        
         # Raw temporary video output setup
         raw_output_filename = f"raw_{task_id}.mp4"
         raw_output_path = os.path.join(PROCESSED_DIR, raw_output_filename)
@@ -998,17 +1024,19 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         final_output_path = os.path.join(PROCESSED_DIR, final_output_filename)
         
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(raw_output_path, fourcc, fps, (out_w, out_h))
+        out = cv2.VideoWriter(raw_output_path, fourcc, out_fps, (out_w, out_h))
         
-        # Use single fast primary model for video streaming to maintain high throughput
+        # Use single fast primary model at 416px for real-time video throughput
         primary_model = "damage-yolov8" if (model_id == "damage-ensemble" or model_id not in MODEL_CLASSES) else model_id
-        models_for_video = [(primary_model, 512)]
-        tracker = DistressTracker(max_disappeared=6, min_appearance=1)
+        models_for_video = [(primary_model, 416)]
+        tracker = DistressTracker(max_disappeared=8, min_appearance=1)
         frame_idx = 0
+        written_frames = 0
         damage_types_set = set()
         
-        # Smart adaptive frame sampling: sample every 2-4 frames while tracker maintains smooth continuous boxes
-        frame_step = max(2, min(5, int(round(fps / 6)))) if total_frames > 20 else 1
+        # Smart adaptive frame sampling: run YOLO inference every ~0.25 seconds
+        # DistressTracker tracks existing boxes on intermediate frames smoothly
+        infer_interval = max(3, int(round(out_fps * 0.25))) if total_frames > 15 else 1
         cached_rects = []
         
         start_time = time.time()
@@ -1019,11 +1047,15 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
                 if not ret:
                     break
                 
+                frame_idx += 1
+                if skip_step > 1 and (frame_idx % skip_step != 0):
+                    continue
+                
                 if frame.shape[1] != out_w or frame.shape[0] != out_h:
                     frame = cv2.resize(frame, (out_w, out_h), interpolation=cv2.INTER_AREA)
                     
                 raw_rects = []
-                should_infer = (frame_idx % frame_step == 0)
+                should_infer = (written_frames % infer_interval == 0)
                 
                 if should_infer:
                     for mid, sz in models_for_video:
@@ -1031,7 +1063,16 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
                         if m is not None:
                             try:
                                 infer_conf = max(0.08, conf_threshold)
-                                results = m.predict(frame, imgsz=sz, conf=infer_conf, iou=0.45, verbose=False)
+                                results = m.predict(
+                                    frame,
+                                    imgsz=sz,
+                                    conf=infer_conf,
+                                    iou=0.45,
+                                    verbose=False,
+                                    device="cpu",
+                                    half=False,
+                                    max_det=20
+                                )
                                 if len(results) > 0:
                                     for box in results[0].boxes:
                                         xyxy = box.xyxy[0].cpu().numpy().tolist()
@@ -1085,11 +1126,11 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
                     damage_types_set.add(class_name)
                     
                 out.write(frame)
-                frame_idx += 1
+                written_frames += 1
                 
                 # Calculate metrics
                 elapsed = time.time() - start_time
-                current_fps = frame_idx / elapsed if elapsed > 0 else 0
+                current_fps = written_frames / elapsed if elapsed > 0 else 0
                 percent = min(98, int((frame_idx / total_frames) * 100))
                 
                 # Update task status
@@ -1097,7 +1138,7 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
                     "current_frame": frame_idx,
                     "progress_percent": percent,
                     "processing_fps": round(current_fps, 1),
-                    "eta_seconds": round((total_frames - frame_idx) / current_fps, 1) if current_fps > 0 else 0
+                    "eta_seconds": round((total_frames - frame_idx) / (current_fps * skip_step), 1) if current_fps > 0 else 0
                 })
             
         cap.release()

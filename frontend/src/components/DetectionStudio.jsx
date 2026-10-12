@@ -83,7 +83,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
 
   // Model selection & speed
   const [selectedModel, setSelectedModel] = useState('damage-ensemble');
-  const [confThreshold, setConfThreshold] = useState(0.08); // Default 8% for maximum recall of wide diffuse road erosion and sharp potholes
+  const [confThreshold, setConfThreshold] = useState(0.25); // Default 25% for clean, accurate defect detection without false positives
   const [inferenceTimeMs, setInferenceTimeMs] = useState(null);
 
   // Track whether current result came from real backend API (so we don't double-draw boxes)
@@ -463,14 +463,14 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
         } else if (data.status === 'failed') {
           setScanError(`Video processing failed: ${data.error || 'Unknown error'}`);
         } else {
-          setTimeout(poll, 1500);
+          setTimeout(poll, 700);
         }
       } catch (err) {
         console.error(err);
-        setTimeout(poll, 3000);
+        setTimeout(poll, 2000);
       }
     };
-    setTimeout(poll, 1000);
+    setTimeout(poll, 400);
   };
 
   const runVideoScanPreset = () => {
@@ -1207,9 +1207,9 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
               />
               <div style={{ display: 'flex', gap: '0.25rem' }}>
                 {[
-                  { label: '8% Max', val: 0.08 },
-                  { label: '15% Bal', val: 0.15 },
-                  { label: '25% Strict', val: 0.25 }
+                  { label: '15% High Recall', val: 0.15 },
+                  { label: '25% Optimal', val: 0.25 },
+                  { label: '35% Strict', val: 0.35 }
                 ].map((p) => (
                   <button
                     key={p.val}

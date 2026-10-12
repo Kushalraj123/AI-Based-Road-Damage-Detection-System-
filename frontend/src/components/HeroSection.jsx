@@ -146,11 +146,11 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
         {/* Cinematic Main Heading */}
         <h1
           style={{
-            fontSize: 'clamp(2.5rem, 4.2vw, 3.75rem)',
+            fontSize: 'clamp(2.3rem, 3.7vw, 3.3rem)',
             fontWeight: 800,
             lineHeight: 1.15,
             letterSpacing: '-0.03em',
-            marginBottom: '1.1rem',
+            marginBottom: '1rem',
             fontFamily: 'var(--font-heading)'
           }}
         >
@@ -161,12 +161,12 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
         {/* Subheading */}
         <p
           style={{
-            fontSize: 'clamp(0.95rem, 1.4vw, 1.1rem)',
+            fontSize: 'clamp(0.92rem, 1.25vw, 1.05rem)',
             lineHeight: 1.6,
             color: 'var(--text-secondary)',
-            marginBottom: '2rem',
+            marginBottom: '1.9rem',
             maxWidth: '620px',
-            margin: '0 auto 2rem auto'
+            margin: '0 auto 1.9rem auto'
           }}
         >
           AI-powered road damage detection that transforms images into intelligent infrastructure insights.
@@ -179,8 +179,8 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
             alignItems: 'center',
             justifyContent: 'center',
             flexWrap: 'wrap',
-            gap: '1rem',
-            marginBottom: '3rem'
+            gap: '0.9rem',
+            marginBottom: '2.75rem'
           }}
         >
           <button
@@ -190,14 +190,14 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
               onStartDetection();
             }}
             style={{
-              padding: '0.9rem 2.2rem',
-              fontSize: '1.05rem',
-              gap: '0.75rem'
+              padding: '0.85rem 2.05rem',
+              fontSize: '0.98rem',
+              gap: '0.7rem'
             }}
           >
-            <Zap size={20} />
+            <Zap size={19} />
             <span>Start Detection</span>
-            <ArrowRight size={18} />
+            <ArrowRight size={17} />
           </button>
 
           <button
@@ -207,12 +207,12 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
               onExploreDashboard();
             }}
             style={{
-              padding: '0.9rem 2rem',
-              fontSize: '1.05rem',
+              padding: '0.85rem 1.95rem',
+              fontSize: '0.98rem',
               gap: '0.65rem'
             }}
           >
-            <Activity size={18} />
+            <Activity size={17} />
             <span>Explore Dashboard</span>
           </button>
 
@@ -223,9 +223,9 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
               onExploreMap();
             }}
             style={{
-              padding: '0.9rem 1.6rem',
-              fontSize: '0.95rem',
-              gap: '0.5rem',
+              padding: '0.85rem 1.85rem',
+              fontSize: '0.98rem',
+              gap: '0.55rem',
               background: 'rgba(56, 189, 248, 0.08)',
               borderColor: 'rgba(56, 189, 248, 0.25)'
             }}
