@@ -269,7 +269,10 @@ def save_history(history: List[Dict[str, Any]]):
     pass
 
 def add_history_entry(entry: Dict[str, Any]):
-    add_detection_record(entry)
+    try:
+        add_detection_record(entry)
+    except Exception as e:
+        print(f"[History Notice] Could not save record: {e}")
 
 # Drawing helper functions
 def draw_stylized_box(image: np.ndarray, x1: int, y1: int, x2: int, y2: int, label: str, conf: float, color: tuple, depth_cm: Optional[float] = None):
