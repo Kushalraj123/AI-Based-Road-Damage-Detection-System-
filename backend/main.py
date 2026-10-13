@@ -1443,7 +1443,7 @@ def get_database_status():
 # Webcam frames endpoint: receives frame as JPEG image base64, runs detection, returns detections and processed base64 frame
 class FramePayload(BaseModel):
     frame: str # Base64 encoded JPEG
-    model_id: str = "pothole-yolov8"
+    model_id: str = "damage-ensemble"
     conf_threshold: float = 0.15
 
 @app.post("/api/detect-frame")
@@ -1461,15 +1461,17 @@ async def detect_frame(payload: FramePayload):
             
         fh, fw = frame.shape[:2]
         
-        # Detect with fast inference
+        # Detect with fast inference at native 640px resolution
         detections = []
-        actual_model_id = "damage-yolov8" if (payload.model_id == "damage-ensemble" or payload.model_id not in MODEL_CLASSES) else payload.model_id
+        actual_model_id = "damage-yolov8" if (payload.model_id == "damage-ensemble" or payload.model_id not in MODEL_CLASSES or payload.model_id == "pothole-yolov8") else payload.model_id
         model = model_manager.get_model(actual_model_id)
+        
+        live_conf = max(0.10, min(payload.conf_threshold, 0.20))
         
         if model is not None:
             try:
                 with torch.inference_mode():
-                    results = model.predict(frame, imgsz=416, conf=payload.conf_threshold, iou=0.45, verbose=False)
+                    results = model.predict(frame, imgsz=640, conf=live_conf, iou=0.45, verbose=False, device="cpu")
                     if len(results) > 0:
                         res = results[0]
                         boxes = res.boxes
@@ -1482,8 +1484,7 @@ async def detect_frame(payload: FramePayload):
                             raw_name = classes.get(cls_id, f"Class {cls_id}")
                             cls_name = clean_class_name(raw_name, cls_id, actual_model_id)
                             
-                            # Skip very low confidence detections
-                            if conf < payload.conf_threshold:
+                            if conf < live_conf:
                                 continue
                             
                             # Attach real-world dimensions and depth for live frame

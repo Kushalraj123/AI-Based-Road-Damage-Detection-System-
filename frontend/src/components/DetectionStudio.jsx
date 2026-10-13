@@ -984,17 +984,39 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       }
     } else {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }
-        });
+        let stream;
+        try {
+          // Attempt preferred facing mode first (ideal, not hard-constrained)
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: facingMode },
+              width: { ideal: 1280, min: 640 },
+              height: { ideal: 720, min: 480 }
+            }
+          });
+        } catch (constraintErr) {
+          console.warn('Constrained camera request failed, falling back to basic video constraint:', constraintErr);
+          // Universal fallback: works on any laptop, desktop webcam, phone, or virtual cam
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          await videoRef.current.play();
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play().catch(e => console.warn('Video play warning:', e));
+          };
+          await videoRef.current.play().catch(e => console.warn('Video play warning:', e));
         }
         setCameraActive(true);
         sounds.playBeep(900, 0.05);
+
+        // Automatically activate real-time AI scanning loop as well
+        setTimeout(() => {
+          startLiveDetection();
+        }, 350);
       } catch (err) {
-        alert('Camera access denied or unavailable: ' + err.message);
+        console.error('Camera access error:', err);
+        alert('Camera access denied or unavailable: ' + err.message + '\n\nPlease check browser permissions or connect a webcam.');
       }
     }
   };
@@ -1007,12 +1029,20 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
         videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
       }
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: nextMode, width: { ideal: 1280 }, height: { ideal: 720 } }
-        });
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: nextMode }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          await videoRef.current.play();
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play().catch(e => console.warn('Video play warning:', e));
+          };
+          await videoRef.current.play().catch(e => console.warn('Video play warning:', e));
         }
       } catch (err) {
         console.error('Error switching camera:', err);
@@ -1020,27 +1050,28 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     }
   };
 
-  // Capture one frame from video and run backend detection with downscaling for real-time responsiveness
+  // Capture one frame from video and run backend detection with high-fidelity resolution
   const captureAndDetect = async () => {
     if (isFrameInFlightRef.current) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas || video.readyState < 2) return;
 
-    // Scale frame down to max 480x360 for high-speed network transmission (< 20ms upload)
-    const maxDim = 480;
+    // Scale frame to 640px max while preserving native camera aspect ratio
+    const maxDim = 640;
     let targetW = video.videoWidth || 640;
-    let targetH = video.videoHeight || 360;
-    if (targetW > maxDim) {
-      targetH = Math.round((targetH * maxDim) / targetW);
-      targetW = maxDim;
+    let targetH = video.videoHeight || 480;
+    if (targetW > maxDim || targetH > maxDim) {
+      const scale = maxDim / Math.max(targetW, targetH);
+      targetW = Math.round(targetW * scale);
+      targetH = Math.round(targetH * scale);
     }
     canvas.width  = targetW;
     canvas.height = targetH;
 
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, targetW, targetH);
-    const base64Frame = canvas.toDataURL('image/jpeg', 0.55);
+    const base64Frame = canvas.toDataURL('image/jpeg', 0.75);
 
     isFrameInFlightRef.current = true;
     const frameStart = performance.now();
