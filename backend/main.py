@@ -15,6 +15,7 @@ from pydantic import BaseModel
 import cv2
 import numpy as np
 import torch
+from PIL import Image, ExifTags
 
 # Optimize PyTorch CPU and OpenCV multi-threading for fast multi-core inference
 cpu_cores = os.cpu_count() or 4
@@ -1260,10 +1261,92 @@ def get_models():
         ]
     }
 
+def extract_exif_metadata(image_path: str) -> Dict[str, Any]:
+    """Extract GPS coordinates, timestamp, and camera metadata from image EXIF."""
+    meta = {
+        "has_gps": False,
+        "latitude": None,
+        "longitude": None,
+        "altitude": None,
+        "datetime": None,
+        "camera_make": None,
+        "camera_model": None
+    }
+    try:
+        with Image.open(image_path) as img:
+            exif = img.getexif()
+            if not exif:
+                return meta
+                
+            # Camera and DateTime tags
+            if hasattr(ExifTags, 'Base'):
+                if ExifTags.Base.DateTimeOriginal in exif:
+                    meta["datetime"] = str(exif[ExifTags.Base.DateTimeOriginal])
+                elif ExifTags.Base.DateTime in exif:
+                    meta["datetime"] = str(exif[ExifTags.Base.DateTime])
+                
+                if ExifTags.Base.Make in exif:
+                    meta["camera_make"] = str(exif[ExifTags.Base.Make]).strip()
+                if ExifTags.Base.Model in exif:
+                    meta["camera_model"] = str(exif[ExifTags.Base.Model]).strip()
+            else:
+                for k, v in exif.items():
+                    tag_name = ExifTags.TAGS.get(k, k)
+                    if tag_name in ["DateTimeOriginal", "DateTime"]:
+                        meta["datetime"] = str(v)
+                    elif tag_name == "Make":
+                        meta["camera_make"] = str(v).strip()
+                    elif tag_name == "Model":
+                        meta["camera_model"] = str(v).strip()
+                    
+            # GPS Info IFD
+            gps_ifd = None
+            if hasattr(ExifTags, 'IFD'):
+                gps_ifd = exif.get_ifd(ExifTags.IFD.GPSInfo)
+            elif 0x8825 in exif:
+                gps_ifd = exif[0x8825]
+                
+            if gps_ifd:
+                gps_dict = {ExifTags.GPSTAGS.get(k, k): v for k, v in gps_ifd.items()}
+                
+                def _to_deg(val):
+                    if isinstance(val, (int, float)):
+                        return float(val)
+                    d = float(val[0])
+                    m = float(val[1])
+                    s = float(val[2])
+                    return d + (m / 60.0) + (s / 3600.0)
+                
+                lat = None
+                lng = None
+                if "GPSLatitude" in gps_dict and "GPSLatitudeRef" in gps_dict:
+                    lat = _to_deg(gps_dict["GPSLatitude"])
+                    if str(gps_dict["GPSLatitudeRef"]).strip().upper() != "N":
+                        lat = -lat
+                        
+                if "GPSLongitude" in gps_dict and "GPSLongitudeRef" in gps_dict:
+                    lng = _to_deg(gps_dict["GPSLongitude"])
+                    if str(gps_dict["GPSLongitudeRef"]).strip().upper() != "E":
+                        lng = -lng
+                        
+                if lat is not None and lng is not None:
+                    meta["has_gps"] = True
+                    meta["latitude"] = round(lat, 6)
+                    meta["longitude"] = round(lng, 6)
+                    
+                if "GPSAltitude" in gps_dict:
+                    try:
+                        meta["altitude"] = round(float(gps_dict["GPSAltitude"]), 1)
+                    except Exception:
+                        pass
+    except Exception as e:
+        print(f"EXIF parsing notice: {e}")
+    return meta
+
 @app.post("/api/detect")
 async def detect_image(
     file: UploadFile = File(...),
-    model_id: str = Form("pothole-yolov8"),
+    model_id: str = Form("damage-ensemble"),
     conf_threshold: float = Form(0.10)
 ):
     try:
@@ -1276,10 +1359,13 @@ async def detect_image(
         with open(temp_filepath, "wb") as f:
             shutil.copyfileobj(file.file, f)
             
+        # Extract EXIF metadata (GPS coordinates, camera, timestamp) from original image
+        exif_meta = extract_exif_metadata(temp_filepath)
+            
         # Run detection
         result = process_detection(temp_filepath, model_id, conf_threshold)
         
-        # Save to history
+        # Save to history with extracted GPS coordinates
         history_entry = {
             "id": file_uuid,
             "type": "image",
@@ -1290,7 +1376,9 @@ async def detect_image(
             "processed_url": result["processed_image_url"],
             "total_damage": result["total_damage"],
             "severity": result["severity"],
-            "classes_detected": list(result["counts"].keys())
+            "classes_detected": list(result["counts"].keys()),
+            "exif_metadata": exif_meta,
+            "gps_coords": [exif_meta["latitude"], exif_meta["longitude"]] if exif_meta["has_gps"] else None
         }
         add_history_entry(history_entry)
         
@@ -1319,7 +1407,8 @@ async def detect_image(
             "severity": result["severity"],
             "width": result["width"],
             "height": result["height"],
-            "inference_time_ms": result.get("inference_time_ms", 120.0)
+            "inference_time_ms": result.get("inference_time_ms", 120.0),
+            "exif_metadata": exif_meta
         }
     except Exception as e:
         import traceback
