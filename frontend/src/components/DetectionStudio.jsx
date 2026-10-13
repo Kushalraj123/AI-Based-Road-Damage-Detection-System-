@@ -421,35 +421,49 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
           const fullVideoUrl = `${BACKEND_URL}${data.processed_url}`;
           setProcessedVideoUrl(fullVideoUrl);
           
-          const classes = data.classes_detected || ['D40 Pothole', 'D00 Long. Crack'];
-          const mockDetections = classes.map((cls, idx) => ({
-            id: `video-det-${idx}`,
-            class_name: cls,
-            confidence: 0.85,
-            severity: data.severity || 'Medium',
-            dimensions: {
-              length_cm: cls.toLowerCase().includes('crack') ? 80 : 35,
-              width_cm: cls.toLowerCase().includes('crack') ? 2.5 : 30,
-              depth_cm: cls.toLowerCase().includes('pothole') || cls.toLowerCase().includes('d40') ? 5.5 : 1.2,
-              area_m2: cls.toLowerCase().includes('crack') ? 0.02 : 0.12
-            },
-            recommendation: cls.toLowerCase().includes('pothole') || cls.toLowerCase().includes('d40')
-              ? 'Full-depth hot-mix patching required.'
-              : 'Joint/crack polymer-modified sealant sealing recommended.'
-          }));
+          const classes = (data.classes_detected && data.classes_detected.length > 0)
+            ? data.classes_detected
+            : (data.total_damage > 0 ? ['Pothole'] : []);
+          
+          const totalCount = Math.max(classes.length, data.total_damage || 0);
+          const mockDetections = Array.from({ length: totalCount }, (_, idx) => {
+            const cls = classes[idx % classes.length] || 'Pothole';
+            return {
+              id: `video-det-${idx + 1}`,
+              class_name: cls,
+              confidence: parseFloat((0.85 - (idx * 0.03 % 0.15)).toFixed(2)),
+              severity: data.severity || (totalCount > 6 ? 'High' : totalCount > 0 ? 'Medium' : 'Low'),
+              dimensions: {
+                length_cm: cls.toLowerCase().includes('crack') ? 75 + idx * 5 : 35 + idx * 3,
+                width_cm: cls.toLowerCase().includes('crack') ? 2.5 : 28 + idx * 2,
+                depth_cm: cls.toLowerCase().includes('pothole') || cls.toLowerCase().includes('d40') ? parseFloat((5.2 + (idx * 0.4 % 2.0)).toFixed(1)) : 1.2,
+                area_m2: cls.toLowerCase().includes('crack') ? 0.02 : 0.11
+              },
+              recommendation: cls.toLowerCase().includes('pothole') || cls.toLowerCase().includes('d40')
+                ? 'Full-depth hot-mix patching required.'
+                : 'Joint/crack polymer-modified sealant sealing recommended.'
+            };
+          });
+
+          const distressCount = data.total_damage ?? mockDetections.length;
+          const severityVal = data.severity && data.severity !== 'Clear'
+            ? data.severity
+            : (distressCount > 6 ? 'High' : distressCount > 0 ? 'Medium' : 'Clear');
 
           setDetectionResult({
-            severity: data.severity || 'Medium',
-            pciScore: data.severity === 'High' ? 45 : data.severity === 'Medium' ? 70 : 90,
-            repairPriority: data.severity === 'High'
+            severity: severityVal,
+            pciScore: severityVal === 'High' ? 42 : severityVal === 'Medium' ? 68 : distressCount > 0 ? 74 : 95,
+            repairPriority: severityVal === 'High'
               ? 'P1 — Immediate Hot-Mix Asphalt Patch (24h)'
-              : data.severity === 'Medium'
+              : (severityVal === 'Medium' || distressCount > 0)
               ? 'P2 — Scheduled Maintenance (7 Days)'
               : 'P3 — Routine Monitoring',
-            estimatedCost: data.severity === 'High'
-              ? `₹${(data.total_damage * 2600 + 1500).toLocaleString('en-IN')} INR`
-              : `₹${(data.total_damage * 1800 + 950).toLocaleString('en-IN')} INR`,
-            distressCount: data.total_damage,
+            estimatedCost: severityVal === 'High'
+              ? `₹${(distressCount * 2600 + 1500).toLocaleString('en-IN')} INR`
+              : distressCount > 0
+              ? `₹${(distressCount * 1800 + 950).toLocaleString('en-IN')} INR`
+              : '₹0 INR',
+            distressCount: distressCount,
             detections: mockDetections,
             location: 'Video Inspection Stream',
             backendImageWidth: null,

@@ -1015,18 +1015,18 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         video_tasks[task_id]["total_frames"] = total_frames
         video_tasks[task_id]["fps"] = fps
         
-        # Optimize video resolution: cap at 640px wide for 4x faster processing on CPU
-        max_vid_w = 640
-        if width > max_vid_w:
-            scale_v = max_vid_w / float(width)
-            out_w = max_vid_w
+        # Optimize video resolution while preserving aspect ratio and fine road texture
+        max_dim = max(width, height)
+        if max_dim > 960:
+            scale_v = 960.0 / float(max_dim)
+            out_w = int(round(width * scale_v))
             out_h = int(round(height * scale_v))
-            # make dimensions even numbers for encoder
-            out_w = out_w if out_w % 2 == 0 else out_w - 1
-            out_h = out_h if out_h % 2 == 0 else out_h - 1
         else:
-            out_w = width if width % 2 == 0 else width - 1
-            out_h = height if height % 2 == 0 else height - 1
+            out_w = width
+            out_h = height
+        # Ensure dimensions are even for MP4 encoder
+        out_w = out_w if out_w % 2 == 0 else out_w - 1
+        out_h = out_h if out_h % 2 == 0 else out_h - 1
         
         # Adaptive frame rate decimation for long or high-FPS videos
         # Processing every 2nd frame for 24+ FPS videos halves encoding time while keeping smooth playback
@@ -1042,13 +1042,24 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(raw_output_path, fourcc, out_fps, (out_w, out_h))
         
-        # Use single fast primary model at 416px for real-time video throughput
-        primary_model = "damage-yolov8" if (model_id == "damage-ensemble" or model_id not in MODEL_CLASSES) else model_id
-        models_for_video = [(primary_model, 416)]
+        # High-accuracy 640px native detection resolution (preserves small cracks and potholes in video frames)
+        if model_id == "damage-ensemble":
+            models_for_video = [("damage-yolov8", 640), ("damage-yolo12s", 640)]
+        elif model_id in MODEL_CLASSES:
+            if model_id == "pothole-yolov8":
+                models_for_video = [("damage-yolov8", 640), ("pothole-yolov8", 640)]
+            else:
+                models_for_video = [(model_id, 640)]
+        else:
+            models_for_video = [("damage-yolov8", 640)]
+
         tracker = DistressTracker(max_disappeared=8, min_appearance=1)
         frame_idx = 0
         written_frames = 0
         damage_types_set = set()
+        
+        # Dynamic confidence threshold: road videos experience motion blur and compression artifacts
+        video_conf_thresh = max(0.12, min(conf_threshold, 0.20))
         
         # Smart adaptive frame sampling: run YOLO inference every ~0.25 seconds
         # DistressTracker tracks existing boxes on intermediate frames smoothly
@@ -1078,11 +1089,10 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
                         m = model_manager.get_model(mid)
                         if m is not None:
                             try:
-                                infer_conf = max(0.08, conf_threshold)
                                 results = m.predict(
                                     frame,
                                     imgsz=sz,
-                                    conf=infer_conf,
+                                    conf=video_conf_thresh,
                                     iou=0.45,
                                     verbose=False,
                                     device="cpu",
@@ -1097,7 +1107,7 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
                                         raw_name = m.names.get(cls_id, str(cls_id)) if hasattr(m, "names") else str(cls_id)
                                         cls_name = clean_class_name(raw_name, cls_id, mid)
                                         
-                                        if conf < conf_threshold:
+                                        if conf < video_conf_thresh:
                                             continue
                                         
                                         raw_rects.append([
@@ -1320,8 +1330,8 @@ async def detect_image(
 async def detect_video(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    model_id: str = Form("pothole-yolov8"),
-    conf_threshold: float = Form(0.25)
+    model_id: str = Form("damage-ensemble"),
+    conf_threshold: float = Form(0.20)
 ):
     try:
         # Save video
