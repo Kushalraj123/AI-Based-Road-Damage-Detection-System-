@@ -378,36 +378,18 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
           {/* SVG Line Chart */}
           <div style={{ width: '100%', height: '220px', position: 'relative' }}>
             <svg viewBox="0 0 700 200" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
-              <defs>
-                <linearGradient id="chartGradientLive" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.45" />
-                  <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.0" />
-                </linearGradient>
-                <linearGradient id="strokeGradientLive" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#38bdf8" />
-                  <stop offset="50%" stopColor="#06b6d4" />
-                  <stop offset="100%" stopColor="#8b5cf6" />
-                </linearGradient>
-              </defs>
-
-              {/* Grid Lines */}
-              <line x1="0" y1="40" x2="700" y2="40" stroke="var(--border-subtle)" strokeDasharray="4 4" />
-              <line x1="0" y1="90" x2="700" y2="90" stroke="var(--border-subtle)" strokeDasharray="4 4" />
-              <line x1="0" y1="140" x2="700" y2="140" stroke="var(--border-subtle)" strokeDasharray="4 4" />
-              <line x1="0" y1="190" x2="700" y2="190" stroke="var(--border-subtle)" />
-
               {/* Area Fill */}
               <polygon
                 points={trendGraphData.polyPoints}
-                fill="url(#chartGradientLive)"
+                fill="rgba(6, 182, 212, 0.15)"
               />
 
-              {/* Glowing Line */}
+              {/* Line */}
               <polyline
                 points={trendGraphData.points}
                 fill="none"
-                stroke="url(#strokeGradientLive)"
-                strokeWidth="3.5"
+                stroke="#06B6D4"
+                strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
@@ -448,7 +430,7 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
                   cy="50"
                   r="40"
                   fill="none"
-                  stroke="url(#strokeGradientLive)"
+                  stroke="#22C55E"
                   strokeWidth="10"
                   strokeDasharray="251.2"
                   strokeDashoffset={pciOffset}

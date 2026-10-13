@@ -421,35 +421,49 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
           const fullVideoUrl = `${BACKEND_URL}${data.processed_url}`;
           setProcessedVideoUrl(fullVideoUrl);
           
-          const classes = data.classes_detected || ['D40 Pothole', 'D00 Long. Crack'];
-          const mockDetections = classes.map((cls, idx) => ({
-            id: `video-det-${idx}`,
-            class_name: cls,
-            confidence: 0.85,
-            severity: data.severity || 'Medium',
-            dimensions: {
-              length_cm: cls.toLowerCase().includes('crack') ? 80 : 35,
-              width_cm: cls.toLowerCase().includes('crack') ? 2.5 : 30,
-              depth_cm: cls.toLowerCase().includes('pothole') || cls.toLowerCase().includes('d40') ? 5.5 : 1.2,
-              area_m2: cls.toLowerCase().includes('crack') ? 0.02 : 0.12
-            },
-            recommendation: cls.toLowerCase().includes('pothole') || cls.toLowerCase().includes('d40')
-              ? 'Full-depth hot-mix patching required.'
-              : 'Joint/crack polymer-modified sealant sealing recommended.'
-          }));
+          const classes = (data.classes_detected && data.classes_detected.length > 0)
+            ? data.classes_detected
+            : (data.total_damage > 0 ? ['Pothole'] : []);
+          
+          const totalCount = Math.max(classes.length, data.total_damage || 0);
+          const mockDetections = Array.from({ length: totalCount }, (_, idx) => {
+            const cls = classes[idx % classes.length] || 'Pothole';
+            return {
+              id: `video-det-${idx + 1}`,
+              class_name: cls,
+              confidence: parseFloat((0.85 - (idx * 0.03 % 0.15)).toFixed(2)),
+              severity: data.severity || (totalCount > 6 ? 'High' : totalCount > 0 ? 'Medium' : 'Low'),
+              dimensions: {
+                length_cm: cls.toLowerCase().includes('crack') ? 75 + idx * 5 : 35 + idx * 3,
+                width_cm: cls.toLowerCase().includes('crack') ? 2.5 : 28 + idx * 2,
+                depth_cm: cls.toLowerCase().includes('pothole') || cls.toLowerCase().includes('d40') ? parseFloat((5.2 + (idx * 0.4 % 2.0)).toFixed(1)) : 1.2,
+                area_m2: cls.toLowerCase().includes('crack') ? 0.02 : 0.11
+              },
+              recommendation: cls.toLowerCase().includes('pothole') || cls.toLowerCase().includes('d40')
+                ? 'Full-depth hot-mix patching required.'
+                : 'Joint/crack polymer-modified sealant sealing recommended.'
+            };
+          });
+
+          const distressCount = data.total_damage ?? mockDetections.length;
+          const severityVal = data.severity && data.severity !== 'Clear'
+            ? data.severity
+            : (distressCount > 6 ? 'High' : distressCount > 0 ? 'Medium' : 'Clear');
 
           setDetectionResult({
-            severity: data.severity || 'Medium',
-            pciScore: data.severity === 'High' ? 45 : data.severity === 'Medium' ? 70 : 90,
-            repairPriority: data.severity === 'High'
+            severity: severityVal,
+            pciScore: severityVal === 'High' ? 42 : severityVal === 'Medium' ? 68 : distressCount > 0 ? 74 : 95,
+            repairPriority: severityVal === 'High'
               ? 'P1 — Immediate Hot-Mix Asphalt Patch (24h)'
-              : data.severity === 'Medium'
+              : (severityVal === 'Medium' || distressCount > 0)
               ? 'P2 — Scheduled Maintenance (7 Days)'
               : 'P3 — Routine Monitoring',
-            estimatedCost: data.severity === 'High'
-              ? `₹${(data.total_damage * 2600 + 1500).toLocaleString('en-IN')} INR`
-              : `₹${(data.total_damage * 1800 + 950).toLocaleString('en-IN')} INR`,
-            distressCount: data.total_damage,
+            estimatedCost: severityVal === 'High'
+              ? `₹${(distressCount * 2600 + 1500).toLocaleString('en-IN')} INR`
+              : distressCount > 0
+              ? `₹${(distressCount * 1800 + 950).toLocaleString('en-IN')} INR`
+              : '₹0 INR',
+            distressCount: distressCount,
             detections: mockDetections,
             location: 'Video Inspection Stream',
             backendImageWidth: null,
@@ -873,14 +887,14 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     if (!detections || detections.length === 0) return;
 
     const CLASS_COLORS_HEX = {
-      'Pothole': '#f43f5e',
-      'Alligator Crack': '#f97316',
-      'Alligator Crack / Base Failure': '#f97316',
-      'Transverse Crack': '#22c55e',
-      'Longitudinal Crack': '#06b6d4',
-      'Repair Patch': '#a855f7',
-      'Surface Distortion': '#ec4899',
-      'Surface Distress': '#eab308'
+      'Pothole': '#EF4444',
+      'Alligator Crack': '#F97316',
+      'Alligator Crack / Base Failure': '#F97316',
+      'Transverse Crack': '#F97316',
+      'Longitudinal Crack': '#F97316',
+      'Repair Patch': '#8B5CF6',
+      'Surface Distortion': '#F97316',
+      'Surface Distress': '#F97316'
     };
 
     detections.forEach((det) => {
@@ -970,17 +984,39 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       }
     } else {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }
-        });
+        let stream;
+        try {
+          // Attempt preferred facing mode first (ideal, not hard-constrained)
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: facingMode },
+              width: { ideal: 1280, min: 640 },
+              height: { ideal: 720, min: 480 }
+            }
+          });
+        } catch (constraintErr) {
+          console.warn('Constrained camera request failed, falling back to basic video constraint:', constraintErr);
+          // Universal fallback: works on any laptop, desktop webcam, phone, or virtual cam
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          await videoRef.current.play();
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play().catch(e => console.warn('Video play warning:', e));
+          };
+          await videoRef.current.play().catch(e => console.warn('Video play warning:', e));
         }
         setCameraActive(true);
         sounds.playBeep(900, 0.05);
+
+        // Automatically activate real-time AI scanning loop as well
+        setTimeout(() => {
+          startLiveDetection();
+        }, 350);
       } catch (err) {
-        alert('Camera access denied or unavailable: ' + err.message);
+        console.error('Camera access error:', err);
+        alert('Camera access denied or unavailable: ' + err.message + '\n\nPlease check browser permissions or connect a webcam.');
       }
     }
   };
@@ -993,12 +1029,20 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
         videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
       }
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: nextMode, width: { ideal: 1280 }, height: { ideal: 720 } }
-        });
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: nextMode }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          await videoRef.current.play();
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play().catch(e => console.warn('Video play warning:', e));
+          };
+          await videoRef.current.play().catch(e => console.warn('Video play warning:', e));
         }
       } catch (err) {
         console.error('Error switching camera:', err);
@@ -1006,27 +1050,28 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     }
   };
 
-  // Capture one frame from video and run backend detection with downscaling for real-time responsiveness
+  // Capture one frame from video and run backend detection with high-fidelity resolution
   const captureAndDetect = async () => {
     if (isFrameInFlightRef.current) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas || video.readyState < 2) return;
 
-    // Scale frame down to max 480x360 for high-speed network transmission (< 20ms upload)
-    const maxDim = 480;
+    // Scale frame to 640px max while preserving native camera aspect ratio
+    const maxDim = 640;
     let targetW = video.videoWidth || 640;
-    let targetH = video.videoHeight || 360;
-    if (targetW > maxDim) {
-      targetH = Math.round((targetH * maxDim) / targetW);
-      targetW = maxDim;
+    let targetH = video.videoHeight || 480;
+    if (targetW > maxDim || targetH > maxDim) {
+      const scale = maxDim / Math.max(targetW, targetH);
+      targetW = Math.round(targetW * scale);
+      targetH = Math.round(targetH * scale);
     }
     canvas.width  = targetW;
     canvas.height = targetH;
 
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, targetW, targetH);
-    const base64Frame = canvas.toDataURL('image/jpeg', 0.55);
+    const base64Frame = canvas.toDataURL('image/jpeg', 0.75);
 
     isFrameInFlightRef.current = true;
     const frameStart = performance.now();
@@ -1263,9 +1308,9 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 gap: '0.5rem',
                 padding: '0.65rem 1.25rem',
                 borderRadius: 'var(--radius-md)',
-                background: isActive ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.25) 0%, rgba(99, 102, 241, 0.3) 100%)' : 'var(--bg-surface-elevated)',
-                border: isActive ? '1px solid var(--accent-cyan)' : '1px solid var(--border-subtle)',
-                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                background: isActive ? '#2563EB' : 'var(--bg-surface-elevated)',
+                border: isActive ? '1px solid #2563EB' : '1px solid var(--border-subtle)',
+                color: isActive ? '#F8FAFC' : 'var(--text-secondary)',
                 fontWeight: 600,
                 fontSize: '0.875rem',
                 cursor: 'pointer',
@@ -1427,9 +1472,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                     onClick={isLiveDetecting ? stopLiveDetection : startLiveDetection}
                     className="btn btn-primary"
                     style={{
-                      background: isLiveDetecting
-                        ? 'linear-gradient(135deg, rgba(244,63,94,0.85), rgba(220,38,38,0.95))'
-                        : undefined,
+                      background: isLiveDetecting ? '#EF4444' : '#2563EB',
                       gap: '0.5rem', padding: '0.55rem 1.1rem'
                     }}
                   >
@@ -1803,7 +1846,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                             style={{
                               width: `${videoProgress}%`,
                               height: '100%',
-                              background: 'linear-gradient(90deg, #6366f1, #818cf8)',
+                              background: '#2563EB',
                               transition: 'width 0.3s ease'
                             }}
                           />
@@ -1866,13 +1909,20 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                         width: '240px',
                         height: '10px',
                         borderRadius: '4px',
-                        background: 'linear-gradient(90deg, #30123b 0%, #4662d8 20%, #36aaf8 40%, #1ae4b6 60%, #a2fc3c 75%, #fbb938 88%, #d83b10 100%)'
-                      }} />
+                        display: 'flex',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{ flex: 1, background: '#22C55E' }} title="0-2cm (Safe)" />
+                        <div style={{ flex: 1, background: '#06B6D4' }} title="2-4cm (Minor)" />
+                        <div style={{ flex: 1, background: '#FBBF24' }} title="4-6cm (Moderate)" />
+                        <div style={{ flex: 1, background: '#F97316' }} title="6-8cm (Warning)" />
+                        <div style={{ flex: 1, background: '#EF4444' }} title=">8cm (Critical)" />
+                      </div>
                       <div style={{ width: '240px', display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
                         <span>0 cm (Pavement)</span>
                         <span>3.5 cm</span>
                         <span>6.0 cm</span>
-                        <span style={{ color: '#f43f5e', fontWeight: 700 }}>&gt;8 cm Breach</span>
+                        <span style={{ color: '#EF4444', fontWeight: 700 }}>&gt;8 cm Breach</span>
                       </div>
                     </div>
                   </div>
@@ -2004,13 +2054,13 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                   </>
                 )}
 
-                {/* AI Heatmap Gradient Overlay */}
+                {/* AI Heatmap Flat Overlay */}
                 {imagePreviewUrl && showHeatmap && (
                   <div
                     style={{
                       position: 'absolute',
                       inset: 0,
-                      background: 'radial-gradient(circle at 45% 65%, rgba(244, 63, 94, 0.6) 0%, rgba(245, 158, 11, 0.4) 35%, rgba(6, 182, 212, 0.2) 65%, transparent 80%)',
+                      background: 'rgba(239, 68, 68, 0.25)',
                       mixBlendMode: 'screen',
                       pointerEvents: 'none',
                       zIndex: 12
@@ -2069,7 +2119,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                           style={{
                             width: `${scanProgress}%`,
                             height: '100%',
-                            background: 'linear-gradient(90deg, #06b6d4, #38bdf8)',
+                            background: '#2563EB',
                             transition: 'width 0.3s ease'
                           }}
                         />
@@ -2602,7 +2652,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                   padding: '0.75rem 1rem',
                   fontSize: '0.85rem',
                   fontWeight: 700,
-                  background: 'linear-gradient(135deg, rgba(6,182,212,0.18), rgba(59,130,246,0.18))',
+                  background: '#1E293B',
                   border: '1px solid var(--accent-cyan)',
                   color: 'var(--accent-cyan)',
                   display: 'flex',

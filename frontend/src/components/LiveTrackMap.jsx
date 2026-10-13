@@ -55,11 +55,9 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking, detections }
     list.forEach(async (det, idx) => {
       const conf = det.confidence ?? 0.85;
       const severity = conf > 0.60 ? 'High' : conf > 0.30 ? 'Medium' : 'Low';
-      const color = (det.class_name || '').toLowerCase().includes('pothole')
-        ? '#f43f5e'
-        : (det.class_name || '').toLowerCase().includes('alligator')
-        ? '#f59e0b'
-        : '#06b6d4';
+      const isPothole = (det.class_name || '').toLowerCase().includes('pothole');
+      const isCrack = (det.class_name || '').toLowerCase().includes('crack') || (det.class_name || '').toLowerCase().includes('alligator');
+      const color = isPothole ? '#EF4444' : isCrack ? '#F97316' : '#22C55E';
 
       const offsetLat = (idx * 0.00015) + ((Math.random() - 0.5) * 0.00006);
       const offsetLng = (idx * 0.00010) + ((Math.random() - 0.5) * 0.00006);
@@ -446,14 +444,14 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking, detections }
         </div>
       )}
       {/* Map */}
-      <div ref={mapDivRef} style={{ width: '100%', height: '300px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-glass)', background: '#090d16', zIndex: 1 }} />
+      <div ref={mapDivRef} style={{ width: '100%', height: '300px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-glass)', background: '#0B1120', zIndex: 1 }} />
       {/* Legend */}
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
         {[
-          { color: '#06b6d4', label: 'Your Position' },
-          { color: '#f43f5e', label: 'High Risk' },
-          { color: '#f59e0b', label: 'Medium Risk' },
-          { color: '#38bdf8', label: 'Low Risk' }
+          { color: '#06B6D4', label: 'Your Position / GPS' },
+          { color: '#EF4444', label: 'Potholes (Critical)' },
+          { color: '#F97316', label: 'Cracks / Warnings' },
+          { color: '#22C55E', label: 'Safe Road Status' }
         ].map(({ color, label }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.64rem', color: 'var(--text-tertiary)' }}>
             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, boxShadow: `0 0 5px ${color}` }} />

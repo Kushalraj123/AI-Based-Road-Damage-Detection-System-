@@ -6,7 +6,7 @@ export default function Hero({ onStartScan }) {
     <div className="glass-panel hero-section animate-fade-in" style={{
       position: 'relative',
       padding: '3rem 2.5rem',
-      background: 'radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent 60%), var(--bg-surface)',
+      background: 'var(--bg-surface)',
       overflow: 'hidden',
       marginBottom: '2.5rem',
       display: 'flex',
@@ -51,10 +51,7 @@ export default function Hero({ onStartScan }) {
           fontWeight: 800,
           lineHeight: 1.2,
           fontFamily: 'var(--font-heading)',
-          background: 'linear-gradient(135deg, #ffffff 0%, #a5b4fc 50%, var(--accent-secondary) 100%)',
-          WebkitBackgroundClip: 'text',
-          backgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
+          color: '#F8FAFC',
           marginBottom: '1rem',
           letterSpacing: '-0.03em'
         }}>

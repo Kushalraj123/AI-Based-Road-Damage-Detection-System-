@@ -87,7 +87,7 @@ export default function Navbar({
               width: '35px',
               height: '35px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, #06b6d4 0%, #6366f1 100%)',
+              background: '#2563EB',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -179,10 +179,8 @@ export default function Navbar({
                   padding: '0.45rem 1.1rem',
                   borderRadius: 'var(--radius-full)',
                   border: 'none',
-                  background: isActive
-                    ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(99, 102, 241, 0.25) 100%)'
-                    : 'transparent',
-                  color: isActive ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                  background: isActive ? '#2563EB' : 'transparent',
+                  color: isActive ? '#ffffff' : 'var(--text-secondary)',
                   fontWeight: isActive ? 600 : 500,
                   fontSize: '0.86rem',
                   cursor: 'pointer',
@@ -355,7 +353,7 @@ export default function Navbar({
                 width: '25px',
                 height: '25px',
                 borderRadius: '7px',
-                background: 'linear-gradient(135deg, #38bdf8 0%, #06b6d4 100%)',
+                background: '#06B6D4',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -431,10 +429,8 @@ export default function Navbar({
                   padding: '0.75rem 1rem',
                   borderRadius: '10px',
                   border: isActive ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid transparent',
-                  background: isActive
-                    ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(99, 102, 241, 0.25) 100%)'
-                    : 'rgba(255, 255, 255, 0.03)',
-                  color: isActive ? 'var(--accent-blue)' : 'var(--text-primary)',
+                  background: isActive ? '#2563EB' : 'rgba(255, 255, 255, 0.03)',
+                  color: isActive ? '#ffffff' : 'var(--text-primary)',
                   fontWeight: isActive ? 700 : 500,
                   fontSize: '0.95rem',
                   cursor: 'pointer',

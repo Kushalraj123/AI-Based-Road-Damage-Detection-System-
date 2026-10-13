@@ -37,7 +37,7 @@ export default function Footer({ onNavigate }) {
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                background: 'linear-gradient(135deg, #06b6d4 0%, #6366f1 100%)',
+                background: '#2563EB',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

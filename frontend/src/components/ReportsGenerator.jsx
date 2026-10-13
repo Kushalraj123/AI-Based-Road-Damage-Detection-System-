@@ -1160,7 +1160,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                 padding: '1.25rem',
                 borderRadius: '12px',
                 border: '1px solid var(--border-glass)',
-                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(99, 102, 241, 0.04) 100%)',
+                background: 'var(--bg-surface)',
                 position: 'relative'
               }}
             >
@@ -1189,7 +1189,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                 padding: '1.25rem',
                 borderRadius: '12px',
                 border: '1px solid var(--border-glass)',
-                background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(236, 72, 153, 0.04) 100%)',
+                background: 'var(--bg-surface)',
                 position: 'relative'
               }}
             >
@@ -1218,7 +1218,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                 padding: '1.25rem',
                 borderRadius: '12px',
                 border: '1px solid var(--border-glass)',
-                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(245, 158, 11, 0.04) 100%)'
+                background: 'var(--bg-surface)'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -1246,7 +1246,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                 padding: '1.25rem',
                 borderRadius: '12px',
                 border: '1px solid var(--border-glass)',
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.04) 100%)'
+                background: 'var(--bg-surface)'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -1275,7 +1275,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
               padding: '1.5rem',
               borderRadius: '14px',
               border: '1px solid rgba(6, 182, 212, 0.25)',
-              background: 'linear-gradient(180deg, rgba(6, 182, 212, 0.05) 0%, var(--bg-glass-strong) 100%)'
+              background: 'var(--bg-surface)'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>

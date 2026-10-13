@@ -383,15 +383,14 @@ export default function RoadMapView({ onInspectItem, syncedIncident }) {
           style={{
             padding: '0.85rem 1.25rem',
             marginBottom: '1.25rem',
-            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%)',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--accent-cyan)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
             gap: '0.75rem',
-            borderRadius: '10px',
-            boxShadow: '0 0 20px rgba(6, 182, 212, 0.2)'
+            borderRadius: '10px'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
