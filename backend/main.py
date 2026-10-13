@@ -169,17 +169,17 @@ MODEL_CLASSES = {
     }
 }
 
-# Global class colors
+# Global class colors (flat BGR palette matching client requirements)
 CLASS_COLORS = {
-    "Pothole": (50, 50, 255),          # Vibrant Red
-    "Alligator Crack": (0, 165, 255),   # Orange
-    "Alligator Crack / Base Failure": (0, 165, 255), # Orange
-    "Transverse Crack": (50, 220, 50),  # Green
-    "Longitudinal Crack": (30, 200, 255),# Cyan
-    "Repair Patch": (180, 100, 220),    # Purple
-    "Surface Distortion": (180, 100, 220),
-    "Surface Distress": (180, 100, 220),
-    "Road Distress": (0, 165, 255)
+    "Pothole": (68, 68, 239),                         # #EF4444 (Vibrant Red)
+    "Alligator Crack": (22, 115, 249),                 # #F97316 (Orange)
+    "Alligator Crack / Base Failure": (22, 115, 249),  # #F97316 (Orange)
+    "Transverse Crack": (22, 115, 249),                # #F97316 (Orange)
+    "Longitudinal Crack": (22, 115, 249),              # #F97316 (Orange)
+    "Repair Patch": (246, 92, 139),                    # #8B5CF6 (Purple)
+    "Surface Distortion": (22, 115, 249),              # #F97316 (Orange)
+    "Surface Distress": (22, 115, 249),                # #F97316 (Orange)
+    "Road Distress": (22, 115, 249)                    # #F97316 (Orange)
 }
 
 def clean_class_name(raw_name: str, cls_id: int = 0, model_id: str = "damage-yolov8") -> str:
@@ -188,15 +188,15 @@ def clean_class_name(raw_name: str, cls_id: int = 0, model_id: str = "damage-yol
     if "d40" in raw_lower or "pothole" in raw_lower:
         return "Pothole"
     elif "d20" in raw_lower or "alligator" in raw_lower:
-        return "Alligator Crack"
+        return "Alligator Crack / Base Failure"
     elif "d10" in raw_lower or "trans" in raw_lower:
         return "Transverse Crack"
     elif "d00" in raw_lower or "long" in raw_lower:
         return "Longitudinal Crack"
     elif "repair" in raw_lower or "patch" in raw_lower:
         return "Repair Patch"
-    elif "corruption" in raw_lower or "distress" in raw_lower or "other" in raw_lower:
-        return "Surface Distortion"
+    elif "corruption" in raw_lower or "distress" in raw_lower or "distortion" in raw_lower or "other" in raw_lower:
+        return "Surface Distress"
     
     # Fallback to model configuration lookup
     configured_label = MODEL_CLASSES.get(model_id, {}).get("labels", {}).get(cls_id)
@@ -246,7 +246,7 @@ model_manager = ModelManager()
 async def startup_warmup():
     def _preload():
         # Preload fast models in background so first request is instant
-        for mid in ["damage-yolov8", "damage-yolo12s"]:
+        for mid in ["damage-yolo12s", "damage-yolov8", "pothole-yolov8"]:
             try:
                 model_manager.get_model(mid)
             except Exception as e:
@@ -712,28 +712,30 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     raw_detections = []
     t0 = time.perf_counter()
 
-    # Determine effective confidence threshold (enforce at least 0.20 to eliminate noise/hallucinations)
-    effective_conf = max(0.20, float(conf_threshold))
+    # Determine effective confidence threshold
+    effective_conf = max(0.18, float(conf_threshold))
+    # Query model with slightly lower threshold to gather candidate features before ensemble NMS
+    infer_conf = max(0.14, min(0.20, float(conf_threshold) - 0.05))
+
     if model_id == "damage-ensemble" or model_id not in MODEL_CLASSES:
-        models_to_run = [("damage-yolov8", 512), ("damage-yolo12s", 448)]
+        models_to_run = [("damage-yolo12s", 640), ("damage-yolov8", 640), ("pothole-yolov8", 640)]
     else:
-        models_to_run = [(model_id, 512)]
+        models_to_run = [(model_id, 640)]
 
     with torch.inference_mode():
         for mid, imgsz in models_to_run:
             m = model_manager.get_model(mid)
             if m is not None:
                 try:
-                    # Run YOLO inference with clean confidence threshold
+                    # Run YOLO inference with optimal resolution for road damage features
                     res = m.predict(
                         image,
                         imgsz=imgsz,
-                        conf=effective_conf,
+                        conf=infer_conf,
                         iou=0.45,
                         verbose=False,
                         device="cpu",
-                        half=False,
-                        max_det=25
+                        max_det=30
                     )
                     if len(res) > 0:
                         for box in res[0].boxes:
@@ -744,22 +746,23 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
                             raw_name = m.names.get(cls_id, str(cls_id)) if hasattr(m, "names") else str(cls_id)
                             cls_name = clean_class_name(raw_name, cls_id, mid)
                             
-                            if conf < effective_conf:
+                            if conf < infer_conf:
                                 continue
                             
                             box_coords = [int(round(xyxy[0])), int(round(xyxy[1])), int(round(xyxy[2])), int(round(xyxy[3]))]
                             box_w = max(1, box_coords[2] - box_coords[0])
                             box_h = max(1, box_coords[3] - box_coords[1])
                             
-                            # Discard absurdly giant boxes (>40% of entire image area) unless high confidence (>0.55)
-                            if (box_w * box_h) > (width * height * 0.40) and conf < 0.55:
+                            # Only discard true whole-image perimeter artifacts (>95% image area with low confidence)
+                            if (box_w * box_h) > (width * height * 0.95) and conf < 0.30:
                                 continue
                                 
                             raw_detections.append({
                                 "box": box_coords,
                                 "class_id": cls_id,
                                 "class_name": cls_name,
-                                "confidence": conf
+                                "confidence": conf,
+                                "model_id": mid
                             })
                 except Exception as e:
                     print(f"Error in model {mid} inference: {e}")
@@ -768,28 +771,52 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     if len(raw_detections) == 0:
         raw_detections = run_mock_detection(image, effective_conf, model_id)
 
-    # Clean Hierarchical Multi-Model NMS: sort by confidence descending, merge overlapping & contained duplicates
+    # Clean Class-Aware Multi-Model NMS:
+    # 1. Sort by confidence descending
+    # 2. Suppress duplicates within the same class (IoU > 0.40 or containment IoM > 0.80)
+    # 3. Allow distinct co-existing defects (e.g. Pothole inside Alligator Crack / Base Failure zone)
+    # 4. Specific defect labels take precedence over generic Surface Distress / Distortion
     raw_detections.sort(key=lambda x: x["confidence"], reverse=True)
     detections = []
     for candidate in raw_detections:
         cbox = candidate["box"]
         ca = max(1, (cbox[2] - cbox[0]) * (cbox[3] - cbox[1]))
+        cname = candidate["class_name"]
         is_duplicate = False
+
         for kept in detections:
             kbox = kept["box"]
             ka = max(1, (kbox[2] - kbox[0]) * (kbox[3] - kbox[1]))
+            kname = kept["class_name"]
+
             inter_w = max(0, min(cbox[2], kbox[2]) - max(cbox[0], kbox[0]))
             inter_h = max(0, min(cbox[3], kbox[3]) - max(cbox[1], kbox[1]))
             inter_area = inter_w * inter_h
             
             iou = inter_area / float(ca + ka - inter_area + 1e-6)
             iom = inter_area / float(min(ca, ka) + 1e-6)
-            
-            # Suppress duplicate if significant overlap (IoU > 0.35) or containment (IoM > 0.50)
-            if iou > 0.35 or iom > 0.50:
-                is_duplicate = True
-                break
+
+            # Same class duplicate check
+            if cname == kname:
+                if iou > 0.40 or iom > 0.80:
+                    is_duplicate = True
+                    break
+            else:
+                # Cross-class handling:
+                # If candidate is a generic distortion/distress overlapping a specific defect, suppress candidate
+                if ("Surface Distress" in cname or "Surface Distortion" in cname) and ("Pothole" in kname or "Crack" in kname):
+                    if iou > 0.25 or iom > 0.45:
+                        is_duplicate = True
+                        break
+                # Only suppress different specific defects if bounding boxes are virtually identical
+                elif iou > 0.65:
+                    is_duplicate = True
+                    break
+
         if not is_duplicate:
+            # Filter by effective confidence threshold
+            if candidate["confidence"] < effective_conf and len(detections) >= 3:
+                continue
             # Attach estimated real-world dimensions with photometric depth analysis
             candidate["dimensions"] = estimate_damage_dimensions(
                 candidate["box"], candidate["class_name"], candidate["confidence"], width, height, image
@@ -809,24 +836,13 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
 
     inference_time_ms = round((time.perf_counter() - t0) * 1000, 1)
 
-    # Standard color map by class name
-    CLASS_COLORS = {
-        "Pothole": (50, 50, 255),          # Vibrant Red
-        "Alligator Crack": (0, 165, 255),   # Orange
-        "Transverse Crack": (50, 220, 50),  # Green
-        "Longitudinal Crack": (30, 200, 255),# Cyan
-        "Repair Patch": (180, 100, 220),    # Purple
-        "Surface Distortion": (180, 100, 220),
-        "Surface Distress": (180, 100, 220)
-    }
-
-    # Draw stylized bounding boxes with explicit depth indicator
+    # Draw stylized bounding boxes with explicit depth indicator using global flat color scheme
     for det in detections:
         x1, y1, x2, y2 = det["box"]
         class_name = det["class_name"]
         conf = det["confidence"]
         depth_val = det.get("dimensions", {}).get("depth_cm", None)
-        color = CLASS_COLORS.get(class_name, (0, 255, 255))
+        color = CLASS_COLORS.get(class_name, (22, 115, 249))
         draw_stylized_box(image, x1, y1, x2, y2, class_name, conf, color, depth_cm=depth_val)
 
     # Save processed image with boxes
@@ -1070,7 +1086,6 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
                                     iou=0.45,
                                     verbose=False,
                                     device="cpu",
-                                    half=False,
                                     max_det=20
                                 )
                                 if len(results) > 0:

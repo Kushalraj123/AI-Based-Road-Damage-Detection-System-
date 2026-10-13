@@ -873,14 +873,14 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     if (!detections || detections.length === 0) return;
 
     const CLASS_COLORS_HEX = {
-      'Pothole': '#f43f5e',
-      'Alligator Crack': '#f97316',
-      'Alligator Crack / Base Failure': '#f97316',
-      'Transverse Crack': '#22c55e',
-      'Longitudinal Crack': '#06b6d4',
-      'Repair Patch': '#a855f7',
-      'Surface Distortion': '#ec4899',
-      'Surface Distress': '#eab308'
+      'Pothole': '#EF4444',
+      'Alligator Crack': '#F97316',
+      'Alligator Crack / Base Failure': '#F97316',
+      'Transverse Crack': '#F97316',
+      'Longitudinal Crack': '#F97316',
+      'Repair Patch': '#8B5CF6',
+      'Surface Distortion': '#F97316',
+      'Surface Distress': '#F97316'
     };
 
     detections.forEach((det) => {
@@ -1263,9 +1263,9 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 gap: '0.5rem',
                 padding: '0.65rem 1.25rem',
                 borderRadius: 'var(--radius-md)',
-                background: isActive ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.25) 0%, rgba(99, 102, 241, 0.3) 100%)' : 'var(--bg-surface-elevated)',
-                border: isActive ? '1px solid var(--accent-cyan)' : '1px solid var(--border-subtle)',
-                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                background: isActive ? '#2563EB' : 'var(--bg-surface-elevated)',
+                border: isActive ? '1px solid #2563EB' : '1px solid var(--border-subtle)',
+                color: isActive ? '#F8FAFC' : 'var(--text-secondary)',
                 fontWeight: 600,
                 fontSize: '0.875rem',
                 cursor: 'pointer',
@@ -1427,9 +1427,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                     onClick={isLiveDetecting ? stopLiveDetection : startLiveDetection}
                     className="btn btn-primary"
                     style={{
-                      background: isLiveDetecting
-                        ? 'linear-gradient(135deg, rgba(244,63,94,0.85), rgba(220,38,38,0.95))'
-                        : undefined,
+                      background: isLiveDetecting ? '#EF4444' : '#2563EB',
                       gap: '0.5rem', padding: '0.55rem 1.1rem'
                     }}
                   >
@@ -1803,7 +1801,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                             style={{
                               width: `${videoProgress}%`,
                               height: '100%',
-                              background: 'linear-gradient(90deg, #6366f1, #818cf8)',
+                              background: '#2563EB',
                               transition: 'width 0.3s ease'
                             }}
                           />
@@ -2010,7 +2008,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                     style={{
                       position: 'absolute',
                       inset: 0,
-                      background: 'radial-gradient(circle at 45% 65%, rgba(244, 63, 94, 0.6) 0%, rgba(245, 158, 11, 0.4) 35%, rgba(6, 182, 212, 0.2) 65%, transparent 80%)',
+                      background: 'rgba(239, 68, 68, 0.25)',
                       mixBlendMode: 'screen',
                       pointerEvents: 'none',
                       zIndex: 12
@@ -2069,7 +2067,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                           style={{
                             width: `${scanProgress}%`,
                             height: '100%',
-                            background: 'linear-gradient(90deg, #06b6d4, #38bdf8)',
+                            background: '#2563EB',
                             transition: 'width 0.3s ease'
                           }}
                         />
@@ -2602,7 +2600,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                   padding: '0.75rem 1rem',
                   fontSize: '0.85rem',
                   fontWeight: 700,
-                  background: 'linear-gradient(135deg, rgba(6,182,212,0.18), rgba(59,130,246,0.18))',
+                  background: '#1E293B',
                   border: '1px solid var(--accent-cyan)',
                   color: 'var(--accent-cyan)',
                   display: 'flex',
