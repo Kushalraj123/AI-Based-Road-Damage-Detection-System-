@@ -1864,13 +1864,20 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                         width: '240px',
                         height: '10px',
                         borderRadius: '4px',
-                        background: 'linear-gradient(90deg, #30123b 0%, #4662d8 20%, #36aaf8 40%, #1ae4b6 60%, #a2fc3c 75%, #fbb938 88%, #d83b10 100%)'
-                      }} />
+                        display: 'flex',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{ flex: 1, background: '#22C55E' }} title="0-2cm (Safe)" />
+                        <div style={{ flex: 1, background: '#06B6D4' }} title="2-4cm (Minor)" />
+                        <div style={{ flex: 1, background: '#FBBF24' }} title="4-6cm (Moderate)" />
+                        <div style={{ flex: 1, background: '#F97316' }} title="6-8cm (Warning)" />
+                        <div style={{ flex: 1, background: '#EF4444' }} title=">8cm (Critical)" />
+                      </div>
                       <div style={{ width: '240px', display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
                         <span>0 cm (Pavement)</span>
                         <span>3.5 cm</span>
                         <span>6.0 cm</span>
-                        <span style={{ color: '#f43f5e', fontWeight: 700 }}>&gt;8 cm Breach</span>
+                        <span style={{ color: '#EF4444', fontWeight: 700 }}>&gt;8 cm Breach</span>
                       </div>
                     </div>
                   </div>
@@ -2002,7 +2009,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                   </>
                 )}
 
-                {/* AI Heatmap Gradient Overlay */}
+                {/* AI Heatmap Flat Overlay */}
                 {imagePreviewUrl && showHeatmap && (
                   <div
                     style={{

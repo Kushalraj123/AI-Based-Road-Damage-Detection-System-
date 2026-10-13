@@ -38,7 +38,7 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
         padding: '3rem 2rem 4rem 2rem',
         borderRadius: 'var(--radius-xl)',
         margin: '0 1rem 3rem 1rem',
-        background: 'radial-gradient(ellipse at 50% 10%, rgba(6, 182, 212, 0.15), transparent 70%), var(--bg-surface)',
+        background: 'var(--bg-surface)',
         border: '1px solid var(--border-glass)',
         boxShadow: 'var(--shadow-lg)'
       }}
@@ -128,8 +128,8 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
             gap: '0.5rem',
             padding: '0.35rem 0.85rem',
             borderRadius: 'var(--radius-full)',
-            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(99, 102, 241, 0.15) 100%)',
-            border: '1px solid rgba(56, 189, 248, 0.35)',
+            background: 'rgba(6, 182, 212, 0.12)',
+            border: '1px solid var(--accent-cyan)',
             color: 'var(--accent-cyan)',
             fontSize: '0.78rem',
             fontWeight: 700,

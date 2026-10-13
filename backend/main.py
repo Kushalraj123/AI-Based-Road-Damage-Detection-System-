@@ -124,11 +124,11 @@ MODEL_CLASSES = {
             4: "Pothole"
         },
         "colors": {
-            0: (0, 165, 255),    # Orange
-            1: (50, 220, 50),    # Green
-            2: (30, 200, 255),   # Cyan
-            3: (180, 100, 220),  # Purple
-            4: (50, 50, 255)     # Red
+            0: (22, 115, 249),   # #F97316 (Orange - Alligator Crack)
+            1: (22, 115, 249),   # #F97316 (Orange - Transverse Crack)
+            2: (22, 115, 249),   # #F97316 (Orange - Longitudinal Crack)
+            3: (22, 115, 249),   # #F97316 (Orange - Surface Distortion)
+            4: (68, 68, 239)     # #EF4444 (Vibrant Red - Pothole)
         }
     },
     "damage-yolo12s": {
@@ -142,11 +142,11 @@ MODEL_CLASSES = {
             4: "Repair Patch"
         },
         "colors": {
-            0: (30, 200, 255),   # Cyan
-            1: (50, 220, 50),    # Green
-            2: (0, 165, 255),    # Orange
-            3: (50, 50, 255),    # Red
-            4: (180, 100, 220)   # Purple
+            0: (22, 115, 249),   # #F97316 (Orange - Longitudinal Crack)
+            1: (22, 115, 249),   # #F97316 (Orange - Transverse Crack)
+            2: (22, 115, 249),   # #F97316 (Orange - Alligator Crack)
+            3: (68, 68, 239),    # #EF4444 (Vibrant Red - Pothole)
+            4: (246, 92, 139)    # #8B5CF6 (Purple - Repair Patch)
         }
     },
     "pothole-yolov8": {
@@ -160,11 +160,11 @@ MODEL_CLASSES = {
             4: "Surface Distress"
         },
         "colors": {
-            0: (30, 200, 255),   # Cyan
-            1: (50, 220, 50),    # Green
-            2: (0, 165, 255),    # Orange
-            3: (50, 50, 255),    # Red
-            4: (180, 100, 220)   # Purple
+            0: (22, 115, 249),   # #F97316 (Orange)
+            1: (22, 115, 249),   # #F97316 (Orange)
+            2: (22, 115, 249),   # #F97316 (Orange)
+            3: (68, 68, 239),    # #EF4444 (Vibrant Red)
+            4: (22, 115, 249)    # #F97316 (Orange)
         }
     }
 }
@@ -1136,7 +1136,7 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
                 # Draw tracked objects
                 for box, class_name, conf, class_id in tracked_objects:
                     x1, y1, x2, y2 = box
-                    color = CLASS_COLORS.get(class_name, (0, 255, 255))
+                    color = CLASS_COLORS.get(class_name, (22, 115, 249))
                     draw_stylized_box(frame, x1, y1, x2, y2, class_name, conf, color)
                     damage_types_set.add(class_name)
                     
@@ -1503,7 +1503,7 @@ async def detect_frame(payload: FramePayload):
             conf = det["confidence"]
             depth_val = det.get("dimensions", {}).get("depth_cm", None)
             
-            color = CLASS_COLORS.get(class_name, (0, 255, 255))
+            color = CLASS_COLORS.get(class_name, (22, 115, 249))
             draw_stylized_box(frame, x1, y1, x2, y2, class_name, conf, color, depth_cm=depth_val)
             
         # Re-encode to compact jpeg base64
