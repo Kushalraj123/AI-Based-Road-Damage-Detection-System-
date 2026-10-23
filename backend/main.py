@@ -246,11 +246,16 @@ model_manager = ModelManager()
 @app.on_event("startup")
 async def startup_warmup():
     def _preload():
-        # Preload only 1 primary model in background to avoid OOM or CPU starvation
+        # Pre-warm primary model at startup so user never experiences cold download delay
         try:
-            model_manager.get_model("damage-yolo12s")
+            print("[Startup] Pre-loading primary YOLO neural model...")
+            m = model_manager.get_model("damage-yolo12s")
+            if m is not None:
+                dummy = np.zeros((640, 640, 3), dtype=np.uint8)
+                m.predict(dummy, imgsz=640, verbose=False, device="cpu")
+                print("[Startup] Primary YOLO neural model warmed up and ready for instant inference.")
         except Exception as e:
-            print(f"Preload notice: {e}")
+            print(f"[Startup] Preload notice: {e}")
     threading.Thread(target=_preload, daemon=True).start()
 
 from db import (
@@ -700,8 +705,8 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
         raise ValueError("Could not load image.")
     
     orig_h, orig_w = image.shape[:2]
-    # Optimize input resolution: cap at max 960px to accelerate CPU inference and reduce network payload
-    max_dim = 960
+    # Optimize input resolution to native YOLO 640px to accelerate CPU inference and reduce memory
+    max_dim = 640
     if orig_w > max_dim or orig_h > max_dim:
         scale = max_dim / float(max(orig_w, orig_h))
         new_w = int(round(orig_w * scale))
@@ -710,7 +715,6 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     
     height, width = image.shape[:2]
     raw_detections = []
-    t0 = time.perf_counter()
 
     # Determine effective confidence threshold
     effective_conf = max(0.18, float(conf_threshold))
@@ -722,6 +726,7 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     else:
         models_to_run = [(model_id, 640)]
 
+    t0 = time.perf_counter()
     with torch.inference_mode():
         for mid, imgsz in models_to_run:
             m = model_manager.get_model(mid)

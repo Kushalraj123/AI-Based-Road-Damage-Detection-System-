@@ -821,17 +821,23 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
               cameraModel: bExif.camera_model ?? clientExif?.cameraModel
             });
           });
-        } else if (!clientExif || !clientExif.hasGps) {
-          // Image has no GPS EXIF — do NOT substitute the user's live location
-          setDetectionGpsLocation({
-            address: null,
-            coords: null,
-            loading: false,
-            source: 'none',
-            dateTime: bExif?.datetime ?? clientExif?.dateTime,
-            cameraMake: bExif?.camera_make ?? clientExif?.cameraMake,
-            cameraModel: bExif?.camera_model ?? clientExif?.cameraModel
+        } else if (clientExif && clientExif.hasGps) {
+          const { latitude, longitude, altitude, dateTime, cameraMake, cameraModel } = clientExif;
+          reverseGeocode(latitude, longitude).then((addr) => {
+            setDetectionGpsLocation({
+              address: addr,
+              coords: { lat: latitude, lng: longitude },
+              loading: false,
+              source: 'exif',
+              altitude,
+              dateTime,
+              cameraMake,
+              cameraModel
+            });
           });
+        } else {
+          // Image has no embedded GPS tags — fallback to device live location
+          getGpsAndGeocode();
         }
 
         const imageLocationText = (bExif && bExif.has_gps)
@@ -2662,7 +2668,27 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 if (activeInputTab === 'image' && detectionGpsLocation?.source === 'none') {
                   return (
                     <div style={{ fontSize: '0.78rem', color: '#F97316', lineHeight: 1.45 }}>
-                      ⚠ No GPS metadata found in this image (EXIF stripped or camera location was off). Upload the original photo to get its capture location.
+                      <div style={{ marginBottom: '0.5rem' }}>
+                        ⚠ No GPS metadata in this image (EXIF stripped or camera GPS was off).
+                      </div>
+                      <button
+                        onClick={getGpsAndGeocode}
+                        style={{
+                          background: 'rgba(37, 99, 235, 0.2)',
+                          border: '1px solid #2563eb',
+                          color: '#60a5fa',
+                          borderRadius: '6px',
+                          padding: '0.35rem 0.75rem',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem'
+                        }}
+                      >
+                        <MapPin size={12} /> 📍 Geotag with My Current Location
+                      </button>
                       {(detectionGpsLocation?.dateTime || detectionGpsLocation?.cameraModel) && (
                         <div style={{ marginTop: '0.4rem', fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
                           {detectionGpsLocation?.dateTime && <>📅 {detectionGpsLocation.dateTime} </>}
