@@ -48,6 +48,22 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
   const [scanComplete, setScanComplete] = useState(false); // Default to showing sample result
   const [scanError, setScanError] = useState(null);
 
+  // Auto-clear scanError once backend wakes up and responds
+  useEffect(() => {
+    if (!scanError) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await apiFetch('/api/status');
+        if (res.ok) {
+          setScanError(null);
+        }
+      } catch (e) {
+        // still spinning up
+      }
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [scanError]);
+
   // Image natural dimensions for accurate box rendering
   const [imageNaturalSize, setImageNaturalSize] = useState({ width: 1000, height: 700 });
   const imageRef = useRef(null);
@@ -1281,10 +1297,36 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             <AlertTriangle size={18} style={{ flexShrink: 0 }} />
             <span>{scanError}</span>
           </div>
-          <button
-            onClick={() => setScanError(null)}
-            style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1 }}
-          >✕</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+            <button
+              onClick={async () => {
+                try {
+                  const res = await apiFetch('/api/status');
+                  if (res.ok) {
+                    setScanError(null);
+                  }
+                } catch (e) {
+                  // still waking up
+                }
+              }}
+              style={{
+                background: 'rgba(244, 63, 94, 0.2)',
+                border: '1px solid rgba(244, 63, 94, 0.5)',
+                color: '#fca5a5',
+                borderRadius: '6px',
+                padding: '0.3rem 0.7rem',
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                fontWeight: 600
+              }}
+            >
+              🔄 Retry Connection
+            </button>
+            <button
+              onClick={() => setScanError(null)}
+              style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1 }}
+            >✕</button>
+          </div>
         </div>
       )}
 

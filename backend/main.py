@@ -17,11 +17,11 @@ import numpy as np
 import torch
 from PIL import Image, ExifTags
 
-# Optimize PyTorch CPU and OpenCV multi-threading for fast multi-core inference
-cpu_cores = os.cpu_count() or 4
+# Optimize PyTorch CPU and OpenCV multi-threading for cloud container environments
+cpu_cores = os.cpu_count() or 2
 if not torch.cuda.is_available():
-    torch.set_num_threads(max(1, min(8, cpu_cores)))
-cv2.setNumThreads(max(1, min(8, cpu_cores)))
+    torch.set_num_threads(max(1, min(2, cpu_cores)))
+cv2.setNumThreads(max(1, min(2, cpu_cores)))
 
 # Try loading YOLO from Ultralytics
 try:
@@ -210,12 +210,18 @@ class ModelManager:
 
     def get_model(self, model_id: str):
         if model_id not in MODEL_CLASSES:
-            model_id = "damage-yolov8"  # Fallback to fast default
+            model_id = "damage-yolo12s"
         
         with self.lock:
             if model_id in self.loaded_models:
                 return self.loaded_models[model_id]
             
+            # Evict previous models to strictly prevent 512MB RAM overflow on cloud free-tiers
+            if len(self.loaded_models) >= 1:
+                self.loaded_models.clear()
+                import gc
+                gc.collect()
+
             repo_path = MODEL_CLASSES[model_id]["repo"]
             filename = MODEL_CLASSES[model_id]["filename"]
             print(f"Loading model {model_id} from {repo_path} ({filename})...")
@@ -225,14 +231,8 @@ class ModelManager:
                     # Download weights using huggingface_hub
                     local_path = hf_hub_download(repo_id=repo_path, filename=filename)
                     model = YOLO(local_path)
-                    # Warm up model to eliminate first-request cold-start delay
-                    try:
-                        dummy = np.zeros((640, 640, 3), dtype=np.uint8)
-                        model.predict(dummy, imgsz=640, verbose=False)
-                    except Exception:
-                        pass
                     self.loaded_models[model_id] = model
-                    print(f"Model {model_id} successfully loaded and warmed up.")
+                    print(f"Model {model_id} successfully loaded.")
                     return model
                 except Exception as e:
                     print(f"Failed to load model {model_id}: {e}. Creating mock fallback.")
@@ -246,12 +246,11 @@ model_manager = ModelManager()
 @app.on_event("startup")
 async def startup_warmup():
     def _preload():
-        # Preload fast models in background so first request is instant
-        for mid in ["damage-yolo12s", "damage-yolov8", "pothole-yolov8"]:
-            try:
-                model_manager.get_model(mid)
-            except Exception as e:
-                print(f"Preload notice for {mid}: {e}")
+        # Preload only 1 primary model in background to avoid OOM or CPU starvation
+        try:
+            model_manager.get_model("damage-yolo12s")
+        except Exception as e:
+            print(f"Preload notice: {e}")
     threading.Thread(target=_preload, daemon=True).start()
 
 from db import (
@@ -719,7 +718,7 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     infer_conf = max(0.14, min(0.20, float(conf_threshold) - 0.05))
 
     if model_id == "damage-ensemble" or model_id not in MODEL_CLASSES:
-        models_to_run = [("damage-yolo12s", 640), ("damage-yolov8", 640), ("pothole-yolov8", 640)]
+        models_to_run = [("damage-yolo12s", 640)]
     else:
         models_to_run = [(model_id, 640)]
 

@@ -46,8 +46,12 @@ export const apiFetch = async (url, options = {}) => {
     targetUrl = `${currentBase}${targetUrl}`;
   }
 
+  // Only include tunnel bypass headers if accessing a tunnel service (localtunnel / ngrok)
+  const isTunnel = targetUrl.includes('localtunnel.me') || targetUrl.includes('ngrok') || targetUrl.includes('lt.io');
+  const baseHeaders = isTunnel ? API_HEADERS : {};
+
   const customHeaders = {
-    ...API_HEADERS,
+    ...baseHeaders,
     ...(options.headers || {})
   };
 
