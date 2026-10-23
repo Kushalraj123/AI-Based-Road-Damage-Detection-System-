@@ -853,16 +853,20 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     # Save processed image with boxes
     filename = os.path.basename(image_path)
     processed_path = os.path.join(PROCESSED_DIR, f"processed_{filename}")
-    cv2.imwrite(processed_path, image, [int(cv2.IMWRITE_JPEG_QUALITY), 88])
+    cv2.imwrite(processed_path, image, [int(cv2.IMWRITE_JPEG_QUALITY), 82])
     
+    # Directly encode in memory for instant base64 return without disk read
+    _, processed_buffer = cv2.imencode('.jpg', image, [int(cv2.IMWRITE_JPEG_QUALITY), 82])
+    processed_image_base64 = f"data:image/jpeg;base64,{base64.b64encode(processed_buffer).decode('utf-8')}"
+
     # Generate Calibrated 3D Depth Map & Heightfield Elevation Grid
     depth_data = generate_3d_depth_map(image, detections)
     depth_filename = f"depth_{filename}"
     depth_path = os.path.join(PROCESSED_DIR, depth_filename)
-    cv2.imwrite(depth_path, depth_data["colored_depth_image"], [int(cv2.IMWRITE_JPEG_QUALITY), 85])
+    cv2.imwrite(depth_path, depth_data["colored_depth_image"], [int(cv2.IMWRITE_JPEG_QUALITY), 75])
     
     # Encode depth map image to base64
-    _, depth_buffer = cv2.imencode('.jpg', depth_data["colored_depth_image"], [int(cv2.IMWRITE_JPEG_QUALITY), 82])
+    _, depth_buffer = cv2.imencode('.jpg', depth_data["colored_depth_image"], [int(cv2.IMWRITE_JPEG_QUALITY), 75])
     depth_map_base64 = f"data:image/jpeg;base64,{base64.b64encode(depth_buffer).decode('utf-8')}"
     
     # Calculate counts and severity
@@ -893,6 +897,7 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
         "total_estimated_cost_inr": total_estimated_cost_inr,
         "total_estimated_cost": total_estimated_cost_formatted,
         "processed_image_url": f"/processed/processed_{filename}",
+        "processed_image_base64": processed_image_base64,
         "depth_map_url": f"/processed/{depth_filename}",
         "depth_map_base64": depth_map_base64,
         "heightfield_grid": depth_data["heightfield_grid"],
@@ -1020,10 +1025,10 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         video_tasks[task_id]["total_frames"] = total_frames
         video_tasks[task_id]["fps"] = fps
         
-        # Optimize video resolution while preserving aspect ratio and fine road texture
+        # Optimize video resolution for fast CPU processing while preserving road cracks
         max_dim = max(width, height)
-        if max_dim > 960:
-            scale_v = 960.0 / float(max_dim)
+        if max_dim > 640:
+            scale_v = 640.0 / float(max_dim)
             out_w = int(round(width * scale_v))
             out_h = int(round(height * scale_v))
         else:
@@ -1033,9 +1038,8 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         out_w = out_w if out_w % 2 == 0 else out_w - 1
         out_h = out_h if out_h % 2 == 0 else out_h - 1
         
-        # Adaptive frame rate decimation for long or high-FPS videos
-        # Processing every 2nd frame for 24+ FPS videos halves encoding time while keeping smooth playback
-        skip_step = 2 if (fps >= 24 and total_frames > 120) else 1
+        # Adaptive frame rate decimation: process at ~12-15 FPS for 2x faster encoding while keeping smooth playback
+        skip_step = max(2, int(round(fps / 15.0))) if fps >= 20 else 1
         out_fps = round(fps / skip_step, 1)
         
         # Raw temporary video output setup
@@ -1047,16 +1051,11 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(raw_output_path, fourcc, out_fps, (out_w, out_h))
         
-        # High-accuracy 640px native detection resolution (preserves small cracks and potholes in video frames)
-        if model_id == "damage-ensemble":
-            models_for_video = [("damage-yolov8", 640), ("damage-yolo12s", 640)]
-        elif model_id in MODEL_CLASSES:
-            if model_id == "pothole-yolov8":
-                models_for_video = [("damage-yolov8", 640), ("pothole-yolov8", 640)]
-            else:
-                models_for_video = [(model_id, 640)]
+        # High-speed 480px video inference using lightweight YOLOv8
+        if model_id == "damage-ensemble" or model_id not in MODEL_CLASSES:
+            models_for_video = [("damage-yolov8", 480)]
         else:
-            models_for_video = [("damage-yolov8", 640)]
+            models_for_video = [(model_id, 480)]
 
         tracker = DistressTracker(max_disappeared=8, min_appearance=1)
         frame_idx = 0
@@ -1066,9 +1065,9 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         # Dynamic confidence threshold: road videos experience motion blur and compression artifacts
         video_conf_thresh = max(0.12, min(conf_threshold, 0.20))
         
-        # Smart adaptive frame sampling: run YOLO inference every ~0.25 seconds
+        # Smart adaptive frame sampling: run YOLO inference every ~0.35 seconds
         # DistressTracker tracks existing boxes on intermediate frames smoothly
-        infer_interval = max(3, int(round(out_fps * 0.25))) if total_frames > 15 else 1
+        infer_interval = max(4, int(round(out_fps * 0.35))) if total_frames > 15 else 1
         cached_rects = []
         
         start_time = time.time()
@@ -1386,18 +1385,13 @@ async def detect_image(
         }
         add_history_entry(history_entry)
         
-        # Load processed image bytes for base64 response
-        processed_full_path = os.path.join(PROCESSED_DIR, f"processed_{temp_filename}")
-        with open(processed_full_path, "rb") as image_file:
-            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-            
         return {
             "success": True,
             "id": file_uuid,
             "filename": file.filename,
             "original_url": f"/uploads/{temp_filename}",
             "processed_url": result["processed_image_url"],
-            "processed_image_base64": f"data:image/jpeg;base64,{encoded_string}",
+            "processed_image_base64": result.get("processed_image_base64"),
             "depth_map_url": result.get("depth_map_url"),
             "depth_map_base64": result.get("depth_map_base64"),
             "heightfield_grid": result.get("heightfield_grid"),
