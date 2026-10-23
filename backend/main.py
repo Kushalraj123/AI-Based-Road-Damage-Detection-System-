@@ -172,15 +172,16 @@ MODEL_CLASSES = {
 
 # Global class colors (flat BGR palette matching client requirements)
 CLASS_COLORS = {
-    "Pothole": (68, 68, 239),                         # #EF4444 (Vibrant Red)
-    "Alligator Crack": (22, 115, 249),                 # #F97316 (Orange)
-    "Alligator Crack / Base Failure": (22, 115, 249),  # #F97316 (Orange)
-    "Transverse Crack": (22, 115, 249),                # #F97316 (Orange)
-    "Longitudinal Crack": (22, 115, 249),              # #F97316 (Orange)
-    "Repair Patch": (246, 92, 139),                    # #8B5CF6 (Purple)
-    "Surface Distortion": (22, 115, 249),              # #F97316 (Orange)
-    "Surface Distress": (22, 115, 249),                # #F97316 (Orange)
-    "Road Distress": (22, 115, 249)                    # #F97316 (Orange)
+    "Pothole": (68, 68, 239),                                 # #EF4444 (Vibrant Red)
+    "Alligator Crack": (22, 115, 249),                         # #F97316 (Orange)
+    "Alligator Crack / Base Failure": (22, 115, 249),          # #F97316 (Orange)
+    "Transverse Crack": (22, 115, 249),                        # #F97316 (Orange)
+    "Longitudinal Crack": (22, 115, 249),                      # #F97316 (Orange)
+    "Repair Patch": (246, 92, 139),                            # #8B5CF6 (Purple)
+    "Surface Distortion": (22, 115, 249),                      # #F97316 (Orange)
+    "Surface Distress": (22, 115, 249),                        # #F97316 (Orange)
+    "Surface Distress / Base Failure": (22, 115, 249),         # #F97316 (Orange)
+    "Road Distress": (22, 115, 249)                            # #F97316 (Orange)
 }
 
 def clean_class_name(raw_name: str, cls_id: int = 0, model_id: str = "damage-yolov8") -> str:
@@ -197,7 +198,7 @@ def clean_class_name(raw_name: str, cls_id: int = 0, model_id: str = "damage-yol
     elif "repair" in raw_lower or "patch" in raw_lower:
         return "Repair Patch"
     elif "corruption" in raw_lower or "distress" in raw_lower or "distortion" in raw_lower or "other" in raw_lower:
-        return "Surface Distress"
+        return "Surface Distress / Base Failure"
     
     # Fallback to model configuration lookup
     configured_label = MODEL_CLASSES.get(model_id, {}).get("labels", {}).get(cls_id)
@@ -215,12 +216,6 @@ class ModelManager:
         with self.lock:
             if model_id in self.loaded_models:
                 return self.loaded_models[model_id]
-            
-            # Evict previous models to strictly prevent 512MB RAM overflow on cloud free-tiers
-            if len(self.loaded_models) >= 1:
-                self.loaded_models.clear()
-                import gc
-                gc.collect()
 
             repo_path = MODEL_CLASSES[model_id]["repo"]
             filename = MODEL_CLASSES[model_id]["filename"]
@@ -228,11 +223,14 @@ class ModelManager:
             
             if ULTRALYTICS_AVAILABLE:
                 try:
-                    # Download weights using huggingface_hub
-                    local_path = hf_hub_download(repo_id=repo_path, filename=filename)
+                    # Prefer local cached weights without network overhead, fallback to hub download
+                    try:
+                        local_path = hf_hub_download(repo_id=repo_path, filename=filename, local_files_only=True)
+                    except Exception:
+                        local_path = hf_hub_download(repo_id=repo_path, filename=filename)
                     model = YOLO(local_path)
                     self.loaded_models[model_id] = model
-                    print(f"Model {model_id} successfully loaded.")
+                    print(f"Model {model_id} successfully loaded into memory.")
                     return model
                 except Exception as e:
                     print(f"Failed to load model {model_id}: {e}. Creating mock fallback.")
@@ -246,14 +244,15 @@ model_manager = ModelManager()
 @app.on_event("startup")
 async def startup_warmup():
     def _preload():
-        # Pre-warm primary model at startup so user never experiences cold download delay
+        # Pre-warm both primary neural models at startup so user never experiences cold download/compile delay
         try:
-            print("[Startup] Pre-loading primary YOLOv8 neural model...")
-            m = model_manager.get_model("damage-yolov8")
-            if m is not None:
-                dummy = np.zeros((640, 640, 3), dtype=np.uint8)
-                m.predict(dummy, imgsz=640, verbose=False, device="cpu")
-                print("[Startup] Primary YOLOv8 neural model warmed up and ready for instant inference.")
+            print("[Startup] Pre-loading and warming up YOLOv8 neural models...")
+            for mid in ["damage-yolov8", "pothole-yolov8"]:
+                m = model_manager.get_model(mid)
+                if m is not None:
+                    dummy = np.zeros((480, 480, 3), dtype=np.uint8)
+                    m.predict(dummy, imgsz=480, verbose=False, device="cpu")
+            print("[Startup] All YOLOv8 neural models warmed up and ready for instant inference.")
         except Exception as e:
             print(f"[Startup] Preload notice: {e}")
     threading.Thread(target=_preload, daemon=True).start()
@@ -705,8 +704,8 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
         raise ValueError("Could not load image.")
     
     orig_h, orig_w = image.shape[:2]
-    # Optimize input resolution to native YOLO 640px to accelerate CPU inference and reduce memory
-    max_dim = 640
+    # Optimize input resolution to native 480px to accelerate CPU inference and reduce memory by 45%
+    max_dim = 480
     if orig_w > max_dim or orig_h > max_dim:
         scale = max_dim / float(max(orig_w, orig_h))
         new_w = int(round(orig_w * scale))
@@ -717,14 +716,15 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     raw_detections = []
 
     # Determine effective confidence threshold
-    effective_conf = max(0.18, float(conf_threshold))
-    # Query model with slightly lower threshold to gather candidate features before ensemble NMS
-    infer_conf = max(0.14, min(0.20, float(conf_threshold) - 0.05))
+    effective_conf = max(0.14, float(conf_threshold))
+    # Query models with calibrated threshold to gather candidate features before ensemble NMS
+    infer_conf = max(0.10, min(0.18, float(conf_threshold) - 0.05))
 
     if model_id == "damage-ensemble" or model_id not in MODEL_CLASSES:
-        models_to_run = [("damage-yolov8", 640)]
+        # Dual-YOLOv8 ensemble: ozair23 (specialized in discrete potholes & cracks) + vinothvikas1987 (specialized in alligator & base distress)
+        models_to_run = [("damage-yolov8", 480), ("pothole-yolov8", 480)]
     else:
-        models_to_run = [(model_id, 640)]
+        models_to_run = [(model_id, 480)]
 
     t0 = time.perf_counter()
     with torch.inference_mode():
@@ -779,8 +779,8 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     # Clean Class-Aware Multi-Model NMS:
     # 1. Sort by confidence descending
     # 2. Suppress duplicates within the same class (IoU > 0.40 or containment IoM > 0.80)
-    # 3. Allow distinct co-existing defects (e.g. Pothole inside Alligator Crack / Base Failure zone)
-    # 4. Specific defect labels take precedence over generic Surface Distress / Distortion
+    # 3. Allow co-existing defects (e.g. localized Potholes inside large Alligator Crack / Base Failure zones)
+    # 4. Suppress cross-class candidates only if bounding boxes are virtually identical (IoU > 0.70)
     raw_detections.sort(key=lambda x: x["confidence"], reverse=True)
     detections = []
     for candidate in raw_detections:
@@ -807,14 +807,9 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
                     is_duplicate = True
                     break
             else:
-                # Cross-class handling:
-                # If candidate is a generic distortion/distress overlapping a specific defect, suppress candidate
-                if ("Surface Distress" in cname or "Surface Distortion" in cname) and ("Pothole" in kname or "Crack" in kname):
-                    if iou > 0.25 or iom > 0.45:
-                        is_duplicate = True
-                        break
-                # Only suppress different specific defects if bounding boxes are virtually identical
-                elif iou > 0.65:
+                # Cross-class handling: preserve co-existing macro base distress and micro potholes
+                # Only suppress if bounding boxes are virtually identical
+                if iou > 0.70:
                     is_duplicate = True
                     break
 
@@ -1027,8 +1022,9 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         
         # Optimize video resolution while preserving aspect ratio and fine road texture
         max_dim = max(width, height)
-        if max_dim > 960:
-            scale_v = 960.0 / float(max_dim)
+        target_max_dim = 480
+        if max_dim > target_max_dim:
+            scale_v = float(target_max_dim) / float(max_dim)
             out_w = int(round(width * scale_v))
             out_h = int(round(height * scale_v))
         else:
@@ -1038,9 +1034,9 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         out_w = out_w if out_w % 2 == 0 else out_w - 1
         out_h = out_h if out_h % 2 == 0 else out_h - 1
         
-        # Adaptive frame rate decimation for long or high-FPS videos
-        # Processing every 2nd frame for 24+ FPS videos halves encoding time while keeping smooth playback
-        skip_step = 2 if (fps >= 24 and total_frames > 120) else 1
+        # Adaptive frame rate decimation: limit to ~10 FPS for fluid inspection while reducing frame count by 60%
+        target_fps = 10.0
+        skip_step = max(1, int(round(fps / target_fps))) if fps > 12.0 else 1
         out_fps = round(fps / skip_step, 1)
         
         # Raw temporary video output setup
@@ -1052,11 +1048,8 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(raw_output_path, fourcc, out_fps, (out_w, out_h))
         
-        # High-accuracy 640px native detection resolution using lightweight YOLOv8
-        if model_id == "damage-ensemble" or model_id not in MODEL_CLASSES:
-            models_for_video = [("damage-yolov8", 640)]
-        elif model_id in MODEL_CLASSES:
-            models_for_video = [(model_id, 640)]
+        # High-speed lightweight 416px YOLOv8 inference for video stream
+        models_for_video = [("damage-yolov8", 416)]
 
         tracker = DistressTracker(max_disappeared=8, min_appearance=1)
         frame_idx = 0
@@ -1064,11 +1057,11 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         damage_types_set = set()
         
         # Dynamic confidence threshold: road videos experience motion blur and compression artifacts
-        video_conf_thresh = max(0.12, min(conf_threshold, 0.20))
+        video_conf_thresh = max(0.14, min(conf_threshold, 0.22))
         
-        # Smart adaptive frame sampling: run YOLO inference every ~0.25 seconds
-        # DistressTracker tracks existing boxes on intermediate frames smoothly
-        infer_interval = max(3, int(round(out_fps * 0.25))) if total_frames > 15 else 1
+        # Smart adaptive frame sampling: run YOLO inference every ~0.50 seconds
+        # DistressTracker tracks and interpolates existing boxes across intermediate frames with zero latency
+        infer_interval = max(5, int(round(out_fps * 0.50))) if total_frames > 15 else 1
         cached_rects = []
         
         start_time = time.time()

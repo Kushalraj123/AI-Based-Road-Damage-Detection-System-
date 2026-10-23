@@ -781,10 +781,12 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             },
             recommendation: det.class_name.includes('D40') || det.class_name.toLowerCase().includes('pothole')
               ? 'Full-depth hot-mix asphalt patch with tack coat.'
-              : det.class_name.includes('D20') || det.class_name.toLowerCase().includes('alligator')
+              : det.class_name.includes('D20') || det.class_name.toLowerCase().includes('alligator') || det.class_name.toLowerCase().includes('base')
               ? 'Mill and inlay with polymer-modified bitumen.'
               : det.class_name.includes('D10') || det.class_name.toLowerCase().includes('trans')
               ? 'Elastomeric joint sealant application.'
+              : det.class_name.toLowerCase().includes('distress')
+              ? 'Calibrated micro-surfacing and polymer slurry seal.'
               : 'Hot-pour rubberized crack sealant.'
           };
         });
