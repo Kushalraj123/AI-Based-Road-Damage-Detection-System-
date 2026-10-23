@@ -209,8 +209,8 @@ class ModelManager:
         self.lock = threading.Lock()
 
     def get_model(self, model_id: str):
-        if model_id not in MODEL_CLASSES:
-            model_id = "damage-yolo12s"
+        if model_id not in MODEL_CLASSES or model_id == "damage-ensemble":
+            model_id = "damage-yolov8"
         
         with self.lock:
             if model_id in self.loaded_models:
@@ -248,12 +248,12 @@ async def startup_warmup():
     def _preload():
         # Pre-warm primary model at startup so user never experiences cold download delay
         try:
-            print("[Startup] Pre-loading primary YOLO neural model...")
-            m = model_manager.get_model("damage-yolo12s")
+            print("[Startup] Pre-loading primary YOLOv8 neural model...")
+            m = model_manager.get_model("damage-yolov8")
             if m is not None:
                 dummy = np.zeros((640, 640, 3), dtype=np.uint8)
                 m.predict(dummy, imgsz=640, verbose=False, device="cpu")
-                print("[Startup] Primary YOLO neural model warmed up and ready for instant inference.")
+                print("[Startup] Primary YOLOv8 neural model warmed up and ready for instant inference.")
         except Exception as e:
             print(f"[Startup] Preload notice: {e}")
     threading.Thread(target=_preload, daemon=True).start()
@@ -722,7 +722,7 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     infer_conf = max(0.14, min(0.20, float(conf_threshold) - 0.05))
 
     if model_id == "damage-ensemble" or model_id not in MODEL_CLASSES:
-        models_to_run = [("damage-yolo12s", 640)]
+        models_to_run = [("damage-yolov8", 640)]
     else:
         models_to_run = [(model_id, 640)]
 
