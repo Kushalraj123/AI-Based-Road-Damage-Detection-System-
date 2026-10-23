@@ -806,8 +806,16 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             });
           });
         } else if (!clientExif || !clientExif.hasGps) {
-          // Image does NOT contain GPS EXIF tags — fallback to device live location or benchmark
-          getGpsAndGeocode();
+          // Image has no GPS EXIF — do NOT substitute the user's live location
+          setDetectionGpsLocation({
+            address: null,
+            coords: null,
+            loading: false,
+            source: 'none',
+            dateTime: bExif?.datetime ?? clientExif?.dateTime,
+            cameraMake: bExif?.camera_make ?? clientExif?.cameraMake,
+            cameraModel: bExif?.camera_model ?? clientExif?.cameraModel
+          });
         }
 
         const imageLocationText = (bExif && bExif.has_gps)
@@ -2609,6 +2617,19 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                   {detectionGpsLocation?.source === 'exif' ? 'Extracting image EXIF metadata & resolving coordinates…' : 'Acquiring GPS position…'}
                 </div>
               ) : (() => {
+                if (activeInputTab === 'image' && detectionGpsLocation?.source === 'none') {
+                  return (
+                    <div style={{ fontSize: '0.78rem', color: '#F97316', lineHeight: 1.45 }}>
+                      ⚠ No GPS metadata found in this image (EXIF stripped or camera location was off). Upload the original photo to get its capture location.
+                      {(detectionGpsLocation?.dateTime || detectionGpsLocation?.cameraModel) && (
+                        <div style={{ marginTop: '0.4rem', fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
+                          {detectionGpsLocation?.dateTime && <>📅 {detectionGpsLocation.dateTime} </>}
+                          {(detectionGpsLocation?.cameraMake || detectionGpsLocation?.cameraModel) && <>📷 {[detectionGpsLocation.cameraMake, detectionGpsLocation.cameraModel].filter(Boolean).join(' ')}</>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
                 const addr = detectionGpsLocation?.address || selectedSample?.location || (activeInputTab === 'video' ? 'NH-75 Highway Corridor, Km 114, Hassan - Bengaluru Highway' : 'M.G. Road Corridor, Bengaluru, Karnataka');
                 const lat = detectionGpsLocation?.coords?.lat ?? (selectedSample?.coordinates?.[0] ?? 12.9716);
                 const lng = detectionGpsLocation?.coords?.lng ?? (selectedSample?.coordinates?.[1] ?? 77.5946);
