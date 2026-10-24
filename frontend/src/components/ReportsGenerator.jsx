@@ -32,11 +32,11 @@ import { BACKEND_URL, API_ENDPOINTS, apiFetch } from '../config';
 export const calculatePavementMaterials = (className, dimensions = null) => {
   const name = (className || 'Pothole').toLowerCase();
   
-  const len = dimensions?.length_cm || 35;
-  const wid = dimensions?.width_cm || 30;
-  const dep = dimensions?.depth_cm || 4;
-  const area = dimensions?.area_m2 || parseFloat(((len * wid) / 10000).toFixed(2));
-  const len_m = Math.max(0.1, len / 100);
+  const len = dimensions?.length_cm || 0;
+  const wid = dimensions?.width_cm || 0;
+  const dep = dimensions?.depth_cm || 0;
+  const area = dimensions?.area_m2 || (len && wid ? parseFloat(((len * wid) / 10000).toFixed(2)) : 0);
+  const len_m = Math.max(0, len / 100);
 
   let hotMixKg = 0;
   let tackLiters = 0;
@@ -253,7 +253,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
 
   const activeTimeframeLabel = useMemo(() => {
     if (timeframe === 'overall') {
-      const count = Math.max(1, parseInt(unitCounts.overall, 10) || 50);
+      const count = Math.max(1, parseInt(unitCounts.overall, 10) || (historyList?.length || 1));
       return `Overall (${count} Records)`;
     }
     const count = Math.max(1, parseInt(unitCounts[timeframe], 10) || 1);
@@ -262,12 +262,12 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
     if (timeframe === 'months') return `${count} Month${count > 1 ? 's' : ''}`;
     if (timeframe === 'yearly') return `${count} Year${count > 1 ? 's' : ''}`;
     return 'Overall';
-  }, [timeframe, unitCounts]);
+  }, [timeframe, unitCounts, historyList]);
 
   // Filter history dynamically based on selected timeframe
   const periodFilteredHistory = useMemo(() => {
     if (timeframe === 'overall') {
-      const count = Math.max(1, parseInt(unitCounts.overall, 10) || 50);
+      const count = Math.max(1, parseInt(unitCounts.overall, 10) || (historyList?.length || 1));
       const combined = historyList ? [...historyList] : [];
       if (combined.length >= count) {
         return combined.slice(0, count);
@@ -395,7 +395,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
     const cumulativeTackLiters = totalDefects > 0 ? (totalDefects * 0.18).toFixed(2) : '0.00';
     const cumulativeGravelKg = totalDefects > 0 ? (totalDefects * 2.2).toFixed(1) : '0.0';
     const cumulativeSealantKg = totalDefects > 0 ? (totalDefects * 0.65).toFixed(2) : '0.00';
-    const totalEstimatedCostInr = Math.round(totalDefects * 2450);
+    const totalEstimatedCostInr = periodFilteredHistory.reduce((acc, it) => acc + (it.cost_inr || (it.estimated_cost ? parseInt(String(it.estimated_cost).replace(/[^\d]/g, ''), 10) || 0 : 0)), 0);
 
     // Balanced realistic period PCI
     let periodPci = 88;
@@ -593,10 +593,10 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
     if (isOverall) {
       const historyRows = finalDisplayList.map((item, idx) => {
         const isVid = (item.type || '').toLowerCase().includes('video');
-        const defects = item.total_damage || 1;
-        const sev = item.severity || 'High';
-        const classes = (item.classes_detected || ['Pothole']).join(', ');
-        const cost = `₹${(defects * 2450).toLocaleString('en-IN')} INR`;
+        const defects = item.total_damage || (item.classes_detected?.length || 0);
+        const sev = item.severity || 'Clear';
+        const classes = (item.classes_detected || []).join(', ') || 'No distress';
+        const cost = item.estimated_cost || (item.total_estimated_cost_formatted || (item.cost_inr ? `₹${item.cost_inr.toLocaleString('en-IN')} INR` : '—'));
 
         return `
           <tr>
@@ -649,11 +649,11 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
           <tr>
             <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-family: monospace; text-align: center;">${idx + 1}</td>
             <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-weight: 700; color: #0f172a;">${det.class_name || det.type}</td>
-            <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; color: #0284c7; font-weight: 700; font-family: monospace; text-align: center;">${Math.round((det.confidence || 0.9) * 100)}%</td>
-            <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-family: monospace;">${dims.length_cm ? `${dims.length_cm} × ${dims.width_cm} cm <br/><span style="color:#e11d48; font-weight:700;">Depth: ${dims.depth_cm} cm</span>` : '35 × 30 cm (Depth: 4.0 cm)'}</td>
-            <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-family: monospace;">${dims.area_m2 ? `${dims.area_m2} m²` : '0.10 m²'}</td>
-            <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-size: 10.5px; line-height: 1.35; color: #334155;">${matList || 'Micro-spot patch'}</td>
-            <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-weight: 700; color: #0f172a; font-family: monospace; text-align: right;">${det.estimated_cost || '₹2,450 INR'}</td>
+            <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; color: #0284c7; font-weight: 700; font-family: monospace; text-align: center;">${det.confidence != null ? Math.round(det.confidence * 100) + '%' : '—'}</td>
+            <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-family: monospace;">${dims.length_cm ? `${dims.length_cm} × ${dims.width_cm} cm <br/><span style="color:#e11d48; font-weight:700;">Depth: ${dims.depth_cm} cm</span>` : '—'}</td>
+            <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-family: monospace;">${dims.area_m2 ? `${dims.area_m2} m²` : '—'}</td>
+            <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-size: 10.5px; line-height: 1.35; color: #334155;">${matList || 'Standard Remediation'}</td>
+            <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-weight: 700; color: #0f172a; font-family: monospace; text-align: right;">${det.estimated_cost || (mat.cost_formatted || (mat.cost_inr ? `₹${mat.cost_inr.toLocaleString('en-IN')} INR` : '—'))}</td>
           </tr>
         `;
       }).join('');
@@ -1696,7 +1696,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                           {det.class_name || det.type}
                         </td>
                         <td style={{ padding: '0.7rem 0.85rem', fontFamily: 'var(--font-mono)', color: 'var(--accent-cyan)', fontWeight: 700 }}>
-                          {Math.round((det.confidence || 0.9) * 100)}%
+                          {det.confidence != null ? `${Math.round(det.confidence * 100)}%` : '—'}
                         </td>
                         <td style={{ padding: '0.7rem 0.85rem', fontFamily: 'var(--font-mono)' }}>
                           {dims.length_cm ? (
@@ -1706,10 +1706,10 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                                 ↓ Depth: {dims.depth_cm} cm
                               </div>
                             </div>
-                          ) : '35×30×4.0 cm'}
+                          ) : '—'}
                         </td>
                         <td style={{ padding: '0.7rem 0.85rem', fontFamily: 'var(--font-mono)' }}>
-                          {dims.area_m2 ? `${dims.area_m2} m²` : '0.10 m²'}
+                          {dims.area_m2 ? `${dims.area_m2} m²` : '—'}
                         </td>
                         <td style={{ padding: '0.7rem 0.85rem', color: 'var(--text-secondary)' }}>
                           {mat.hot_mix && <div>• {mat.hot_mix}</div>}
@@ -1718,7 +1718,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                           {mat.sealant && <div>• {mat.sealant}</div>}
                         </td>
                         <td style={{ padding: '0.7rem 0.85rem', fontWeight: 800, color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
-                          {det.estimated_cost || '₹2,450 INR'}
+                          {det.estimated_cost || (mat.cost_formatted || (mat.cost_inr ? `₹${mat.cost_inr.toLocaleString('en-IN')} INR` : '—'))}
                         </td>
                       </tr>
                     );

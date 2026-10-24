@@ -249,8 +249,8 @@ export default function ThreeRoadDepthViewer({
         const worldZ = (cy - 0.5) * meshH;
         const boxW = Math.max(0.5, (bxMax - bxMin) * meshW);
         const boxH = Math.max(0.5, (byMax - byMin) * meshH);
-        const depthVal = det.dimensions?.depth_cm || 4.5;
-        const depthDisplacement = depthVal * 0.19 * depthExaggeration;
+        const depthVal = det.dimensions?.depth_cm != null ? det.dimensions.depth_cm : 0;
+        const depthDisplacement = (depthVal > 0 ? depthVal : 2.5) * 0.19 * depthExaggeration;
 
         const isSelected = idx === selectedIdx;
         const probeColor = isSelected ? 0x06b6d4 : (depthVal >= 5.5 ? 0xf43f5e : 0xf59e0b);
@@ -395,10 +395,10 @@ export default function ThreeRoadDepthViewer({
 
   const currentDet = detections[selectedIdx] || detections[0] || {};
   const currentDims = currentDet.dimensions || {};
-  const depthVal = currentDims.depth_cm || 4.5;
-  const maxDepthVal = currentDims.max_depth_cm || (depthVal * 1.15).toFixed(1);
-  const avgDepthVal = currentDims.avg_depth_cm || (depthVal * 0.68).toFixed(1);
-  const volLiters = currentDims.volume_liters || 1.8;
+  const depthVal = currentDims.depth_cm != null ? currentDims.depth_cm : 0;
+  const maxDepthVal = currentDims.max_depth_cm != null ? currentDims.max_depth_cm : (depthVal > 0 ? (depthVal * 1.15).toFixed(1) : '—');
+  const avgDepthVal = currentDims.avg_depth_cm != null ? currentDims.avg_depth_cm : (depthVal > 0 ? (depthVal * 0.68).toFixed(1) : '—');
+  const volLiters = currentDims.volume_liters != null ? currentDims.volume_liters : (currentDims.length_cm && currentDims.width_cm && depthVal > 0 ? parseFloat((((3.14159 * (currentDims.length_cm / 2) * (currentDims.width_cm / 2) * depthVal) / 3000)).toFixed(2)) : '—');
 
   const containerStyle = isFullscreen
     ? {
@@ -672,21 +672,21 @@ export default function ThreeRoadDepthViewer({
               <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>PEAK DEPTH</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 800, color: depthVal >= 5.5 ? '#f43f5e' : 'var(--accent-cyan)' }}>
-                  {depthVal} <span style={{ fontSize: '0.75rem' }}>cm</span>
+                  {depthVal > 0 ? `${depthVal} cm` : '—'}
                 </div>
               </div>
 
               <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>MEAN DEPTH</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  {avgDepthVal} <span style={{ fontSize: '0.75rem' }}>cm</span>
+                  {avgDepthVal !== '—' ? `${avgDepthVal} cm` : '—'}
                 </div>
               </div>
 
               <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>VOID VOLUME</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>
-                  {volLiters} <span style={{ fontSize: '0.75rem' }}>L</span>
+                  {volLiters !== '—' ? `${volLiters} L` : '—'}
                 </div>
               </div>
             </div>

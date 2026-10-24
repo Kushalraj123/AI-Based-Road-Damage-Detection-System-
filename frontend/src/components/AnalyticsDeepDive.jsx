@@ -71,11 +71,11 @@ export default function AnalyticsDeepDive() {
     }
   };
 
-  const realTotalScans = liveStats?.total_scans || 50;
-  const realTotalDamage = liveStats?.total_damage || 584;
-  const realP1 = liveStats?.severity?.high || 45;
-  const realP2 = liveStats?.severity?.medium || 5;
-  const realPCI = liveStats?.pci || 65.3;
+  const realTotalScans = liveStats?.total_scans ?? 0;
+  const realTotalDamage = liveStats?.total_damage ?? 0;
+  const realP1 = liveStats?.severity?.high ?? 0;
+  const realP2 = liveStats?.severity?.medium ?? 0;
+  const realPCI = liveStats?.pci ?? 100;
 
   // Dynamic roadway breakdown derived from real telemetry
   const roadwayRows = [

@@ -886,7 +886,7 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
         
     severity = "Clear"
     total_damage = len(detections)
-    total_estimated_cost_inr = sum(d.get("materials", {}).get("cost_inr", 1800) for d in detections)
+    total_estimated_cost_inr = sum(d.get("materials", {}).get("cost_inr", 0) for d in detections)
     total_estimated_cost_formatted = f"₹{total_estimated_cost_inr:,} INR" if total_estimated_cost_inr > 0 else "₹0 INR"
 
     if total_damage > 0:
