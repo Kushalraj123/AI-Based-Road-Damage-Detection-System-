@@ -2102,299 +2102,451 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                     </div>
                   </div>
                 ) : (
-                  <img
-                    ref={imageRef}
-                    src={displayImgSrc}
-                    alt="Road Inspection View"
-                    onLoad={(e) => {
-                      setImageNaturalSize({
-                        width: e.target.naturalWidth,
-                        height: e.target.naturalHeight
-                      });
-                    }}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      maxHeight: '600px',
-                      objectFit: 'contain',
-                      display: 'block',
-                      margin: '0 auto'
-                    }}
-                  />
-                )}
-
-                {/* Split Slider View Comparison Overlay */}
-                {imagePreviewUrl && viewMode === 'split' && (
                   <div
                     style={{
-                      position: 'absolute',
-                      inset: 0,
-                      pointerEvents: 'none',
-                      zIndex: 15,
-                      clipPath: `polygon(0 0, ${sliderPos}% 0, ${sliderPos}% 100%, 0 100%)`
-                    }}
-                  >
-                    <img
-                      src={originalImageUrl || imagePreviewUrl}
-                      alt="Raw View"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        maxHeight: '600px',
-                        objectFit: 'contain',
-                        display: 'block',
-                        margin: '0 auto',
-                        filter: 'grayscale(0.3) contrast(1.1)'
-                      }}
-                    />
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '12px',
-                        left: '12px',
-                        padding: '0.2rem 0.6rem',
-                        borderRadius: '4px',
-                        background: 'rgba(0,0,0,0.75)',
-                        color: '#ffffff',
-                        fontSize: '0.7rem',
-                        fontFamily: 'var(--font-mono)'
-                      }}
-                    >
-                      RAW OPTICAL
-                    </div>
-                  </div>
-                )}
-
-                {/* Split Slider Divider and Handle */}
-                {imagePreviewUrl && viewMode === 'split' && (
-                  <>
-                    {/* Vertical Divider Line */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        bottom: 0,
-                        left: `${sliderPos}%`,
-                        width: '2px',
-                        background: 'var(--accent-cyan)',
-                        boxShadow: '0 0 8px var(--accent-cyan)',
-                        zIndex: 22,
-                        pointerEvents: 'none'
-                      }}
-                    />
-                    {/* Circular Drag Handle */}
-                    <div
-                      onMouseDown={() => setIsDraggingSlider(true)}
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: `${sliderPos}%`,
-                        transform: 'translate(-50%, -50%)',
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: 'rgba(7, 10, 18, 0.85)',
-                        border: '2px solid var(--accent-cyan)',
-                        boxShadow: '0 0 15px rgba(6, 182, 212, 0.4)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--accent-cyan)',
-                        cursor: 'ew-resize',
-                        zIndex: 23,
-                        userSelect: 'none'
-                      }}
-                    >
-                      <SplitSquareVertical size={18} />
-                    </div>
-                  </>
-                )}
-
-                {/* AI Heatmap Flat Overlay */}
-                {imagePreviewUrl && showHeatmap && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      background: 'rgba(239, 68, 68, 0.25)',
-                      mixBlendMode: 'screen',
-                      pointerEvents: 'none',
-                      zIndex: 12
-                    }}
-                  />
-                )}
-
-                {/* Multi-Stage Scanning Animation Overlay */}
-                {isScanning && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      background: 'rgba(7, 10, 18, 0.75)',
-                      backdropFilter: 'blur(4px)',
+                      position: 'relative',
                       display: 'flex',
-                      flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      zIndex: 30
+                      width: '100%',
+                      minHeight: '460px',
+                      background: '#000000',
+                      overflow: 'hidden'
                     }}
                   >
-                    <div className="scan-line" />
-                    <div style={{ textAlign: 'center', maxWidth: '360px', padding: '1.5rem' }}>
-                      <div
-                        style={{
-                          width: '64px',
-                          height: '64px',
-                          borderRadius: '50%',
-                          background: 'rgba(6, 182, 212, 0.15)',
-                          border: '2px solid var(--accent-cyan)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'var(--accent-cyan)',
-                          margin: '0 auto 1.25rem auto',
-                          boxShadow: '0 0 24px rgba(6, 182, 212, 0.4)'
+                    <div
+                      style={{
+                        position: 'relative',
+                        display: 'inline-block',
+                        maxWidth: '100%',
+                        maxHeight: '600px',
+                        lineHeight: 0
+                      }}
+                    >
+                      <img
+                        ref={imageRef}
+                        src={displayImgSrc}
+                        alt="Road Inspection View"
+                        onLoad={(e) => {
+                          setImageNaturalSize({
+                            width: e.target.naturalWidth,
+                            height: e.target.naturalHeight
+                          });
                         }}
-                        className="animate-pulse"
-                      >
-                        <Scan size={32} />
-                      </div>
-                      <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: '#ffffff' }}>
-                        AI is analyzing the road surface…
-                      </h3>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--accent-cyan)', fontWeight: 600, marginBottom: '0.25rem' }}>
-                        {scanStages[scanStage]?.title}
-                      </div>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-                        {scanStages[scanStage]?.desc}
-                      </p>
+                        style={{
+                          display: 'block',
+                          maxWidth: '100%',
+                          maxHeight: '600px',
+                          width: 'auto',
+                          height: 'auto',
+                          objectFit: 'contain',
+                          margin: '0 auto'
+                        }}
+                      />
 
-                      {/* Progress Bar */}
-                      <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '9999px', overflow: 'hidden' }}>
+                      {/* Split Slider View Comparison Overlay */}
+                      {imagePreviewUrl && viewMode === 'split' && (
                         <div
-                          style={{
-                            width: `${scanProgress}%`,
-                            height: '100%',
-                            background: '#2563EB',
-                            transition: 'width 0.3s ease'
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Interactive Bounding Boxes Overlaid on Image */}
-                {/* Only draw HTML overlay boxes for sample scenarios (not backend results, which already have OpenCV boxes in the image) */}
-                {scanComplete && !isBackendResult && viewMode !== 'original' && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      zIndex: 20,
-                      pointerEvents: 'none',
-                      clipPath: viewMode === 'split' ? `polygon(${sliderPos}% 0, 100% 0, 100% 100%, ${sliderPos}% 100%)` : 'none'
-                    }}
-                  >
-                    {detectionResult.detections.map((det, idx) => {
-                      // Use backend image dimensions if available (real upload), else use natural image size
-                      const refW = detectionResult.backendImageWidth || imageNaturalSize.width || 1000;
-                      const refH = detectionResult.backendImageHeight || imageNaturalSize.height || 700;
-                      const left = (det.box[0] / refW) * 100;
-                      const top = (det.box[1] / refH) * 100;
-                      const width = ((det.box[2] - det.box[0]) / refW) * 100;
-                      const height = ((det.box[3] - det.box[1]) / refH) * 100;
-
-                      const isHovered = hoveredBox === det.id;
-                      const color = det.severity === 'High' ? 'var(--severity-critical)' : det.severity === 'Medium' ? 'var(--severity-medium)' : 'var(--accent-blue)';
-
-                      return (
-                        <div
-                          key={idx}
-                          onMouseEnter={() => {
-                            setHoveredBox(det.id);
-                            sounds.playLockOn();
-                          }}
-                          onMouseLeave={() => setHoveredBox(null)}
                           style={{
                             position: 'absolute',
-                            left: `${left}%`,
-                            top: `${top}%`,
-                            width: `${width}%`,
-                            height: `${height}%`,
-                            border: `2px solid ${color}`,
-                            background: `${color}20`,
-                            boxShadow: `0 0 16px ${color}60`,
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            pointerEvents: 'auto',
-                            transition: 'all 0.2s ease',
-                            transform: isHovered ? 'scale(1.02)' : 'scale(1)'
+                            inset: 0,
+                            pointerEvents: 'none',
+                            zIndex: 15,
+                            clipPath: `polygon(0 0, ${sliderPos}% 0, ${sliderPos}% 100%, 0 100%)`
                           }}
                         >
-                          {/* Bounding Box Label Badge */}
+                          <img
+                            src={originalImageUrl || imagePreviewUrl}
+                            alt="Raw View"
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'contain',
+                              display: 'block',
+                              filter: 'grayscale(0.3) contrast(1.1)'
+                            }}
+                          />
                           <div
                             style={{
                               position: 'absolute',
-                              top: '-24px',
-                              left: '-2px',
-                              background: color,
+                              top: '12px',
+                              left: '12px',
+                              padding: '0.2rem 0.6rem',
+                              borderRadius: '4px',
+                              background: 'rgba(0,0,0,0.75)',
                               color: '#ffffff',
-                              fontSize: '0.68rem',
-                              fontFamily: 'var(--font-mono)',
-                              fontWeight: 700,
-                              padding: '0.15rem 0.45rem',
-                              borderRadius: '3px',
-                              whiteSpace: 'nowrap',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.35rem',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.5)'
+                              fontSize: '0.7rem',
+                              fontFamily: 'var(--font-mono)'
                             }}
                           >
-                            <span>{det.class_name}</span>
-                            <span>{Math.round(det.confidence * 100)}%</span>
+                            RAW OPTICAL
                           </div>
-
-                          {/* Hover Information Card */}
-                          {isHovered && (
-                            <div
-                              className="glass-panel"
-                              style={{
-                                position: 'absolute',
-                                top: 'calc(100% + 8px)',
-                                left: 0,
-                                width: '240px',
-                                padding: '0.85rem',
-                                zIndex: 35,
-                                border: `1px solid ${color}`,
-                                boxShadow: 'var(--shadow-lg)',
-                                background: 'var(--bg-glass-strong)'
-                              }}
-                            >
-                              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                                {det.class_name}
-                              </div>
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.3rem', marginBottom: '0.5rem' }}>
-                                {[
-                                  { label: '↔ LENGTH', value: det.dimensions?.length_cm != null ? `${det.dimensions.length_cm} cm` : '—' },
-                                  { label: '↕ WIDTH', value: det.dimensions?.width_cm != null ? `${det.dimensions.width_cm} cm` : '—' },
-                                  { label: '↓ DEPTH', value: det.dimensions?.depth_cm != null ? `${det.dimensions.depth_cm} cm` : '—' },
-                                ].map(({ label, value }) => (
-                                  <div key={label} style={{ background: 'rgba(0,0,0,0.35)', borderRadius: '5px', padding: '0.3rem 0.4rem', textAlign: 'center' }}>
-                                    <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>{label}</div>
-                                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color }}>{value}</div>
-                                  </div>
-                                ))}
-                              </div>
-                              <div style={{ fontSize: '0.65rem', color: color, fontWeight: 600 }}>
-                                {det.recommendation}
-                              </div>
-                            </div>
-                          )}
                         </div>
-                      );
-                    })}
+                      )}
+
+                      {/* Split Slider Divider and Handle */}
+                      {imagePreviewUrl && viewMode === 'split' && (
+                        <>
+                          {/* Vertical Divider Line */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              bottom: 0,
+                              left: `${sliderPos}%`,
+                              width: '2px',
+                              background: 'var(--accent-cyan)',
+                              boxShadow: '0 0 8px var(--accent-cyan)',
+                              zIndex: 22,
+                              pointerEvents: 'none'
+                            }}
+                          />
+                          {/* Circular Drag Handle */}
+                          <div
+                            onMouseDown={() => setIsDraggingSlider(true)}
+                            style={{
+                              position: 'absolute',
+                              top: '50%',
+                              left: `${sliderPos}%`,
+                              transform: 'translate(-50%, -50%)',
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '50%',
+                              background: 'rgba(7, 10, 18, 0.85)',
+                              border: '2px solid var(--accent-cyan)',
+                              boxShadow: '0 0 15px rgba(6, 182, 212, 0.4)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'var(--accent-cyan)',
+                              cursor: 'ew-resize',
+                              zIndex: 23,
+                              userSelect: 'none'
+                            }}
+                          >
+                            <SplitSquareVertical size={18} />
+                          </div>
+                        </>
+                      )}
+
+                      {/* AI Heatmap Flat Overlay */}
+                      {imagePreviewUrl && showHeatmap && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            background: 'rgba(239, 68, 68, 0.25)',
+                            mixBlendMode: 'screen',
+                            pointerEvents: 'none',
+                            zIndex: 12
+                          }}
+                        />
+                      )}
+
+                      {/* Interactive Bounding Boxes Overlaid on Image with Area & Dimension Hover Cards */}
+                      {scanComplete && viewMode !== 'original' && detectionResult.detections && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            zIndex: 20,
+                            pointerEvents: 'none',
+                            clipPath: viewMode === 'split' ? `polygon(${sliderPos}% 0, 100% 0, 100% 100%, ${sliderPos}% 100%)` : 'none'
+                          }}
+                        >
+                          {detectionResult.detections.map((det, idx) => {
+                            const refW = detectionResult.backendImageWidth || imageNaturalSize.width || 1000;
+                            const refH = detectionResult.backendImageHeight || imageNaturalSize.height || 700;
+
+                            const left = det.normalized_box
+                              ? det.normalized_box[0] * 100
+                              : (det.box[0] / refW) * 100;
+                            const top = det.normalized_box
+                              ? det.normalized_box[1] * 100
+                              : (det.box[1] / refH) * 100;
+                            const width = det.normalized_box
+                              ? (det.normalized_box[2] - det.normalized_box[0]) * 100
+                              : ((det.box[2] - det.box[0]) / refW) * 100;
+                            const height = det.normalized_box
+                              ? (det.normalized_box[3] - det.normalized_box[1]) * 100
+                              : ((det.box[3] - det.box[1]) / refH) * 100;
+
+                            const isHovered = hoveredBox === det.id;
+                            const color = det.severity === 'High' ? 'var(--severity-critical)' : det.severity === 'Medium' ? 'var(--severity-medium)' : 'var(--accent-blue)';
+
+                            const areaM2 = det.dimensions?.area_m2 != null
+                              ? det.dimensions.area_m2
+                              : parseFloat((((det.dimensions?.length_cm || 50) * (det.dimensions?.width_cm || 40)) / 10000).toFixed(2));
+                            const areaCm2 = Math.round(areaM2 * 10000);
+
+                            return (
+                              <div
+                                key={idx}
+                                onMouseEnter={() => {
+                                  setHoveredBox(det.id);
+                                  sounds.playLockOn?.();
+                                }}
+                                onMouseLeave={() => setHoveredBox(null)}
+                                style={{
+                                  position: 'absolute',
+                                  left: `${left}%`,
+                                  top: `${top}%`,
+                                  width: `${width}%`,
+                                  height: `${height}%`,
+                                  border: isBackendResult
+                                    ? isHovered
+                                      ? `2.5px solid ${color}`
+                                      : '2px solid transparent'
+                                    : `2px solid ${color}`,
+                                  background: isBackendResult
+                                    ? isHovered
+                                      ? `${color}25`
+                                      : 'transparent'
+                                    : `${color}20`,
+                                  boxShadow: isHovered
+                                    ? `0 0 24px ${color}, inset 0 0 16px ${color}35`
+                                    : isBackendResult
+                                      ? 'none'
+                                      : `0 0 16px ${color}60`,
+                                  borderRadius: '4px',
+                                  cursor: 'crosshair',
+                                  pointerEvents: 'auto',
+                                  transition: 'all 0.15s ease',
+                                  transform: isHovered ? 'scale(1.015)' : 'scale(1)',
+                                  zIndex: isHovered ? 35 : 20
+                                }}
+                              >
+                                {/* Static HTML Badge for non-backend demo scenarios */}
+                                {!isBackendResult && (
+                                  <div
+                                    style={{
+                                      position: 'absolute',
+                                      top: '-28px',
+                                      left: '-2px',
+                                      background: color,
+                                      border: '1.5px solid rgba(10, 14, 20, 0.65)',
+                                      color: '#050811',
+                                      fontSize: '0.80rem',
+                                      fontFamily: 'var(--font-mono)',
+                                      fontWeight: 800,
+                                      padding: '0.2rem 0.55rem',
+                                      borderRadius: '4px',
+                                      whiteSpace: 'nowrap',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '0.45rem',
+                                      boxShadow: '0 4px 12px rgba(0,0,0,0.6)',
+                                      letterSpacing: '0.02em',
+                                      zIndex: 25,
+                                      pointerEvents: 'none'
+                                    }}
+                                  >
+                                    <span style={{ color: '#050811', fontWeight: 800 }}>{det.class_name}</span>
+                                    <span
+                                      style={{
+                                        background: 'rgba(5, 8, 17, 0.22)',
+                                        color: '#050811',
+                                        padding: '0.08rem 0.35rem',
+                                        borderRadius: '3px',
+                                        fontWeight: 800
+                                      }}
+                                    >
+                                      {Math.round(det.confidence * 100)}%
+                                    </span>
+                                    {det.dimensions?.depth_cm && (
+                                      <span style={{ color: '#0f172a', fontSize: '0.74rem', fontWeight: 700 }}>
+                                        | Depth: {det.dimensions.depth_cm}cm
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Live Area Dimension Callouts when hovering over border */}
+                                {isHovered && (
+                                  <>
+                                    {/* Dimension Banner Pill attached to border */}
+                                    <div
+                                      style={{
+                                        position: 'absolute',
+                                        bottom: top > 65 ? 'auto' : '-32px',
+                                        top: top > 65 ? '-34px' : 'auto',
+                                        left: '50%',
+                                        transform: 'translateX(-50%)',
+                                        background: '#090d16',
+                                        border: `1.5px solid ${color}`,
+                                        color: '#ffffff',
+                                        padding: '0.25rem 0.65rem',
+                                        borderRadius: '5px',
+                                        fontSize: '0.75rem',
+                                        fontFamily: 'var(--font-mono)',
+                                        fontWeight: 800,
+                                        whiteSpace: 'nowrap',
+                                        boxShadow: `0 4px 18px rgba(0,0,0,0.85), 0 0 12px ${color}60`,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.45rem',
+                                        zIndex: 40,
+                                        pointerEvents: 'none'
+                                      }}
+                                    >
+                                      <span style={{ color: color }}>📐 Area:</span>
+                                      <strong style={{ color: '#ffffff' }}>{areaM2} m²</strong>
+                                      <span style={{ color: 'var(--text-tertiary)', fontSize: '0.7rem' }}>
+                                        ({det.dimensions?.length_cm || 50} × {det.dimensions?.width_cm || 40} cm)
+                                      </span>
+                                      <span style={{ background: color, color: '#050811', padding: '0.05rem 0.35rem', borderRadius: '3px', fontSize: '0.68rem', fontWeight: 900 }}>
+                                        ↓ {det.dimensions?.depth_cm} cm
+                                      </span>
+                                    </div>
+
+                                    {/* Detailed Engineering Dimension Card */}
+                                    <div
+                                      className="glass-panel"
+                                      style={{
+                                        position: 'absolute',
+                                        top: top > 50 ? 'auto' : 'calc(100% + 38px)',
+                                        bottom: top > 50 ? 'calc(100% + 38px)' : 'auto',
+                                        left: left > 55 ? 'auto' : 0,
+                                        right: left > 55 ? 0 : 'auto',
+                                        width: '280px',
+                                        padding: '0.85rem',
+                                        zIndex: 45,
+                                        border: `1.5px solid ${color}`,
+                                        boxShadow: `0 8px 32px rgba(0,0,0,0.9), 0 0 16px ${color}40`,
+                                        background: 'rgba(9, 13, 22, 0.96)',
+                                        backdropFilter: 'blur(12px)',
+                                        borderRadius: '8px',
+                                        pointerEvents: 'none',
+                                        lineHeight: 1.4
+                                      }}
+                                    >
+                                      {/* Header */}
+                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.55rem' }}>
+                                        <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#ffffff' }}>
+                                          {det.class_name}
+                                        </div>
+                                        <span style={{ background: color, color: '#050811', fontSize: '0.7rem', fontWeight: 900, padding: '0.12rem 0.45rem', borderRadius: '4px' }}>
+                                          {Math.round(det.confidence * 100)}% Conf
+                                        </span>
+                                      </div>
+
+                                      {/* Primary Area Metric Display */}
+                                      <div style={{
+                                        background: 'rgba(255, 255, 255, 0.05)',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        borderRadius: '6px',
+                                        padding: '0.45rem 0.6rem',
+                                        marginBottom: '0.55rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between'
+                                      }}>
+                                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                                          POTHOLE AREA:
+                                        </span>
+                                        <div style={{ textAlign: 'right' }}>
+                                          <span style={{ fontSize: '0.95rem', fontWeight: 900, color: color, fontFamily: 'var(--font-mono)' }}>
+                                            {areaM2} m²
+                                          </span>
+                                          <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginLeft: '4px' }}>
+                                            ({areaCm2.toLocaleString()} cm²)
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      {/* Linear Dimensions 3-Column Grid */}
+                                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.3rem', marginBottom: '0.55rem' }}>
+                                        {[
+                                          { label: '↔ LENGTH', value: det.dimensions?.length_cm != null ? `${det.dimensions.length_cm} cm` : '—' },
+                                          { label: '↕ WIDTH', value: det.dimensions?.width_cm != null ? `${det.dimensions.width_cm} cm` : '—' },
+                                          { label: '↓ DEPTH', value: det.dimensions?.depth_cm != null ? `${det.dimensions.depth_cm} cm` : '—' },
+                                        ].map(({ label, value }) => (
+                                          <div key={label} style={{ background: 'rgba(0,0,0,0.5)', borderRadius: '5px', padding: '0.3rem 0.35rem', textAlign: 'center', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                            <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>{label}</div>
+                                            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#ffffff' }}>{value}</div>
+                                          </div>
+                                        ))}
+                                      </div>
+
+                                      {/* Cavity Volume & Estimated Cost */}
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                                        <span>Cavity Vol: <strong style={{ color: '#ffffff' }}>{det.dimensions?.volume_liters || (det.dimensions?.cavity_volume_cm3 ? (det.dimensions.cavity_volume_cm3 / 1000).toFixed(1) : '—')} L</strong></span>
+                                        <span>Est. Cost: <strong style={{ color: 'var(--accent-cyan)' }}>{det.estimated_cost || '₹2,450 INR'}</strong></span>
+                                      </div>
+
+                                      {/* Civil Recommendation */}
+                                      <div style={{ fontSize: '0.68rem', color: '#cbd5e1', fontStyle: 'italic', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.35rem' }}>
+                                        {det.recommendation}
+                                      </div>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Multi-Stage Scanning Animation Overlay (covers entire viewport) */}
+                    {isScanning && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: 'rgba(7, 10, 18, 0.75)',
+                          backdropFilter: 'blur(4px)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          zIndex: 50
+                        }}
+                      >
+                        <div className="scan-line" />
+                        <div style={{ textAlign: 'center', maxWidth: '360px', padding: '1.5rem' }}>
+                          <div
+                            style={{
+                              width: '64px',
+                              height: '64px',
+                              borderRadius: '50%',
+                              background: 'rgba(6, 182, 212, 0.15)',
+                              border: '2px solid var(--accent-cyan)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'var(--accent-cyan)',
+                              margin: '0 auto 1.25rem auto',
+                              boxShadow: '0 0 24px rgba(6, 182, 212, 0.4)'
+                            }}
+                            className="animate-pulse"
+                          >
+                            <Scan size={32} />
+                          </div>
+                          <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: '#ffffff' }}>
+                            AI is analyzing the road surface…
+                          </h3>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--accent-cyan)', fontWeight: 600, marginBottom: '0.25rem' }}>
+                            {scanStages[scanStage]?.title}
+                          </div>
+                          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                            {scanStages[scanStage]?.desc}
+                          </p>
+
+                          {/* Progress Bar */}
+                          <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '9999px', overflow: 'hidden' }}>
+                            <div
+                              style={{
+                                width: `${scanProgress}%`,
+                                height: '100%',
+                                background: '#2563EB',
+                                transition: 'width 0.3s ease'
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </>

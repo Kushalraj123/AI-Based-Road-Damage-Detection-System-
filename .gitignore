@@ -11,6 +11,9 @@ backend/processed/
 backend/__pycache__/
 backend/history.json
 backend/venv/
+uploads/
+processed/
+history.json
 .env
 *.env
 

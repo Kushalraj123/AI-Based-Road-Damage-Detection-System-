@@ -190,7 +190,7 @@ def clean_class_name(raw_name: str, cls_id: int = 0, model_id: str = "damage-yol
     if "d40" in raw_lower or "pothole" in raw_lower:
         return "Pothole"
     elif "d20" in raw_lower or "alligator" in raw_lower:
-        return "Alligator Crack / Base Failure"
+        return "Alligator Crack"
     elif "d10" in raw_lower or "trans" in raw_lower:
         return "Transverse Crack"
     elif "d00" in raw_lower or "long" in raw_lower:
@@ -198,7 +198,7 @@ def clean_class_name(raw_name: str, cls_id: int = 0, model_id: str = "damage-yol
     elif "repair" in raw_lower or "patch" in raw_lower:
         return "Repair Patch"
     elif "corruption" in raw_lower or "distress" in raw_lower or "distortion" in raw_lower or "other" in raw_lower:
-        return "Surface Distress / Base Failure"
+        return "Surface Distress"
     
     # Fallback to model configuration lookup
     configured_label = MODEL_CLASSES.get(model_id, {}).get("labels", {}).get(cls_id)
@@ -292,53 +292,67 @@ def draw_stylized_box(image: np.ndarray, x1: int, y1: int, x2: int, y2: int, lab
     if x2 <= x1 or y2 <= y1:
         return
     
-    # Dynamic scale factor based on image resolution
-    scale = max(0.55, min(1.35, w / 1000.0))
-    box_thickness = max(2, int(round(2.2 * scale)))
-    font_scale = 0.46 * scale
-    text_thickness = max(1, int(round(scale)))
+    # Resolution-responsive scaling
+    scale = max(0.65, min(1.35, w / 950.0))
+    box_thickness = max(2, int(round(2.5 * scale)))
+    
+    # Text font scale & thickness: keep it large and crisp enough to read effortlessly
+    font = cv2.FONT_HERSHEY_DUPLEX
+    font_scale = max(0.55, min(0.90, 0.58 * scale))
+    text_thickness = max(1, int(round(1.3 * scale)))
 
     # Draw semi-transparent filled overlay inside box
     overlay = image.copy()
     cv2.rectangle(overlay, (x1, y1), (x2, y2), color, -1)
-    cv2.addWeighted(overlay, 0.18, image, 0.82, 0, image)
+    cv2.addWeighted(overlay, 0.16, image, 0.84, 0, image)
     
-    # Draw outer dark shadow border for contrast on any background
-    cv2.rectangle(image, (x1 - 1, y1 - 1), (x2 + 1, y2 + 1), (20, 20, 20), box_thickness + 1, lineType=cv2.LINE_AA)
+    # Draw outer dark shadow border for maximum contrast against any pavement/sand
+    cv2.rectangle(image, (x1 - 1, y1 - 1), (x2 + 1, y2 + 1), (12, 16, 24), box_thickness + 2, lineType=cv2.LINE_AA)
     # Draw main colored border
     cv2.rectangle(image, (x1, y1), (x2, y2), color, box_thickness, lineType=cv2.LINE_AA)
     
     # Label: Class name + confidence + detected Depth (e.g. "Pothole 92% | Depth: 6.8cm")
     conf_pct = int(round(conf * 100))
+    # Compact label to prevent overflowing
+    clean_lbl = label.replace(" / Base Failure", "").strip()
     if depth_cm is not None:
-        text = f"{label} {conf_pct}% | Depth: {depth_cm}cm"
+        text = f"{clean_lbl} {conf_pct}% | Depth: {depth_cm}cm"
     else:
-        text = f"{label} {conf_pct}%"
+        text = f"{clean_lbl} {conf_pct}%"
     
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    
-    # Get text width/height for label badge
+    # Get exact text metrics
     (tw, th), baseline = cv2.getTextSize(text, font, font_scale, text_thickness)
-    badge_w = tw + int(10 * scale)
-    badge_h = th + baseline + int(8 * scale)
+    pad_x = max(8, int(10 * scale))
+    pad_y = max(6, int(7 * scale))
     
-    # Place badge above box if there is room, otherwise inside top-left of box
+    badge_w = tw + (pad_x * 2)
+    badge_h = th + baseline + (pad_y * 2)
+    
+    # Horizontal positioning: shift left if badge exceeds right edge of image so text is never cut off
+    bx1 = x1
+    if bx1 + badge_w >= w - 4:
+        bx1 = max(4, w - badge_w - 4)
+    bx2 = min(w - 1, bx1 + badge_w)
+    
+    # Vertical positioning: above box if room, otherwise neatly inside top of box
     if y1 >= badge_h + 6:
-        bx1, by1 = x1, y1 - badge_h - 2
-        bx2, by2 = min(w - 1, x1 + badge_w), y1 - 2
+        by1 = y1 - badge_h - 2
+        by2 = y1 - 2
     else:
-        bx1, by1 = x1 + 2, y1 + 2
-        bx2, by2 = min(w - 1, x1 + badge_w + 2), min(h - 1, y1 + badge_h + 2)
+        by1 = y1 + 2
+        by2 = min(h - 1, y1 + badge_h + 2)
     
-    # Draw dark shadow under badge for contrast
-    cv2.rectangle(image, (bx1 - 1, by1 - 1), (bx2 + 1, by2 + 1), (20, 20, 20), -1)
-    # Draw colored badge background
+    # Draw dark shadow/outline border under badge for contrast against bright roads
+    cv2.rectangle(image, (bx1 - 1, by1 - 1), (bx2 + 1, by2 + 1), (10, 14, 20), -1)
+    
+    # Draw solid vibrant category color badge background
     cv2.rectangle(image, (bx1, by1), (bx2, by2), color, -1)
     
-    # Draw text in white
-    text_x = bx1 + int(5 * scale)
-    text_y = by2 - baseline - int(4 * scale)
-    cv2.putText(image, text, (text_x, text_y), font, font_scale, (255, 255, 255), text_thickness, cv2.LINE_AA)
+    # High-Visibility: draw bold pitch-black text for 100% daylight contrast (standard highway/Roboflow sign style)
+    text_x = bx1 + pad_x
+    text_y = by1 + pad_y + th
+    
+    cv2.putText(image, text, (text_x, text_y), font, font_scale, (10, 14, 20), text_thickness, lineType=cv2.LINE_AA)
 
 # Simulated detection for fallback (or offline mode)
 def run_mock_detection(image: np.ndarray, confidence_threshold: float, model_id: str) -> List[Dict[str, Any]]:
@@ -704,8 +718,8 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
         raise ValueError("Could not load image.")
     
     orig_h, orig_w = image.shape[:2]
-    # Optimize input resolution to native 480px to accelerate CPU inference and reduce memory by 45%
-    max_dim = 480
+    # Preserve crisp display resolution (up to 1280px) so labels and defect borders are razor sharp
+    max_dim = 1280
     if orig_w > max_dim or orig_h > max_dim:
         scale = max_dim / float(max(orig_w, orig_h))
         new_w = int(round(orig_w * scale))
@@ -1655,5 +1669,5 @@ if __name__ == "__main__":
     import uvicorn
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", 8000))
-    reload = os.getenv("RELOAD", "False").lower() == "true"
+    reload = os.getenv("RELOAD", "True").lower() == "true"
     uvicorn.run("main:app", host=host, port=port, reload=reload)
