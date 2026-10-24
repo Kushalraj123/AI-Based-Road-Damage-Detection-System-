@@ -224,9 +224,9 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     const depth = det.dimensions?.depth_cm || 4.0;
     const area = det.dimensions?.area_m2 || parseFloat(((len * wid) / 10000).toFixed(2));
     const len_m = Math.max(0.1, len / 100);
-    
+
     const name = (det.class_name || det.type || '').toLowerCase();
-    
+
     if (name.includes('pothole') || name.includes('d40')) {
       const asphaltKg = parseFloat(Math.max(2.5, Math.min(7.0, 2.2 + area * 5.5)).toFixed(1));
       const tackLiters = parseFloat(Math.max(0.10, Math.min(0.35, 0.08 + area * 0.25)).toFixed(2));
@@ -460,11 +460,11 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
         if (data.status === 'completed') {
           const fullVideoUrl = `${BACKEND_URL}${data.processed_url}`;
           setProcessedVideoUrl(fullVideoUrl);
-          
+
           const classes = (data.classes_detected && data.classes_detected.length > 0)
             ? data.classes_detected
             : (data.total_damage > 0 ? ['Pothole'] : []);
-          
+
           const totalCount = Math.max(classes.length, data.total_damage || 0);
           const mockDetections = Array.from({ length: totalCount }, (_, idx) => {
             const cls = classes[idx % classes.length] || 'Pothole';
@@ -496,13 +496,13 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             repairPriority: severityVal === 'High'
               ? 'P1 — Immediate Hot-Mix Asphalt Patch (24h)'
               : (severityVal === 'Medium' || distressCount > 0)
-              ? 'P2 — Scheduled Maintenance (7 Days)'
-              : 'P3 — Routine Monitoring',
+                ? 'P2 — Scheduled Maintenance (7 Days)'
+                : 'P3 — Routine Monitoring',
             estimatedCost: severityVal === 'High'
               ? `₹${(distressCount * 2600 + 1500).toLocaleString('en-IN')} INR`
               : distressCount > 0
-              ? `₹${(distressCount * 1800 + 950).toLocaleString('en-IN')} INR`
-              : '₹0 INR',
+                ? `₹${(distressCount * 1800 + 950).toLocaleString('en-IN')} INR`
+                : '₹0 INR',
             distressCount: distressCount,
             detections: mockDetections,
             location: 'Video Inspection Stream',
@@ -546,7 +546,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
         clearInterval(interval);
         setVideoStatus('completed');
         setProcessedVideoUrl("https://assets.mixkit.co/videos/preview/mixkit-driving-on-a-highway-at-sunset-12497-large.mp4");
-        
+
         const mockDetections = [
           {
             id: 'video-det-1',
@@ -618,7 +618,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     setIsBackendResult(false);
     setHoveredBox(null);
     setShowHeatmap(false);
-    
+
     // Reset video states
     setSelectedVideoFile(null);
     setVideoPreviewUrl(null);
@@ -782,12 +782,12 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             recommendation: det.class_name.includes('D40') || det.class_name.toLowerCase().includes('pothole')
               ? 'Full-depth hot-mix asphalt patch with tack coat.'
               : det.class_name.includes('D20') || det.class_name.toLowerCase().includes('alligator') || det.class_name.toLowerCase().includes('base')
-              ? 'Mill and inlay with polymer-modified bitumen.'
-              : det.class_name.includes('D10') || det.class_name.toLowerCase().includes('trans')
-              ? 'Elastomeric joint sealant application.'
-              : det.class_name.toLowerCase().includes('distress')
-              ? 'Calibrated micro-surfacing and polymer slurry seal.'
-              : 'Hot-pour rubberized crack sealant.'
+                ? 'Mill and inlay with polymer-modified bitumen.'
+                : det.class_name.includes('D10') || det.class_name.toLowerCase().includes('trans')
+                  ? 'Elastomeric joint sealant application.'
+                  : det.class_name.toLowerCase().includes('distress')
+                    ? 'Calibrated micro-surfacing and polymer slurry seal.'
+                    : 'Hot-pour rubberized crack sealant.'
           };
         });
 
@@ -845,8 +845,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
         const imageLocationText = (bExif && bExif.has_gps)
           ? `${bExif.latitude.toFixed(6)}°N, ${bExif.longitude.toFixed(6)}°E`
           : (clientExif && clientExif.hasGps)
-          ? `${clientExif.latitude.toFixed(6)}°N, ${clientExif.longitude.toFixed(6)}°E`
-          : 'Uploaded Image (No EXIF GPS)';
+            ? `${clientExif.latitude.toFixed(6)}°N, ${clientExif.longitude.toFixed(6)}°E`
+            : 'Uploaded Image (No EXIF GPS)';
 
         setDetectionResult({
           severity: apiSeverity,
@@ -854,8 +854,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
           repairPriority: apiSeverity === 'High'
             ? 'P1 — Immediate Hot-Mix Asphalt Patch (24h)'
             : apiSeverity === 'Medium'
-            ? 'P2 — Scheduled Maintenance (7 Days)'
-            : 'P3 — Routine Monitoring',
+              ? 'P2 — Scheduled Maintenance (7 Days)'
+              : 'P3 — Routine Monitoring',
           estimatedCost: properEstimatedCost,
           distressCount: data.total_damage,
           detections: mappedDetections,
@@ -894,7 +894,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
         const currentUrl = getBackendUrl();
         const isProd = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
         const isLocalBackend = currentUrl.includes('127.0.0.1') || currentUrl.includes('localhost');
-        
+
         if (isProd && isLocalBackend) {
           setScanError(`⚠ Live Backend Disconnected: Cloud deployment cannot reach local "${currentUrl}". To see real neural network detections, test locally at http://localhost:5173 or set an active public backend URL. Showing demonstration placeholders.`);
         } else {
@@ -1196,7 +1196,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       targetW = Math.round(targetW * scale);
       targetH = Math.round(targetH * scale);
     }
-    canvas.width  = targetW;
+    canvas.width = targetW;
     canvas.height = targetH;
 
     const ctx = canvas.getContext('2d');
@@ -1450,7 +1450,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
           { id: 'samples', label: 'Preset Road Scenarios', icon: Layers },
           { id: 'image', label: 'Upload Image', icon: ImageIcon },
           { id: 'video', label: 'Upload Dashcam Video', icon: VideoIcon },
-          { id: 'camera', label: 'Live Camera / Mobile Feed', icon: Camera }
+          // { id: 'camera', label: 'Live Camera / Mobile Feed', icon: Camera }
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeInputTab === tab.id;
@@ -1633,8 +1633,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                     }}
                   >
                     {isLiveDetecting
-                      ? <><Activity size={15} className="animate-pulse" /> Stop AI Scan</>  
-                      : <><Zap size={15} /> Start AI Scan</> }
+                      ? <><Activity size={15} className="animate-pulse" /> Stop AI Scan</>
+                      : <><Zap size={15} /> Start AI Scan</>}
                   </button>
                 </>
               )}
@@ -1657,7 +1657,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 autoPlay playsInline muted
                 style={{ width: '100%', minHeight: '340px', maxHeight: '460px', objectFit: 'contain', display: 'block', background: '#000' }}
               />
-              
+
               {/* Canvas Overlay for crisp real-time bounding boxes and depth labels */}
               <canvas
                 ref={overlayCanvasRef}
@@ -1787,11 +1787,11 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                   const currentDets = liveDetections.length > 0
                     ? liveDetections
                     : (detectionResult.detections && detectionResult.detections.length > 0
-                        ? detectionResult.detections
-                        : [
-                            { class_name: 'Pothole', confidence: 0.92, dimensions: { length_cm: 42, width_cm: 36, depth_cm: 7.5 } },
-                            { class_name: 'Alligator Crack / Base Failure', confidence: 0.87, dimensions: { length_cm: 110, width_cm: 55, depth_cm: 4.0 } }
-                          ]);
+                      ? detectionResult.detections
+                      : [
+                        { class_name: 'Pothole', confidence: 0.92, dimensions: { length_cm: 42, width_cm: 36, depth_cm: 7.5 } },
+                        { class_name: 'Alligator Crack / Base Failure', confidence: 0.87, dimensions: { length_cm: 110, width_cm: 55, depth_cm: 4.0 } }
+                      ]);
                   if (liveMapRef.current) {
                     liveMapRef.current.dropPins(currentDets);
                   }
@@ -2378,8 +2378,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.3rem', marginBottom: '0.5rem' }}>
                                 {[
                                   { label: '↔ LENGTH', value: det.dimensions?.length_cm != null ? `${det.dimensions.length_cm} cm` : '—' },
-                                  { label: '↕ WIDTH',  value: det.dimensions?.width_cm  != null ? `${det.dimensions.width_cm} cm`  : '—' },
-                                  { label: '↓ DEPTH',  value: det.dimensions?.depth_cm  != null ? `${det.dimensions.depth_cm} cm`  : '—' },
+                                  { label: '↕ WIDTH', value: det.dimensions?.width_cm != null ? `${det.dimensions.width_cm} cm` : '—' },
+                                  { label: '↓ DEPTH', value: det.dimensions?.depth_cm != null ? `${det.dimensions.depth_cm} cm` : '—' },
                                 ].map(({ label, value }) => (
                                   <div key={label} style={{ background: 'rgba(0,0,0,0.35)', borderRadius: '5px', padding: '0.3rem 0.4rem', textAlign: 'center' }}>
                                     <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>{label}</div>
@@ -2603,161 +2603,161 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
           {((activeInputTab === 'video' && videoStatus === 'completed') ||
             (activeInputTab === 'image' && scanComplete && isBackendResult) ||
             (activeInputTab === 'samples' && selectedSample && scanComplete)) && (
-            <div style={{ padding: '0.9rem 1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid rgba(6,182,212,0.25)', boxShadow: '0 0 0 1px rgba(6,182,212,0.08)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <MapPin size={13} style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', fontWeight: 700 }}>
-                    INCIDENT GPS LOCATION {activeInputTab === 'video' ? '• DASHCAM TELEMETRY' : ''}
-                  </span>
+              <div style={{ padding: '0.9rem 1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid rgba(6,182,212,0.25)', boxShadow: '0 0 0 1px rgba(6,182,212,0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <MapPin size={13} style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', fontWeight: 700 }}>
+                      INCIDENT GPS LOCATION {activeInputTab === 'video' ? '• DASHCAM TELEMETRY' : ''}
+                    </span>
+                  </div>
+                  {detectionGpsLocation?.source === 'exif' && (
+                    <span style={{
+                      fontSize: '0.62rem',
+                      padding: '2px 7px',
+                      borderRadius: '4px',
+                      background: '#0F172A',
+                      color: '#06B6D4',
+                      border: '1px solid rgba(6,182,212,0.4)',
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      📷 EXTRACTED FROM IMAGE EXIF
+                    </span>
+                  )}
+                  {detectionGpsLocation?.source === 'device' && (
+                    <span style={{
+                      fontSize: '0.62rem',
+                      padding: '2px 7px',
+                      borderRadius: '4px',
+                      background: '#0F172A',
+                      color: '#94A3B8',
+                      border: '1px solid #334155',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      🌐 LIVE BROWSER FALLBACK
+                    </span>
+                  )}
+                  {detectionGpsLocation?.source === 'sample' && (
+                    <span style={{
+                      fontSize: '0.62rem',
+                      padding: '2px 7px',
+                      borderRadius: '4px',
+                      background: '#0F172A',
+                      color: '#8B5CF6',
+                      border: '1px solid rgba(139,92,246,0.3)',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      📍 BENCHMARK CORRIDOR
+                    </span>
+                  )}
                 </div>
-                {detectionGpsLocation?.source === 'exif' && (
-                  <span style={{
-                    fontSize: '0.62rem',
-                    padding: '2px 7px',
-                    borderRadius: '4px',
-                    background: '#0F172A',
-                    color: '#06B6D4',
-                    border: '1px solid rgba(6,182,212,0.4)',
-                    fontWeight: 700,
-                    letterSpacing: '0.04em',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    📷 EXTRACTED FROM IMAGE EXIF
-                  </span>
-                )}
-                {detectionGpsLocation?.source === 'device' && (
-                  <span style={{
-                    fontSize: '0.62rem',
-                    padding: '2px 7px',
-                    borderRadius: '4px',
-                    background: '#0F172A',
-                    color: '#94A3B8',
-                    border: '1px solid #334155',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    🌐 LIVE BROWSER FALLBACK
-                  </span>
-                )}
-                {detectionGpsLocation?.source === 'sample' && (
-                  <span style={{
-                    fontSize: '0.62rem',
-                    padding: '2px 7px',
-                    borderRadius: '4px',
-                    background: '#0F172A',
-                    color: '#8B5CF6',
-                    border: '1px solid rgba(139,92,246,0.3)',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    📍 BENCHMARK CORRIDOR
-                  </span>
-                )}
-              </div>
-              {detectionGpsLocation?.loading ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.73rem', color: 'var(--accent-cyan)' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', border: '2px solid var(--accent-cyan)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
-                  {detectionGpsLocation?.source === 'exif' ? 'Extracting image EXIF metadata & resolving coordinates…' : 'Acquiring GPS position…'}
-                </div>
-              ) : (() => {
-                if (activeInputTab === 'image' && detectionGpsLocation?.source === 'none') {
-                  return (
-                    <div style={{ fontSize: '0.78rem', color: '#F97316', lineHeight: 1.45 }}>
-                      <div style={{ marginBottom: '0.5rem' }}>
-                        ⚠ No GPS metadata in this image (EXIF stripped or camera GPS was off).
+                {detectionGpsLocation?.loading ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.73rem', color: 'var(--accent-cyan)' }}>
+                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', border: '2px solid var(--accent-cyan)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
+                    {detectionGpsLocation?.source === 'exif' ? 'Extracting image EXIF metadata & resolving coordinates…' : 'Acquiring GPS position…'}
+                  </div>
+                ) : (() => {
+                  if (activeInputTab === 'image' && detectionGpsLocation?.source === 'none') {
+                    return (
+                      <div style={{ fontSize: '0.78rem', color: '#F97316', lineHeight: 1.45 }}>
+                        <div style={{ marginBottom: '0.5rem' }}>
+                          ⚠ No GPS metadata in this image (EXIF stripped or camera GPS was off).
+                        </div>
+                        <button
+                          onClick={getGpsAndGeocode}
+                          style={{
+                            background: 'rgba(37, 99, 235, 0.2)',
+                            border: '1px solid #2563eb',
+                            color: '#60a5fa',
+                            borderRadius: '6px',
+                            padding: '0.35rem 0.75rem',
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem'
+                          }}
+                        >
+                          <MapPin size={12} /> 📍 Geotag with My Current Location
+                        </button>
+                        {(detectionGpsLocation?.dateTime || detectionGpsLocation?.cameraModel) && (
+                          <div style={{ marginTop: '0.4rem', fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
+                            {detectionGpsLocation?.dateTime && <>📅 {detectionGpsLocation.dateTime} </>}
+                            {(detectionGpsLocation?.cameraMake || detectionGpsLocation?.cameraModel) && <>📷 {[detectionGpsLocation.cameraMake, detectionGpsLocation.cameraModel].filter(Boolean).join(' ')}</>}
+                          </div>
+                        )}
                       </div>
-                      <button
-                        onClick={getGpsAndGeocode}
-                        style={{
-                          background: 'rgba(37, 99, 235, 0.2)',
-                          border: '1px solid #2563eb',
-                          color: '#60a5fa',
-                          borderRadius: '6px',
-                          padding: '0.35rem 0.75rem',
-                          fontSize: '0.75rem',
-                          cursor: 'pointer',
-                          fontWeight: 600,
-                          display: 'inline-flex',
+                    );
+                  }
+                  const addr = detectionGpsLocation?.address || selectedSample?.location || (activeInputTab === 'video' ? 'NH-75 Highway Corridor, Km 114, Hassan - Bengaluru Highway' : 'M.G. Road Corridor, Bengaluru, Karnataka');
+                  const lat = detectionGpsLocation?.coords?.lat ?? (selectedSample?.coordinates?.[0] ?? 12.9716);
+                  const lng = detectionGpsLocation?.coords?.lng ?? (selectedSample?.coordinates?.[1] ?? 77.5946);
+
+                  return (
+                    <>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.45, marginBottom: '0.45rem' }}>
+                        {addr}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.3rem' }}>
+                        <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' }}>
+                          {lat.toFixed(6)}°N,&nbsp;{lng.toFixed(6)}°E
+                        </span>
+                        <a
+                          href={`https://www.google.com/maps?q=${lat},${lng}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ fontSize: '0.68rem', color: 'var(--accent-cyan)', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                        >
+                          <MapPin size={10} /> Open in Google Maps ↗
+                        </a>
+                      </div>
+
+                      {/* Metadata details (Timestamp, Camera model, Elevation) */}
+                      {(detectionGpsLocation?.dateTime || detectionGpsLocation?.cameraModel || detectionGpsLocation?.altitude != null) && (
+                        <div style={{
+                          marginTop: '0.6rem',
+                          paddingTop: '0.5rem',
+                          borderTop: '1px solid rgba(148, 163, 184, 0.15)',
+                          display: 'flex',
+                          flexWrap: 'wrap',
                           alignItems: 'center',
-                          gap: '0.35rem'
-                        }}
-                      >
-                        <MapPin size={12} /> 📍 Geotag with My Current Location
-                      </button>
-                      {(detectionGpsLocation?.dateTime || detectionGpsLocation?.cameraModel) && (
-                        <div style={{ marginTop: '0.4rem', fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
-                          {detectionGpsLocation?.dateTime && <>📅 {detectionGpsLocation.dateTime} </>}
-                          {(detectionGpsLocation?.cameraMake || detectionGpsLocation?.cameraModel) && <>📷 {[detectionGpsLocation.cameraMake, detectionGpsLocation.cameraModel].filter(Boolean).join(' ')}</>}
+                          gap: '0.75rem',
+                          fontSize: '0.68rem',
+                          color: 'var(--text-secondary)'
+                        }}>
+                          {detectionGpsLocation?.dateTime && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              📅 <span style={{ color: 'var(--text-tertiary)' }}>Captured:</span> <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{detectionGpsLocation.dateTime}</span>
+                            </span>
+                          )}
+                          {(detectionGpsLocation?.cameraMake || detectionGpsLocation?.cameraModel) && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              📷 <span style={{ color: 'var(--text-tertiary)' }}>Camera:</span> <span style={{ color: 'var(--text-primary)' }}>{[detectionGpsLocation.cameraMake, detectionGpsLocation.cameraModel].filter(Boolean).join(' ')}</span>
+                            </span>
+                          )}
+                          {detectionGpsLocation?.altitude != null && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              ⛰️ <span style={{ color: 'var(--text-tertiary)' }}>Elev:</span> <span style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>{detectionGpsLocation.altitude} m</span>
+                            </span>
+                          )}
                         </div>
                       )}
-                    </div>
+                    </>
                   );
-                }
-                const addr = detectionGpsLocation?.address || selectedSample?.location || (activeInputTab === 'video' ? 'NH-75 Highway Corridor, Km 114, Hassan - Bengaluru Highway' : 'M.G. Road Corridor, Bengaluru, Karnataka');
-                const lat = detectionGpsLocation?.coords?.lat ?? (selectedSample?.coordinates?.[0] ?? 12.9716);
-                const lng = detectionGpsLocation?.coords?.lng ?? (selectedSample?.coordinates?.[1] ?? 77.5946);
-
-                return (
-                  <>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.45, marginBottom: '0.45rem' }}>
-                      {addr}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.3rem' }}>
-                      <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' }}>
-                        {lat.toFixed(6)}°N,&nbsp;{lng.toFixed(6)}°E
-                      </span>
-                      <a
-                        href={`https://www.google.com/maps?q=${lat},${lng}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{ fontSize: '0.68rem', color: 'var(--accent-cyan)', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-                      >
-                        <MapPin size={10} /> Open in Google Maps ↗
-                      </a>
-                    </div>
-
-                    {/* Metadata details (Timestamp, Camera model, Elevation) */}
-                    {(detectionGpsLocation?.dateTime || detectionGpsLocation?.cameraModel || detectionGpsLocation?.altitude != null) && (
-                      <div style={{
-                        marginTop: '0.6rem',
-                        paddingTop: '0.5rem',
-                        borderTop: '1px solid rgba(148, 163, 184, 0.15)',
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                        fontSize: '0.68rem',
-                        color: 'var(--text-secondary)'
-                      }}>
-                        {detectionGpsLocation?.dateTime && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            📅 <span style={{ color: 'var(--text-tertiary)' }}>Captured:</span> <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{detectionGpsLocation.dateTime}</span>
-                          </span>
-                        )}
-                        {(detectionGpsLocation?.cameraMake || detectionGpsLocation?.cameraModel) && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            📷 <span style={{ color: 'var(--text-tertiary)' }}>Camera:</span> <span style={{ color: 'var(--text-primary)' }}>{[detectionGpsLocation.cameraMake, detectionGpsLocation.cameraModel].filter(Boolean).join(' ')}</span>
-                          </span>
-                        )}
-                        {detectionGpsLocation?.altitude != null && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            ⛰️ <span style={{ color: 'var(--text-tertiary)' }}>Elev:</span> <span style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>{detectionGpsLocation.altitude} m</span>
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-          )}
+                })()}
+              </div>
+            )}
 
 
 
@@ -2781,8 +2781,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                   const sevColor = det.severity === 'High'
                     ? 'var(--severity-critical)'
                     : det.severity === 'Medium'
-                    ? 'var(--severity-medium)'
-                    : 'var(--accent-blue)';
+                      ? 'var(--severity-medium)'
+                      : 'var(--accent-blue)';
                   return (
                     <div
                       key={i}

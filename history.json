@@ -1,5 +1,565 @@
 [
     {
+        "id": "3e1b3b3d-45e9-42e1-affd-3f369b659811",
+        "type": "video",
+        "timestamp": "2026-10-24 12:57:14",
+        "model_id": "damage-ensemble",
+        "filename": "3e1b3b3d-45e9-42e1-affd-3f369b659811.mp4",
+        "original_url": "/uploads/3e1b3b3d-45e9-42e1-affd-3f369b659811.mp4",
+        "processed_url": "/processed/processed_3e1b3b3d-45e9-42e1-affd-3f369b659811.mp4",
+        "total_damage": 14,
+        "severity": "High",
+        "classes_detected": [
+            "Surface Distress / Base Failure",
+            "Pothole"
+        ]
+    },
+    {
+        "id": "0e34618e-fdf4-473c-a694-e0e5ee89a5f3",
+        "type": "video",
+        "timestamp": "2026-10-24 12:56:49",
+        "model_id": "damage-ensemble",
+        "filename": "0e34618e-fdf4-473c-a694-e0e5ee89a5f3.mp4",
+        "original_url": "/uploads/0e34618e-fdf4-473c-a694-e0e5ee89a5f3.mp4",
+        "processed_url": "/processed/processed_0e34618e-fdf4-473c-a694-e0e5ee89a5f3.mp4",
+        "total_damage": 6,
+        "severity": "Medium",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "8ab94376-7bd6-4b1a-8409-e007fca3deba",
+        "type": "video",
+        "timestamp": "2026-10-24 12:56:18",
+        "model_id": "damage-ensemble",
+        "filename": "8ab94376-7bd6-4b1a-8409-e007fca3deba.mp4",
+        "original_url": "/uploads/8ab94376-7bd6-4b1a-8409-e007fca3deba.mp4",
+        "processed_url": "/processed/processed_8ab94376-7bd6-4b1a-8409-e007fca3deba.mp4",
+        "total_damage": 0,
+        "severity": "Clear",
+        "classes_detected": []
+    },
+    {
+        "id": "f50e2294-a835-4693-81b3-9acb3110240b",
+        "type": "image",
+        "timestamp": "2026-10-24 12:54:09",
+        "model_id": "damage-ensemble",
+        "filename": "road damage6.jpeg",
+        "original_url": "/uploads/f50e2294-a835-4693-81b3-9acb3110240b.jpeg",
+        "processed_url": "/processed/processed_f50e2294-a835-4693-81b3-9acb3110240b.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole",
+            "Surface Distress / Base Failure"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "4a8b9757-3d30-4697-9e2b-ecd9b2a393e8",
+        "type": "image",
+        "timestamp": "2026-10-24 12:53:57",
+        "model_id": "damage-ensemble",
+        "filename": "images (4).jpg",
+        "original_url": "/uploads/4a8b9757-3d30-4697-9e2b-ecd9b2a393e8.jpg",
+        "processed_url": "/processed/processed_4a8b9757-3d30-4697-9e2b-ecd9b2a393e8.jpg",
+        "total_damage": 1,
+        "severity": "Medium",
+        "classes_detected": [
+            "Alligator Crack"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "91326079-074f-49c6-8967-2f1a12410830",
+        "type": "image",
+        "timestamp": "2026-10-24 12:49:29",
+        "model_id": "damage-ensemble",
+        "filename": "road damage8.jpeg",
+        "original_url": "/uploads/91326079-074f-49c6-8967-2f1a12410830.jpeg",
+        "processed_url": "/processed/processed_91326079-074f-49c6-8967-2f1a12410830.jpeg",
+        "total_damage": 2,
+        "severity": "Medium",
+        "classes_detected": [
+            "Surface Distress / Base Failure"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "796113c8-67ea-4b4e-aeeb-19da594ec07e",
+        "type": "image",
+        "timestamp": "2026-10-24 12:42:26",
+        "model_id": "damage-yolo12s",
+        "filename": "road damage4.jpg",
+        "original_url": "/uploads/796113c8-67ea-4b4e-aeeb-19da594ec07e.jpg",
+        "processed_url": "/processed/processed_796113c8-67ea-4b4e-aeeb-19da594ec07e.jpg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "3dbcf917-2cf5-4f86-a8ab-2b28ed496d14",
+        "type": "image",
+        "timestamp": "2026-10-24 12:42:09",
+        "model_id": "damage-ensemble",
+        "filename": "road damage4.jpg",
+        "original_url": "/uploads/3dbcf917-2cf5-4f86-a8ab-2b28ed496d14.jpg",
+        "processed_url": "/processed/processed_3dbcf917-2cf5-4f86-a8ab-2b28ed496d14.jpg",
+        "total_damage": 9,
+        "severity": "High",
+        "classes_detected": [
+            "Surface Distress / Base Failure",
+            "Pothole"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "29d1b103-0271-41ed-bf83-84b33c9da0c2",
+        "type": "image",
+        "timestamp": "2026-10-24 12:41:30",
+        "model_id": "damage-ensemble",
+        "filename": "road damage4.jpg",
+        "original_url": "/uploads/29d1b103-0271-41ed-bf83-84b33c9da0c2.jpg",
+        "processed_url": "/processed/processed_29d1b103-0271-41ed-bf83-84b33c9da0c2.jpg",
+        "total_damage": 9,
+        "severity": "High",
+        "classes_detected": [
+            "Surface Distress / Base Failure",
+            "Pothole"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "6aef133a-ac63-43e4-8eaa-406206c74ca8",
+        "type": "image",
+        "timestamp": "2026-10-24 12:41:07",
+        "model_id": "damage-ensemble",
+        "filename": "road damage5.jpeg",
+        "original_url": "/uploads/6aef133a-ac63-43e4-8eaa-406206c74ca8.jpeg",
+        "processed_url": "/processed/processed_6aef133a-ac63-43e4-8eaa-406206c74ca8.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Surface Distress / Base Failure",
+            "Pothole"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "cb097f03-0832-4f90-9db3-4f9da4f76b0d",
+        "type": "image",
+        "timestamp": "2026-10-24 12:40:55",
+        "model_id": "damage-ensemble",
+        "filename": "road damage6.jpeg",
+        "original_url": "/uploads/cb097f03-0832-4f90-9db3-4f9da4f76b0d.jpeg",
+        "processed_url": "/processed/processed_cb097f03-0832-4f90-9db3-4f9da4f76b0d.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole",
+            "Surface Distress / Base Failure"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "341e6e09-29ab-49cf-8bdb-f0fcba449d62",
+        "type": "image",
+        "timestamp": "2026-10-24 12:39:19",
+        "model_id": "damage-ensemble",
+        "filename": "road damage7.jpeg",
+        "original_url": "/uploads/341e6e09-29ab-49cf-8bdb-f0fcba449d62.jpeg",
+        "processed_url": "/processed/processed_341e6e09-29ab-49cf-8bdb-f0fcba449d62.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole",
+            "Surface Distress / Base Failure"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "0779920a-7ee3-43de-8b63-19646cff383b",
+        "type": "image",
+        "timestamp": "2026-10-24 12:39:08",
+        "model_id": "damage-ensemble",
+        "filename": "road damage8.jpeg",
+        "original_url": "/uploads/0779920a-7ee3-43de-8b63-19646cff383b.jpeg",
+        "processed_url": "/processed/processed_0779920a-7ee3-43de-8b63-19646cff383b.jpeg",
+        "total_damage": 2,
+        "severity": "Medium",
+        "classes_detected": [
+            "Surface Distress / Base Failure"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "d987c4ed-07e0-4acb-96f9-400ad4381568",
+        "type": "video",
+        "timestamp": "2026-10-24 11:06:45",
+        "model_id": "damage-ensemble",
+        "filename": "d987c4ed-07e0-4acb-96f9-400ad4381568.mp4",
+        "original_url": "/uploads/d987c4ed-07e0-4acb-96f9-400ad4381568.mp4",
+        "processed_url": "/processed/processed_d987c4ed-07e0-4acb-96f9-400ad4381568.mp4",
+        "total_damage": 6,
+        "severity": "Medium",
+        "classes_detected": [
+            "Pothole"
+        ]
+    },
+    {
+        "id": "e3871a65-97d5-4bee-80a8-7f33cf6cbde1",
+        "type": "video",
+        "timestamp": "2026-10-24 11:06:16",
+        "model_id": "damage-ensemble",
+        "filename": "e3871a65-97d5-4bee-80a8-7f33cf6cbde1.mp4",
+        "original_url": "/uploads/e3871a65-97d5-4bee-80a8-7f33cf6cbde1.mp4",
+        "processed_url": "/processed/processed_e3871a65-97d5-4bee-80a8-7f33cf6cbde1.mp4",
+        "total_damage": 0,
+        "severity": "Clear",
+        "classes_detected": []
+    },
+    {
+        "id": "32ee63dd-0b7f-48e9-85cd-2dda04ed98c4",
+        "type": "image",
+        "timestamp": "2026-10-24 11:05:37",
+        "model_id": "damage-ensemble",
+        "filename": "road damage5.jpeg",
+        "original_url": "/uploads/32ee63dd-0b7f-48e9-85cd-2dda04ed98c4.jpeg",
+        "processed_url": "/processed/processed_32ee63dd-0b7f-48e9-85cd-2dda04ed98c4.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Surface Distress / Base Failure",
+            "Pothole"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "a681c348-7db2-4a2a-ad4a-843a2d79ae6c",
+        "type": "image",
+        "timestamp": "2026-10-24 11:05:24",
+        "model_id": "damage-ensemble",
+        "filename": "road damage4.jpg",
+        "original_url": "/uploads/a681c348-7db2-4a2a-ad4a-843a2d79ae6c.jpg",
+        "processed_url": "/processed/processed_a681c348-7db2-4a2a-ad4a-843a2d79ae6c.jpg",
+        "total_damage": 9,
+        "severity": "High",
+        "classes_detected": [
+            "Surface Distress / Base Failure",
+            "Pothole"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "0a5c8545-cba3-490e-b3c9-e049f547a6d2",
+        "type": "image",
+        "timestamp": "2026-10-24 11:04:53",
+        "model_id": "damage-ensemble",
+        "filename": "road damage8.jpeg",
+        "original_url": "/uploads/0a5c8545-cba3-490e-b3c9-e049f547a6d2.jpeg",
+        "processed_url": "/processed/processed_0a5c8545-cba3-490e-b3c9-e049f547a6d2.jpeg",
+        "total_damage": 2,
+        "severity": "Medium",
+        "classes_detected": [
+            "Surface Distress / Base Failure"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "44da5c02-1edd-4fc8-b778-3ed30f55b2a3",
+        "type": "image",
+        "timestamp": "2026-10-24 11:04:33",
+        "model_id": "damage-ensemble",
+        "filename": "road damage6.jpeg",
+        "original_url": "/uploads/44da5c02-1edd-4fc8-b778-3ed30f55b2a3.jpeg",
+        "processed_url": "/processed/processed_44da5c02-1edd-4fc8-b778-3ed30f55b2a3.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole",
+            "Surface Distress / Base Failure"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "973d5c55-5433-4438-a348-71eaea061020",
+        "type": "image",
+        "timestamp": "2026-10-24 11:04:17",
+        "model_id": "damage-ensemble",
+        "filename": "road damage7.jpeg",
+        "original_url": "/uploads/973d5c55-5433-4438-a348-71eaea061020.jpeg",
+        "processed_url": "/processed/processed_973d5c55-5433-4438-a348-71eaea061020.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole",
+            "Surface Distress / Base Failure"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "03bcb97d-1201-41f3-ab13-b2c8732d39ec",
+        "type": "image",
+        "timestamp": "2026-10-24 11:04:08",
+        "model_id": "damage-ensemble",
+        "filename": "road damage8.jpeg",
+        "original_url": "/uploads/03bcb97d-1201-41f3-ab13-b2c8732d39ec.jpeg",
+        "processed_url": "/processed/processed_03bcb97d-1201-41f3-ab13-b2c8732d39ec.jpeg",
+        "total_damage": 2,
+        "severity": "Medium",
+        "classes_detected": [
+            "Surface Distress / Base Failure"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "b741bcba-cac1-4c9e-a8a0-4ff0073d33fb",
+        "type": "image",
+        "timestamp": "2026-10-24 01:12:59",
+        "model_id": "damage-ensemble",
+        "filename": "road damage4.jpg",
+        "original_url": "/uploads/b741bcba-cac1-4c9e-a8a0-4ff0073d33fb.jpg",
+        "processed_url": "/processed/processed_b741bcba-cac1-4c9e-a8a0-4ff0073d33fb.jpg",
+        "total_damage": 9,
+        "severity": "High",
+        "classes_detected": [
+            "Surface Distress / Base Failure",
+            "Pothole"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "f286b6cb-2ffc-473a-b134-418c8e26b1be",
+        "type": "image",
+        "timestamp": "2026-10-24 01:12:48",
+        "model_id": "damage-ensemble",
+        "filename": "road damage7.jpeg",
+        "original_url": "/uploads/f286b6cb-2ffc-473a-b134-418c8e26b1be.jpeg",
+        "processed_url": "/processed/processed_f286b6cb-2ffc-473a-b134-418c8e26b1be.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole",
+            "Surface Distress / Base Failure"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "233bd153-25de-4293-af3f-569d43054fb7",
+        "type": "image",
+        "timestamp": "2026-10-24 01:12:35",
+        "model_id": "damage-ensemble",
+        "filename": "road damage6.jpeg",
+        "original_url": "/uploads/233bd153-25de-4293-af3f-569d43054fb7.jpeg",
+        "processed_url": "/processed/processed_233bd153-25de-4293-af3f-569d43054fb7.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole",
+            "Surface Distress / Base Failure"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "1aa42037-7088-4b8e-b40e-d72578dc4de3",
+        "type": "image",
+        "timestamp": "2026-10-24 01:12:24",
+        "model_id": "damage-ensemble",
+        "filename": "road damage8.jpeg",
+        "original_url": "/uploads/1aa42037-7088-4b8e-b40e-d72578dc4de3.jpeg",
+        "processed_url": "/processed/processed_1aa42037-7088-4b8e-b40e-d72578dc4de3.jpeg",
+        "total_damage": 2,
+        "severity": "Medium",
+        "classes_detected": [
+            "Surface Distress / Base Failure"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
         "id": "cd838431-1318-4ae5-83a4-1e64de71e400",
         "type": "image",
         "timestamp": "2026-10-13 12:56:42",
