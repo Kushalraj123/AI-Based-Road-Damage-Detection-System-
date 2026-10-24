@@ -1,5 +1,127 @@
 [
     {
+        "id": "6333ed87-9ca8-4eb7-8ab3-1d38097d8c05",
+        "type": "image",
+        "timestamp": "2026-10-24 21:29:41",
+        "model_id": "damage-ensemble",
+        "filename": "road damage7.jpeg",
+        "original_url": "/uploads/6333ed87-9ca8-4eb7-8ab3-1d38097d8c05.jpeg",
+        "processed_url": "/processed/processed_6333ed87-9ca8-4eb7-8ab3-1d38097d8c05.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Surface Distress"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "e03e489e-1a07-4262-918b-db4b16518e77",
+        "type": "image",
+        "timestamp": "2026-10-24 21:29:35",
+        "model_id": "damage-ensemble",
+        "filename": "road damage7.jpeg",
+        "original_url": "/uploads/e03e489e-1a07-4262-918b-db4b16518e77.jpeg",
+        "processed_url": "/processed/processed_e03e489e-1a07-4262-918b-db4b16518e77.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Surface Distress"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "724d9379-d725-4dff-862b-ba1c0aa99116",
+        "type": "image",
+        "timestamp": "2026-10-24 21:25:10",
+        "model_id": "damage-ensemble",
+        "filename": "road damage7.jpeg",
+        "original_url": "/uploads/724d9379-d725-4dff-862b-ba1c0aa99116.jpeg",
+        "processed_url": "/processed/processed_724d9379-d725-4dff-862b-ba1c0aa99116.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Surface Distress"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "b1ef8d56-ce08-464d-8777-93964d6e2a89",
+        "type": "image",
+        "timestamp": "2026-10-24 21:24:06",
+        "model_id": "damage-ensemble",
+        "filename": "road damage7.jpeg",
+        "original_url": "/uploads/b1ef8d56-ce08-464d-8777-93964d6e2a89.jpeg",
+        "processed_url": "/processed/processed_b1ef8d56-ce08-464d-8777-93964d6e2a89.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole",
+            "Surface Distress"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "76eba22c-9fc1-44b9-ac2a-6ca7c264b363",
+        "type": "image",
+        "timestamp": "2026-10-24 21:23:46",
+        "model_id": "damage-ensemble",
+        "filename": "road damage7.jpeg",
+        "original_url": "/uploads/76eba22c-9fc1-44b9-ac2a-6ca7c264b363.jpeg",
+        "processed_url": "/processed/processed_76eba22c-9fc1-44b9-ac2a-6ca7c264b363.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole",
+            "Surface Distress"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
         "id": "d42150a8-5de5-47df-b750-31e7b8028c0a",
         "type": "image",
         "timestamp": "2026-10-24 20:10:49",
