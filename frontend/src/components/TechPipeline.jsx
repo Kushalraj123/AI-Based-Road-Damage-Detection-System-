@@ -52,7 +52,7 @@ export default function TechPipeline() {
       icon: Tag,
       color: 'var(--accent-purple)',
       description: 'Distress categorizer distinguishes Potholes (D40), Alligator Fatigue Cracks (D20), Transverse Cracks (D10), Longitudinal Cracks (D00), and Rutting.',
-      metrics: ['RDD2022 Compliant', '5 Core Classes', '98.7% Accuracy']
+      metrics: ['5 Core Classes', '98.7% Accuracy']
     },
     {
       id: 4,
@@ -60,8 +60,8 @@ export default function TechPipeline() {
       subtitle: 'Structural Risk Matrix',
       icon: AlertTriangle,
       color: 'var(--severity-high)',
-      description: 'Calculates distress depth, surface area footprint, vehicular hazard index, and Pavement Condition Index (PCI) deduction points.',
-      metrics: ['PCI Metric Index', 'Depth Volumetrics', 'P1-P3 Priority Rating']
+      description: 'Estimates distress dimensions, surface area, hazard indicators, and a condition score from detected damage.',
+      metrics: ['Heuristic Condition Score', 'Estimated Dimensions', 'P1-P3 Priority Estimate']
     },
     {
       id: 5,

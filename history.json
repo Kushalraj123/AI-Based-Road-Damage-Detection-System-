@@ -1,5 +1,338 @@
 [
     {
+        "id": "2481d70b-4f02-42d2-b876-6b6ff8320bea",
+        "type": "image",
+        "timestamp": "2026-11-04 20:06:10",
+        "model_id": "damage-ensemble",
+        "filename": "WhatsApp Image 2026-11-04 at 19.20.46.jpeg",
+        "original_url": "/uploads/2481d70b-4f02-42d2-b876-6b6ff8320bea.jpeg",
+        "processed_url": "/processed/processed_2481d70b-4f02-42d2-b876-6b6ff8320bea.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "45ff32e1-e737-4a04-acd8-be2fe64f977b",
+        "type": "image",
+        "timestamp": "2026-11-04 19:57:15",
+        "model_id": "damage-ensemble",
+        "filename": "WhatsApp Image 2026-11-04 at 19.20.46.jpeg",
+        "original_url": "/uploads/45ff32e1-e737-4a04-acd8-be2fe64f977b.jpeg",
+        "processed_url": "/processed/processed_45ff32e1-e737-4a04-acd8-be2fe64f977b.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "a5ec481b-a907-411e-8691-96513adfd36d",
+        "type": "image",
+        "timestamp": "2026-11-04 19:57:09",
+        "model_id": "damage-ensemble",
+        "filename": "WhatsApp Image 2026-11-04 at 19.20.43.jpeg",
+        "original_url": "/uploads/a5ec481b-a907-411e-8691-96513adfd36d.jpeg",
+        "processed_url": "/processed/processed_a5ec481b-a907-411e-8691-96513adfd36d.jpeg",
+        "total_damage": 1,
+        "severity": "Medium",
+        "classes_detected": [
+            "Pothole"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "3ea18d1b-d765-47b3-be0f-f5634c8e3f5b",
+        "type": "image",
+        "timestamp": "2026-11-04 19:56:34",
+        "model_id": "damage-ensemble",
+        "filename": "WhatsApp Image 2026-11-04 at 19.20.46.jpeg",
+        "original_url": "/uploads/3ea18d1b-d765-47b3-be0f-f5634c8e3f5b.jpeg",
+        "processed_url": "/processed/processed_3ea18d1b-d765-47b3-be0f-f5634c8e3f5b.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "7b5be330-c340-4b5e-85f3-66b2289e4c52",
+        "type": "image",
+        "timestamp": "2026-11-04 19:50:30",
+        "model_id": "rdd-india-finetuned",
+        "filename": "ae1cce63-cfb3-407b-9046-d7bb68e68966.jpg",
+        "original_url": "/uploads/7b5be330-c340-4b5e-85f3-66b2289e4c52.jpg",
+        "processed_url": "/processed/processed_7b5be330-c340-4b5e-85f3-66b2289e4c52.jpg",
+        "total_damage": 1,
+        "severity": "Low",
+        "classes_detected": [
+            "Longitudinal Crack"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "c98f4e7c-d626-42ac-811d-6ecdbc51f034",
+        "type": "image",
+        "timestamp": "2026-11-04 19:50:30",
+        "model_id": "rdd-india-finetuned",
+        "filename": "ae1cce63-cfb3-407b-9046-d7bb68e68966.jpg",
+        "original_url": "/uploads/c98f4e7c-d626-42ac-811d-6ecdbc51f034.jpg",
+        "processed_url": "/processed/processed_c98f4e7c-d626-42ac-811d-6ecdbc51f034.jpg",
+        "total_damage": 2,
+        "severity": "High",
+        "classes_detected": [
+            "Longitudinal Crack",
+            "Pothole"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "ae1cce63-cfb3-407b-9046-d7bb68e68966",
+        "type": "image",
+        "timestamp": "2026-11-04 19:43:32",
+        "model_id": "damage-ensemble",
+        "filename": "images.jpg",
+        "original_url": "/uploads/ae1cce63-cfb3-407b-9046-d7bb68e68966.jpg",
+        "processed_url": "/processed/processed_ae1cce63-cfb3-407b-9046-d7bb68e68966.jpg",
+        "total_damage": 1,
+        "severity": "Low",
+        "classes_detected": [
+            "Longitudinal Crack"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "5011fe8a-7c72-4dba-8005-3b8d2ecf4a5c",
+        "type": "image",
+        "timestamp": "2026-11-04 19:40:46",
+        "model_id": "damage-ensemble",
+        "filename": "images.jpg",
+        "original_url": "/uploads/5011fe8a-7c72-4dba-8005-3b8d2ecf4a5c.jpg",
+        "processed_url": "/processed/processed_5011fe8a-7c72-4dba-8005-3b8d2ecf4a5c.jpg",
+        "total_damage": 1,
+        "severity": "Low",
+        "classes_detected": [
+            "Longitudinal Crack"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "e05bf444-fbca-4895-8abb-f3b1d548ae47",
+        "type": "image",
+        "timestamp": "2026-11-04 19:40:35",
+        "model_id": "damage-ensemble",
+        "filename": "images.jpg",
+        "original_url": "/uploads/e05bf444-fbca-4895-8abb-f3b1d548ae47.jpg",
+        "processed_url": "/processed/processed_e05bf444-fbca-4895-8abb-f3b1d548ae47.jpg",
+        "total_damage": 1,
+        "severity": "Low",
+        "classes_detected": [
+            "Longitudinal Crack"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "88507d32-82cb-428e-afb5-baf9ae19d41f",
+        "type": "image",
+        "timestamp": "2026-11-04 19:40:20",
+        "model_id": "damage-ensemble",
+        "filename": "images (1).jpg",
+        "original_url": "/uploads/88507d32-82cb-428e-afb5-baf9ae19d41f.jpg",
+        "processed_url": "/processed/processed_88507d32-82cb-428e-afb5-baf9ae19d41f.jpg",
+        "total_damage": 0,
+        "severity": "Clear",
+        "classes_detected": [],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "bf477055-2676-49a6-a579-02bcc4b28883",
+        "type": "image",
+        "timestamp": "2026-11-04 19:37:51",
+        "model_id": "damage-ensemble",
+        "filename": "WhatsApp Image 2026-11-04 at 19.20.46.jpeg",
+        "original_url": "/uploads/bf477055-2676-49a6-a579-02bcc4b28883.jpeg",
+        "processed_url": "/processed/processed_bf477055-2676-49a6-a579-02bcc4b28883.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "7da322fe-f371-4424-b3f5-8cc8682af54c",
+        "type": "image",
+        "timestamp": "2026-11-04 19:22:04",
+        "model_id": "damage-ensemble",
+        "filename": "WhatsApp Image 2026-11-04 at 19.20.46.jpeg",
+        "original_url": "/uploads/7da322fe-f371-4424-b3f5-8cc8682af54c.jpeg",
+        "processed_url": "/processed/processed_7da322fe-f371-4424-b3f5-8cc8682af54c.jpeg",
+        "total_damage": 4,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "cc9e215f-99f0-470c-be8d-fe686506c228",
+        "type": "image",
+        "timestamp": "2026-11-04 16:46:28",
+        "model_id": "damage-ensemble",
+        "filename": "cf3f715ae04c8eb4ea5df34703f0ae81.jpg",
+        "original_url": "/uploads/cc9e215f-99f0-470c-be8d-fe686506c228.jpg",
+        "processed_url": "/processed/processed_cc9e215f-99f0-470c-be8d-fe686506c228.jpg",
+        "total_damage": 0,
+        "severity": "Clear",
+        "classes_detected": [],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "1c6d2dd6-caee-4fe8-abdd-852b3fe64fe0",
+        "type": "image",
+        "timestamp": "2026-10-24 22:40:10",
+        "model_id": "damage-ensemble",
+        "filename": "Screenshot 2026-10-24 195658.png",
+        "original_url": "/uploads/1c6d2dd6-caee-4fe8-abdd-852b3fe64fe0.png",
+        "processed_url": "/processed/processed_1c6d2dd6-caee-4fe8-abdd-852b3fe64fe0.png",
+        "total_damage": 2,
+        "severity": "Medium",
+        "classes_detected": [
+            "Transverse Crack"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
         "id": "cd838431-1318-4ae5-83a4-1e64de71e400",
         "type": "image",
         "timestamp": "2026-10-13 12:56:42",

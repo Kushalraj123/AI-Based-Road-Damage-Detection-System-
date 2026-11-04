@@ -113,7 +113,33 @@ app.mount("/processed", StaticFiles(directory=PROCESSED_DIR), name="processed")
 video_tasks: Dict[str, Dict[str, Any]] = {}
 
 # Class mapping and color palettes
+FINETUNED_ID = "rdd-india-finetuned"
+FINETUNED_WEIGHTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "rdd_india_v8s_best.pt")
+
+
+def resolve_model_id(model_id: str) -> str:
+    """Legacy ids ("damage-ensemble") and unknown ids resolve to our fine-tuned model."""
+    if not model_id or model_id == "damage-ensemble" or model_id not in MODEL_CLASSES:
+        return FINETUNED_ID
+    return model_id
+
+
 MODEL_CLASSES = {
+    FINETUNED_ID: {
+        "local_path": FINETUNED_WEIGHTS,
+        "labels": {
+            0: "Longitudinal Crack",
+            1: "Transverse Crack",
+            2: "Alligator Crack",
+            3: "Pothole"
+        },
+        "colors": {
+            0: (22, 115, 249),
+            1: (22, 115, 249),
+            2: (22, 115, 249),
+            3: (68, 68, 239)
+        }
+    },
     "damage-yolov8": {
         "repo": "ozair23/yolov8-road-damage-detector",
         "filename": "best.pt",
@@ -211,18 +237,26 @@ class ModelManager:
 
     def get_model(self, model_id: str):
         if model_id not in MODEL_CLASSES or model_id == "damage-ensemble":
-            model_id = "damage-yolov8"
+            model_id = FINETUNED_ID
         
         with self.lock:
             if model_id in self.loaded_models:
                 return self.loaded_models[model_id]
 
-            repo_path = MODEL_CLASSES[model_id]["repo"]
-            filename = MODEL_CLASSES[model_id]["filename"]
-            print(f"Loading model {model_id} from {repo_path} ({filename})...")
+            cfg = MODEL_CLASSES[model_id]
+            repo_path = cfg.get("repo")
+            filename = cfg.get("filename")
+            print(f"Loading model {model_id} from {repo_path or cfg.get('local_path')} ({filename or 'local weights'})...")
             
             if ULTRALYTICS_AVAILABLE:
                 try:
+                    if cfg.get("local_path"):
+                        if not os.path.exists(cfg["local_path"]):
+                            raise FileNotFoundError(f"Fine-tuned weights not found at {cfg['local_path']}")
+                        model = YOLO(cfg["local_path"])
+                        self.loaded_models[model_id] = model
+                        print(f"Model {model_id} loaded from local weights.")
+                        return model
                     # Prefer local cached weights without network overhead, fallback to hub download
                     try:
                         local_path = hf_hub_download(repo_id=repo_path, filename=filename, local_files_only=True)
@@ -233,9 +267,9 @@ class ModelManager:
                     print(f"Model {model_id} successfully loaded into memory.")
                     return model
                 except Exception as e:
-                    print(f"Failed to load model {model_id}: {e}. Creating mock fallback.")
+                    print(f"Failed to load model {model_id}: {e}. Model unavailable.")
             else:
-                print("Ultralytics library not available. Using mock detector.")
+                print("Ultralytics library not available. Detection is disabled.")
             
             return None
 
@@ -247,11 +281,11 @@ async def startup_warmup():
         # Pre-warm both primary neural models at startup so user never experiences cold download/compile delay
         try:
             print("[Startup] Pre-loading and warming up YOLOv8 neural models...")
-            for mid in ["damage-yolov8", "pothole-yolov8"]:
+            for mid in [FINETUNED_ID]:
                 m = model_manager.get_model(mid)
                 if m is not None:
                     dummy = np.zeros((480, 480, 3), dtype=np.uint8)
-                    m.predict(dummy, imgsz=480, verbose=False, device="cpu")
+                    m.predict(dummy, imgsz=640, verbose=False, device="cpu")
             print("[Startup] All YOLOv8 neural models warmed up and ready for instant inference.")
         except Exception as e:
             print(f"[Startup] Preload notice: {e}")
@@ -340,42 +374,6 @@ def draw_stylized_box(image: np.ndarray, x1: int, y1: int, x2: int, y2: int, lab
     text_y = by2 - baseline - int(4 * scale)
     cv2.putText(image, text, (text_x, text_y), font, font_scale, (255, 255, 255), text_thickness, cv2.LINE_AA)
 
-# Simulated detection for fallback (or offline mode)
-def run_mock_detection(image: np.ndarray, confidence_threshold: float, model_id: str) -> List[Dict[str, Any]]:
-    # Create fake road damage coordinates based on image dimensions
-    h, w = image.shape[:2]
-    results = []
-    
-    # Class definitions based on model
-    classes = MODEL_CLASSES.get(model_id, MODEL_CLASSES["damage-yolo12s"])["labels"]
-    
-    # Seed deterministic coordinates based on image aspect ratio and properties to make it feel natural
-    np.random.seed(int((w * h) % 100000))
-    
-    num_damages = np.random.randint(1, 4)
-    for i in range(num_damages):
-        class_id = int(np.random.choice(list(classes.keys())))
-        conf = float(np.random.uniform(0.55, 0.95))
-        
-        if conf >= confidence_threshold:
-            # Let's generate sensible boxes (mostly in the lower half of the image where roads are)
-            bx_w = int(np.random.uniform(0.1, 0.25) * w)
-            bx_h = int(np.random.uniform(0.08, 0.18) * h)
-            
-            x_min = int(np.random.uniform(0.15, 0.7) * w)
-            y_min = int(np.random.uniform(0.5, 0.75) * h)
-            
-            x_max = min(w, x_min + bx_w)
-            y_max = min(h, y_min + bx_h)
-            
-            results.append({
-                "box": [x_min, y_min, x_max, y_max],
-                "class_id": class_id,
-                "class_name": classes[class_id],
-                "confidence": conf
-            })
-            
-    return results
 
 # ─── Real-World Dimension Estimation ────────────────────────────────────────
 # Camera model: standard road inspection camera at ~3 m mounting height.
@@ -398,8 +396,8 @@ DAMAGE_DEPTH_RANGES = {
 
 def calculate_detailed_materials(class_name: str, dimensions: Dict[str, float], confidence: float = 0.9) -> Dict[str, Any]:
     """
-    Civil Engineering Material & Remediation Cost Calculator adhering to ASTM D6433 & IRC:82 / MoRTH Standards.
-    Calibrated realistic municipal spot-repair costs and material quantities.
+    Rule-of-thumb material and cost estimator. Illustrative heuristics only, not certified to any standard.
+    Quantities and prices are rough assumptions, not measured values.
     """
     length_cm = dimensions.get("length_cm", 35.0)
     width_cm = dimensions.get("width_cm", 30.0)
@@ -425,7 +423,7 @@ def calculate_detailed_materials(class_name: str, dimensions: Dict[str, float], 
         cost_inr = mat_cost + labor_equip_cost
 
         return {
-            "category": "Pothole Patching (IRC:82 Spec)",
+            "category": "Pothole Patching",
             "hot_mix": f"{asphalt_kg} kg Bituminous Hot-Mix (VG-30)",
             "tack_coat": f"{tack_liters} L Cationic Tack Coat (RS-1)",
             "aggregate": f"{base_kg} kg Graded Base Gravel (WMM)",
@@ -447,7 +445,7 @@ def calculate_detailed_materials(class_name: str, dimensions: Dict[str, float], 
         cost_inr = mat_cost + labor_equip_cost
 
         return {
-            "category": "Fatigue Milling & Inlay (MoRTH 500)",
+            "category": "Fatigue Milling & Inlay",
             "hot_mix": f"{overlay_asphalt_kg} kg Dense Bituminous Concrete (40mm Course)",
             "tack_coat": f"{tack_liters} L CSS-1h Polymer Tack Emulsion",
             "reinforcement": f"{grid_m2} m² Fiberglass Stress-Relief Interlayer Grid",
@@ -468,7 +466,7 @@ def calculate_detailed_materials(class_name: str, dimensions: Dict[str, float], 
         cost_inr = mat_cost + labor_equip_cost
 
         return {
-            "category": "Crack Routing & Hot-Pour Seal (ASTM D6690)",
+            "category": "Crack Routing & Hot-Pour Seal",
             "sealant": f"{sealant_kg} kg Hot-Poured Polymer-Modified Rubberized Sealant (Type II)",
             "primer": f"{primer_liters} L Joint Penetration Primer",
             "equipment": "Hot-Air Lance (150°C) + Squeegee Band Applicator",
@@ -488,7 +486,7 @@ def calculate_detailed_materials(class_name: str, dimensions: Dict[str, float], 
         cost_inr = mat_cost + labor_equip_cost
 
         return {
-            "category": "Micro-Surfacing & Slurry Seal (IRC:SP:81)",
+            "category": "Micro-Surfacing & Slurry Seal",
             "slurry_mix": f"{slurry_kg} kg Polymer Modified Slurry Seal Mix",
             "emulsion": f"{emulsion_l} L CQS-1h Quick-Set Emulsion",
             "compaction": "Pneumatic-Tired Roller (6 Ton)",
@@ -516,7 +514,7 @@ def estimate_damage_dimensions(box: List[int], class_name: str, conf: float,
     width_cm  = round(px_width  * cm_per_px, 1)
     area_m2   = round((length_cm * width_cm) / 10000.0, 2)
 
-    # Depth range by defect category (IRC:82 & ASTM D6433 standard)
+    # Assumed depth range per defect category (heuristic, not measured)
     depth_min, depth_max = 0.5, 3.0   # default fallback
     for key, rng in DAMAGE_DEPTH_RANGES.items():
         if key.lower() in class_name.lower():
@@ -704,8 +702,8 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
         raise ValueError("Could not load image.")
     
     orig_h, orig_w = image.shape[:2]
-    # Optimize input resolution to native 480px to accelerate CPU inference and reduce memory by 45%
-    max_dim = 480
+    # Inference resolution is 640px, the same size the model was fine-tuned at
+    max_dim = 640  # matches the 640px training resolution of the fine-tuned model
     if orig_w > max_dim or orig_h > max_dim:
         scale = max_dim / float(max(orig_w, orig_h))
         new_w = int(round(orig_w * scale))
@@ -716,17 +714,19 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
     raw_detections = []
 
     # Determine effective confidence threshold
-    effective_conf = max(0.14, float(conf_threshold))
-    # Query models with calibrated threshold to gather candidate features before ensemble NMS
-    infer_conf = max(0.10, min(0.18, float(conf_threshold) - 0.05))
+    effective_conf = max(0.05, float(conf_threshold))
+    # Use the confidence threshold chosen by the user directly (no hidden lowering)
+    infer_conf = effective_conf
 
     if model_id == "damage-ensemble" or model_id not in MODEL_CLASSES:
-        # Dual-YOLOv8 ensemble: ozair23 (specialized in discrete potholes & cracks) + vinothvikas1987 (specialized in alligator & base distress)
-        models_to_run = [("damage-yolov8", 480), ("pothole-yolov8", 480)]
+        # "damage-ensemble" (legacy id) and unknown ids use our fine-tuned model. No ensemble.
+        models_to_run = [(FINETUNED_ID, 640)]
     else:
-        models_to_run = [(model_id, 480)]
+        models_to_run = [(model_id, 640)]
 
     t0 = time.perf_counter()
+    if all(model_manager.get_model(mid) is None for mid, _ in models_to_run):
+        raise RuntimeError("Detection model failed to load. Check the weights file and the server log.")
     with torch.inference_mode():
         for mid, imgsz in models_to_run:
             m = model_manager.get_model(mid)
@@ -772,9 +772,7 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
                 except Exception as e:
                     print(f"Error in model {mid} inference: {e}")
 
-    # Robust fallback: if model is cold-booting, unavailable, or 0 defects were localized, run intelligent distress analysis
-    if len(raw_detections) == 0:
-        raw_detections = run_mock_detection(image, effective_conf, model_id)
+    # No fallback: if nothing is detected the road is reported as Clear (no invented detections)
 
     # Clean Class-Aware Multi-Model NMS:
     # 1. Sort by confidence descending
@@ -841,7 +839,7 @@ def process_detection(image_path: str, model_id: str, conf_threshold: float) -> 
         x1, y1, x2, y2 = det["box"]
         class_name = det["class_name"]
         conf = det["confidence"]
-        depth_val = det.get("dimensions", {}).get("depth_cm", None)
+        depth_val = None  # depth is a heuristic estimate, so it is not drawn on the image
         color = CLASS_COLORS.get(class_name, (22, 115, 249))
         draw_stylized_box(image, x1, y1, x2, y2, class_name, conf, color, depth_cm=depth_val)
 
@@ -1022,7 +1020,7 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         
         # Optimize video resolution while preserving aspect ratio and fine road texture
         max_dim = max(width, height)
-        target_max_dim = 480
+        target_max_dim = 640
         if max_dim > target_max_dim:
             scale_v = float(target_max_dim) / float(max_dim)
             out_w = int(round(width * scale_v))
@@ -1048,8 +1046,8 @@ def video_processing_thread(task_id: str, input_path: str, model_id: str, conf_t
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(raw_output_path, fourcc, out_fps, (out_w, out_h))
         
-        # High-speed lightweight 416px YOLOv8 inference for video stream
-        models_for_video = [("damage-yolov8", 416)]
+        # Video uses the model chosen by the user (default: our fine-tuned model) at 640px
+        models_for_video = [(resolve_model_id(model_id), 640)]
 
         tracker = DistressTracker(max_disappeared=8, min_appearance=1)
         frame_idx = 0
@@ -1232,27 +1230,27 @@ def get_models():
     return {
         "models": [
             {
-                "id": "damage-ensemble",
-                "name": "RoadVision AI Ensemble Fusion (Recommended)",
-                "description": "Multi-model neural fusion capturing large alligator road failures, base erosion, potholes, and fine cracks.",
-                "classes": ["Alligator Crack", "Pothole", "Longitudinal Crack", "Transverse Crack", "Repair Patch", "Surface Distortion"]
+                "id": FINETUNED_ID,
+                "name": "RoadVision RDD-India (YOLOv8s, fine-tuned by us)",
+                "description": "YOLOv8s fine-tuned by our team on RDD2022 India. 4 classes. Our own model.",
+                "classes": list(MODEL_CLASSES[FINETUNED_ID]["labels"].values())
             },
             {
                 "id": "damage-yolo12s",
-                "name": "Road Damage RDD2022 (YOLOv12s)",
-                "description": "Specialized in structural fatigue, extensive alligator failure, longitudinal and transverse cracks.",
+                "name": "Third-party pretrained: Road Damage RDD2022 (YOLOv12s)",
+                "description": "Pretrained model from Hugging Face (rezzzq). Not trained by us. For comparison only.",
                 "classes": list(MODEL_CLASSES["damage-yolo12s"]["labels"].values())
             },
             {
                 "id": "damage-yolov8",
-                "name": "Road Damage Pro (YOLOv8)",
-                "description": "High-sensitivity detector specialized in alligator, longitudinal, transverse cracks, potholes, and surface corruption.",
+                "name": "Third-party pretrained: Road Damage (YOLOv8)",
+                "description": "Pretrained model from Hugging Face (ozair23). Not trained by us. For comparison only.",
                 "classes": list(MODEL_CLASSES["damage-yolov8"]["labels"].values())
             },
             {
                 "id": "pothole-yolov8",
-                "name": "Pothole Specialist (YOLOv8)",
-                "description": "Optimized to detect potholes and surface voids with fast inference.",
+                "name": "Third-party pretrained: Pothole (YOLOv8)",
+                "description": "Pretrained model from Hugging Face (vinothvikas1987). Not trained by us. For comparison only.",
                 "classes": list(MODEL_CLASSES["pothole-yolov8"]["labels"].values())
             }
         ]
@@ -1343,8 +1341,8 @@ def extract_exif_metadata(image_path: str) -> Dict[str, Any]:
 @app.post("/api/detect")
 async def detect_image(
     file: UploadFile = File(...),
-    model_id: str = Form("damage-ensemble"),
-    conf_threshold: float = Form(0.10)
+    model_id: str = Form(FINETUNED_ID),
+    conf_threshold: float = Form(0.25)
 ):
     try:
         # Save uploaded file
@@ -1411,7 +1409,7 @@ async def detect_image(
 async def detect_video(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    model_id: str = Form("damage-ensemble"),
+    model_id: str = Form(FINETUNED_ID),
     conf_threshold: float = Form(0.20)
 ):
     try:
@@ -1524,7 +1522,7 @@ def get_database_status():
 # Webcam frames endpoint: receives frame as JPEG image base64, runs detection, returns detections and processed base64 frame
 class FramePayload(BaseModel):
     frame: str # Base64 encoded JPEG
-    model_id: str = "damage-ensemble"
+    model_id: str = FINETUNED_ID
     conf_threshold: float = 0.15
 
 @app.post("/api/detect-frame")
@@ -1544,10 +1542,12 @@ async def detect_frame(payload: FramePayload):
         
         # Detect with fast inference at native 640px resolution
         detections = []
-        actual_model_id = "damage-yolov8" if (payload.model_id == "damage-ensemble" or payload.model_id not in MODEL_CLASSES or payload.model_id == "pothole-yolov8") else payload.model_id
+        actual_model_id = resolve_model_id(payload.model_id)
         model = model_manager.get_model(actual_model_id)
         
-        live_conf = max(0.10, min(payload.conf_threshold, 0.20))
+        live_conf = max(0.10, float(payload.conf_threshold))
+        if model is None:
+            raise RuntimeError("Detection model failed to load.")
         
         if model is not None:
             try:
@@ -1593,7 +1593,7 @@ async def detect_frame(payload: FramePayload):
             x1, y1, x2, y2 = det["box"]
             class_name = det["class_name"]
             conf = det["confidence"]
-            depth_val = det.get("dimensions", {}).get("depth_cm", None)
+            depth_val = None  # depth is a heuristic estimate, so it is not drawn on the image
             
             color = CLASS_COLORS.get(class_name, (22, 115, 249))
             draw_stylized_box(frame, x1, y1, x2, y2, class_name, conf, color, depth_cm=depth_val)
@@ -1643,8 +1643,8 @@ def submit_notification(payload: RequisitionNotification):
         "status": "received"
     }
     add_municipal_notification(notification_entry)
-    print(f"🔊 HCMC Dispatch Alert: Potholes detected at {payload.address} ({payload.latitude}, {payload.longitude}). Work order queued.")
-    return {"success": True, "message": "Notification successfully submitted to HCMC Municipal system."}
+    print(f"🔊 Dispatch Alert: Potholes detected at {payload.address} ({payload.latitude}, {payload.longitude}). Work order queued.")
+    return {"success": True, "message": "Notification recorded (demo, not connected to a real municipal system)."}
 
 @app.get("/api/notifications")
 def get_notifications():

@@ -664,27 +664,27 @@ export default function ThreeRoadDepthViewer({
                 color: depthVal >= 5.5 ? '#f43f5e' : 'var(--accent-cyan)',
                 border: `1px solid ${depthVal >= 5.5 ? 'rgba(244,63,94,0.5)' : 'rgba(6,182,212,0.35)'}`
               }}>
-                {depthVal >= 5.5 ? 'CRITICAL DEPTH BREACH' : 'MODERATE CAVITY'}
+                {depthVal >= 5.5 ? 'HIGHER ESTIMATE' : 'MODERATE ESTIMATE'}
               </span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem', textAlign: 'center' }}>
               <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>PEAK DEPTH</div>
+                <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>ESTIMATED DEPTH (HEURISTIC, NOT MEASURED) · PEAK</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 800, color: depthVal >= 5.5 ? '#f43f5e' : 'var(--accent-cyan)' }}>
                   {depthVal} <span style={{ fontSize: '0.75rem' }}>cm</span>
                 </div>
               </div>
 
               <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>MEAN DEPTH</div>
+                <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>ESTIMATED DEPTH (HEURISTIC, NOT MEASURED) · MEAN</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                   {avgDepthVal} <span style={{ fontSize: '0.75rem' }}>cm</span>
                 </div>
               </div>
 
               <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>VOID VOLUME</div>
+                <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>ESTIMATED VOLUME (HEURISTIC)</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>
                   {volLiters} <span style={{ fontSize: '0.75rem' }}>L</span>
                 </div>
@@ -772,7 +772,7 @@ export default function ThreeRoadDepthViewer({
                 0 cm Surface Baseline
               </div>
               <div style={{ position: 'absolute', bottom: '2px', right: '4px', fontSize: '0.62rem', color: depthVal >= 5.5 ? '#f43f5e' : 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 800 }}>
-                ↓ {depthVal} cm Max Cavity Drop
+                Estimated depth (heuristic, not measured): {depthVal} cm
               </div>
             </div>
           </div>

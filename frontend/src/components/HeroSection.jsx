@@ -105,7 +105,7 @@ export default function HeroSection({ onStartDetection, onExploreDashboard, onEx
             Severe Cavity Pothole (D40)
           </div>
           <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-            Est. Depth: 7.5 cm • Immediate repair dispatch
+            Estimated depth (heuristic, not measured): 7.5 cm
           </div>
         </div>
       </div>

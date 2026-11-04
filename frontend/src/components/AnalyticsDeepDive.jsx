@@ -235,7 +235,7 @@ export default function AnalyticsDeepDive() {
               <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem' }}>
                 <th style={{ padding: '0.75rem 1rem' }}>ROADWAY CLASS</th>
                 <th style={{ padding: '0.75rem 1rem' }}>EST. CORRIDOR LENGTH</th>
-                <th style={{ padding: '0.75rem 1rem' }}>REAL PCI</th>
+                <th style={{ padding: '0.75rem 1rem' }}>CONDITION SCORE (HEURISTIC)</th>
                 <th style={{ padding: '0.75rem 1rem' }}>PRIMARY DISTRESS</th>
                 <th style={{ padding: '0.75rem 1rem' }}>URGENT P1 CASES</th>
                 <th style={{ padding: '0.75rem 1rem' }}>RECOMMENDED ACTION</th>

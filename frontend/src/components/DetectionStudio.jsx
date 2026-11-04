@@ -137,16 +137,16 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
   const [liveTotalDetected, setLiveTotalDetected] = useState(0);
   const [liveFrameCount, setLiveFrameCount] = useState(0);
 
-  // ── GPS + reverse geocode for incident location ───────────
+  // ── Location shown only from backend-verified photo metadata or explicit device opt-in ──
   const [detectionGpsLocation, setDetectionGpsLocation] = useState(null);
-  // { address: string, coords: {lat, lng}, loading: bool }
+  // { address: string, coords: {lat, lng}, loading: bool, source: 'exif' | 'device' | 'none' | 'checking' }
 
   const scanStages = [
     { title: 'Surface Mesh Acquisition', desc: 'Ingesting 3D pavement geometry and ambient illumination.' },
     { title: 'Depth & Gradient Mapping', desc: 'Computing orthorectified surface depression gradients.' },
     { title: 'YOLOv12s Feature Extraction', desc: 'Running neural convolutional tensor passes.' },
     { title: 'Distress Segmentation', desc: 'Generating bounding boxes & polygon masks.' },
-    { title: 'Structural Severity Matrix', desc: 'Computing PCI impact and repair priority.' }
+    { title: 'Structural Severity Matrix', desc: 'Computing the heuristic condition score and repair priority.' }
   ];
 
   // ── Reverse geocode via Nominatim (free, no API key) ─────
@@ -172,15 +172,13 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     }
   };
 
-  // ── Fallback: Get current device GPS + geocode if image has no EXIF ──────────
+  // Device location is opt-in and is never presented as photo metadata.
   const getGpsAndGeocode = () => {
     if (!navigator.geolocation) {
       setDetectionGpsLocation({
-        address: 'Indiranagara, Hassan, Karnataka, India',
-        coords: { lat: 13.01683, lng: 76.127376 },
         loading: false,
-        source: 'benchmark',
-        note: 'Geolocation not supported by browser'
+        source: 'none',
+        error: 'Device location is not available in this browser.'
       });
       return;
     }
@@ -198,25 +196,22 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
           address,
           coords: { lat, lng },
           loading: false,
-          source: 'device',
-          note: 'Live browser location (image EXIF stripped or unavailable)'
+          source: 'device'
         });
       },
       (err) => {
-        console.warn('Live geolocation unavailable, using corridor benchmark:', err);
+        console.warn('Live geolocation unavailable:', err);
         setDetectionGpsLocation({
-          address: 'NH75, Kandali, Hassan, Karnataka, India',
-          coords: { lat: 12.975264, lng: 76.034483 },
           loading: false,
-          source: 'benchmark',
-          note: 'Image EXIF location unavailable'
+          source: 'none',
+          error: 'Device location is unavailable or permission was denied.'
         });
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
   };
 
-  // ── Calculate dynamic repair materials based on dimensions (ASTM D6433 & IRC:82 Spec) ────────
+  // ── Estimate repair materials from detected dimensions ──────────────────────────────────────
   const calculateMaterials = (det) => {
     if (det.materials) return det.materials;
     const len = det.dimensions?.length_cm || (det.box ? Math.round((det.box[2] - det.box[0]) * 0.33) : 35);
@@ -238,7 +233,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       const laborCost = 1350;
       const costInr = matCost + laborCost;
       return {
-        category: 'Pothole Patching (IRC:82 Spec)',
+        category: 'Pothole Patching Estimate',
         hot_mix: `${asphaltKg} kg Bituminous Hot-Mix (VG-30)`,
         tack_coat: `${tackLiters} L Cationic Tack Coat (RS-1)`,
         aggregate: `${aggregateKg} kg Graded Base Gravel (WMM)`,
@@ -257,7 +252,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       const laborCost = 1500;
       const costInr = matCost + laborCost;
       return {
-        category: 'Fatigue Milling & Inlay (MoRTH 500)',
+        category: 'Fatigue Milling & Inlay Estimate',
         hot_mix: `${asphaltKg} kg Dense Bituminous Concrete (40mm Course)`,
         tack_coat: `${tackLiters} L CSS-1h Polymer Tack Emulsion`,
         reinforcement: `${gridM2} m² Fiberglass Interlayer Grid`,
@@ -275,7 +270,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       const laborCost = 1150;
       const costInr = matCost + laborCost;
       return {
-        category: 'Crack Routing & Hot-Pour Seal (ASTM D6690)',
+        category: 'Crack Routing & Hot-Pour Seal Estimate',
         sealant: `${sealantKg} kg Hot-Poured Polymer Rubberized Sealant`,
         primer: `${primerLiters} L Joint Penetration Primer`,
         equipment: 'Hot-Air Lance (150°C) + Squeegee Band Applicator',
@@ -292,7 +287,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       const laborCost = 1250;
       const costInr = matCost + laborCost;
       return {
-        category: 'Micro-Surfacing & Slurry Seal (IRC:SP:81)',
+        category: 'Micro-Surfacing & Slurry Seal Estimate',
         slurry_mix: `${slurryKg} kg Polymer Modified Slurry Mix`,
         emulsion: `${emulsionL} L CQS-1h Quick-Set Emulsion`,
         compaction: 'Pneumatic-Tired Roller (6 Ton)',
@@ -307,9 +302,12 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
 
   const handleExportAudit = () => {
     sounds.playLockOn();
-    const addr = detectionGpsLocation?.address || selectedSample?.location || (activeInputTab === 'video' ? 'NH-75 Highway Corridor, Hassan - Bengaluru Highway' : 'Indiranagara, Hassan, Karnataka, India');
-    const lat = detectionGpsLocation?.coords?.lat ?? (selectedSample?.coordinates?.[0] ?? 13.016830);
-    const lng = detectionGpsLocation?.coords?.lng ?? (selectedSample?.coordinates?.[1] ?? 76.127376);
+    const addr = detectionGpsLocation?.source === 'device'
+      ? `Device location (not from the photo): ${detectionGpsLocation.address}`
+      : detectionGpsLocation?.address || 'No GPS data in this media';
+    const coordinates = detectionGpsLocation?.coords
+      ? [detectionGpsLocation.coords.lat, detectionGpsLocation.coords.lng]
+      : null;
     const reportRef = `RVD-AUDIT-2026-${Date.now().toString().slice(-6)}`;
     const inspectionDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -347,8 +345,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       reportRef,
       date: inspectionDate,
       address: addr,
-      coordinates: [lat, lng],
-      googleMapsUrl: `https://www.google.com/maps?q=${lat},${lng}`,
+      coordinates,
+      googleMapsUrl: coordinates ? `https://www.google.com/maps?q=${coordinates[0]},${coordinates[1]}` : null,
       pciScore: detectionResult.pciScore,
       severity: `${detectionResult.severity} Severity`,
       estimatedCost: detectionResult.estimatedCost,
@@ -416,8 +414,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     setScanError(null);
     setIsBackendResult(false);
 
-    // Fire GPS geocoding in parallel
-    getGpsAndGeocode();
+    setDetectionGpsLocation({ loading: false, source: 'none' });
 
     const formData = new FormData();
     formData.append('file', file);
@@ -510,9 +507,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             backendImageHeight: null
           });
           setIsBackendResult(true);
-          if (!detectionGpsLocation?.coords) {
-            getGpsAndGeocode();
-          }
+          setDetectionGpsLocation({ loading: false, source: 'none' });
           sounds.playLockOn();
         } else if (data.status === 'failed') {
           setScanError(`Video processing failed: ${data.error || 'Unknown error'}`);
@@ -535,7 +530,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     setSelectedVideoFile(null);
     setVideoPreviewUrl("https://assets.mixkit.co/videos/preview/mixkit-driving-on-a-highway-at-sunset-12497-large.mp4");
     setIsBackendResult(false);
-    getGpsAndGeocode();
+    setDetectionGpsLocation({ loading: false, source: 'none' });
 
     let progress = 0;
     const interval = setInterval(() => {
@@ -578,13 +573,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
           backendImageHeight: null
         });
         setIsBackendResult(true);
-        if (!detectionGpsLocation?.coords) {
-          setDetectionGpsLocation({
-            address: 'NH-75 Highway Corridor, Km 114, Hassan - Bengaluru Corridor',
-            coords: { lat: 12.9716, lng: 77.5946 },
-            loading: false
-          });
-        }
+        setDetectionGpsLocation({ loading: false, source: 'none' });
         sounds.playLockOn();
       }
     }, 600);
@@ -662,12 +651,11 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     let clientExif = null;
 
     if (uploadedFile) {
-      // 1. Immediately extract EXIF metadata directly from the image file
       setDetectionGpsLocation({
         address: null,
         coords: null,
         loading: true,
-        source: 'exif'
+        source: 'checking'
       });
 
       try {
@@ -675,23 +663,6 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
         clientExif = parseImageExif(arrayBuffer);
       } catch (err) {
         console.warn('Client EXIF extraction error:', err);
-      }
-
-      if (clientExif && clientExif.hasGps) {
-        // Image contains GPS metadata!
-        const { latitude, longitude, altitude, dateTime, cameraMake, cameraModel } = clientExif;
-        reverseGeocode(latitude, longitude).then((addr) => {
-          setDetectionGpsLocation({
-            address: addr,
-            coords: { lat: latitude, lng: longitude },
-            loading: false,
-            source: 'exif',
-            altitude,
-            dateTime,
-            cameraMake,
-            cameraModel
-          });
-        });
       }
 
       const formData = new FormData();
@@ -702,14 +673,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     }
 
     if (groundTruthData) {
-      if (groundTruthData.coordinates) {
-        setDetectionGpsLocation({
-          address: groundTruthData.location || groundTruthData.title || 'Benchmark Road Corridor',
-          coords: { lat: groundTruthData.coordinates[0], lng: groundTruthData.coordinates[1] },
-          loading: false,
-          source: 'sample'
-        });
-      }
+      setDetectionGpsLocation({ loading: false, source: 'none' });
       // Sample preset scenario — snappy realistic scan sequence
       for (let i = 0; i < scanStages.length; i++) {
         setScanStage(i);
@@ -806,7 +770,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
         }, 0);
         const properEstimatedCost = data.total_estimated_cost || (calculatedTotalCost > 0 ? `₹${calculatedTotalCost.toLocaleString('en-IN')} INR` : '₹0 INR');
 
-        // Check backend EXIF metadata (dual-layer verification with client EXIF)
+        // Only backend-confirmed photo GPS metadata can identify the photo location.
         const bExif = data.exif_metadata;
         if (bExif && bExif.has_gps) {
           const lat = bExif.latitude;
@@ -823,30 +787,13 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
               cameraModel: bExif.camera_model ?? clientExif?.cameraModel
             });
           });
-        } else if (clientExif && clientExif.hasGps) {
-          const { latitude, longitude, altitude, dateTime, cameraMake, cameraModel } = clientExif;
-          reverseGeocode(latitude, longitude).then((addr) => {
-            setDetectionGpsLocation({
-              address: addr,
-              coords: { lat: latitude, lng: longitude },
-              loading: false,
-              source: 'exif',
-              altitude,
-              dateTime,
-              cameraMake,
-              cameraModel
-            });
-          });
         } else {
-          // Image has no embedded GPS tags — fallback to device live location
-          getGpsAndGeocode();
+          setDetectionGpsLocation({ loading: false, source: 'none' });
         }
 
         const imageLocationText = (bExif && bExif.has_gps)
           ? `${bExif.latitude.toFixed(6)}°N, ${bExif.longitude.toFixed(6)}°E`
-          : (clientExif && clientExif.hasGps)
-          ? `${clientExif.latitude.toFixed(6)}°N, ${clientExif.longitude.toFixed(6)}°E`
-          : 'Uploaded Image (No EXIF GPS)';
+          : 'No GPS data in this photo';
 
         setDetectionResult({
           severity: apiSeverity,
@@ -891,6 +838,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
         setIsBackendResult(true);
       } catch (err) {
         console.error('Detection API error:', err);
+        setDetectionGpsLocation({ loading: false, source: 'none' });
         const currentUrl = getBackendUrl();
         const isProd = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
         const isLocalBackend = currentUrl.includes('127.0.0.1') || currentUrl.includes('localhost');
@@ -986,14 +934,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
     setImagePreviewUrl(sample.image);
     setOriginalImageUrl(sample.image);
     setIsBackendResult(false);
-    if (sample.coordinates) {
-      setDetectionGpsLocation({
-        address: sample.location || sample.title,
-        coords: { lat: sample.coordinates[0], lng: sample.coordinates[1] },
-        loading: false,
-        source: 'sample'
-      });
-    }
+    setDetectionGpsLocation({ loading: false, source: 'none' });
     runScanProcess(sample.image, sample);
   };
 
@@ -2017,18 +1958,26 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
               <>
                 {/* Interactive 3D Depth Mesh Viewport Mode */}
                 {viewMode === '3d_mesh' ? (
-                  <ThreeRoadDepthViewer
-                    imageUrl={originalImageUrl || imagePreviewUrl}
-                    depthMapBase64={depthMapBase64}
-                    depthMapUrl={depthMapUrl}
-                    heightfieldGrid={heightfieldGrid}
-                    detections={detectionResult.detections}
-                    selectedDefectIdx={selectedDeepDefectIdx}
-                    onSelectDefect={(idx) => setSelectedDeepDefectIdx(idx)}
-                    height="620px"
-                  />
+                  <>
+                    <div className="visualization-disclaimer">
+                      Illustrative visualization from detected boxes. Not a real depth measurement.
+                    </div>
+                    <ThreeRoadDepthViewer
+                      imageUrl={originalImageUrl || imagePreviewUrl}
+                      depthMapBase64={depthMapBase64}
+                      depthMapUrl={depthMapUrl}
+                      heightfieldGrid={heightfieldGrid}
+                      detections={detectionResult.detections}
+                      selectedDefectIdx={selectedDeepDefectIdx}
+                      onSelectDefect={(idx) => setSelectedDeepDefectIdx(idx)}
+                      height="620px"
+                    />
+                  </>
                 ) : viewMode === 'depth_heatmap' ? (
                   <div style={{ position: 'relative', width: '100%', minHeight: '460px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="visualization-disclaimer">
+                      Illustrative visualization from detected boxes. Not a real depth measurement.
+                    </div>
                     <img
                       src={depthMapBase64 || depthMapUrl || imagePreviewUrl}
                       alt="Depth Heatmap Topography"
@@ -2059,7 +2008,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                       boxShadow: '0 4px 16px rgba(0,0,0,0.5)'
                     }}>
                       <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-                        CALIBRATED OPTICAL CAVITY DEPTH SCALE (TURBO)
+                        Illustrative color scale
                       </div>
                       <div style={{
                         width: '240px',
@@ -2379,7 +2328,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                                 {[
                                   { label: '↔ LENGTH', value: det.dimensions?.length_cm != null ? `${det.dimensions.length_cm} cm` : '—' },
                                   { label: '↕ WIDTH',  value: det.dimensions?.width_cm  != null ? `${det.dimensions.width_cm} cm`  : '—' },
-                                  { label: '↓ DEPTH',  value: det.dimensions?.depth_cm  != null ? `${det.dimensions.depth_cm} cm`  : '—' },
+                                  { label: 'Estimated depth (heuristic, not measured)',  value: det.dimensions?.depth_cm  != null ? `${det.dimensions.depth_cm} cm`  : '—' },
                                 ].map(({ label, value }) => (
                                   <div key={label} style={{ background: 'rgba(0,0,0,0.35)', borderRadius: '5px', padding: '0.3rem 0.4rem', textAlign: 'center' }}>
                                     <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>{label}</div>
@@ -2421,7 +2370,10 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
               <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-                  PAVEMENT CONDITION (PCI)
+                  Condition score (heuristic)
+                </div>
+                <div style={{ fontSize: '0.66rem', color: 'var(--text-tertiary)', marginTop: '0.25rem' }}>
+                  Simple score from detections; not a standardized pavement rating.
                 </div>
                 <div style={{ fontSize: '1.8rem', fontWeight: 800, color: detectionResult.pciScore < 60 ? 'var(--severity-critical)' : 'var(--severity-clear)', marginTop: '0.2rem' }}>
                   {detectionResult.pciScore} <span style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>/ 100</span>
@@ -2446,6 +2398,11 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 <AlertOctagon size={16} />
                 <span>{detectionResult.repairPriority}</span>
               </div>
+              {/(low risk|routine monitoring)/i.test(detectionResult.repairPriority || '') && (
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: '0.35rem' }}>
+                  Based only on what the model detected. It can miss damage.
+                </div>
+              )}
             </div>
 
             <div>
@@ -2454,7 +2411,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                   ESTIMATED REMEDIATION BUDGET
                 </div>
                 <div style={{ fontSize: '0.62rem', color: 'var(--accent-cyan)', background: 'rgba(6,182,212,0.1)', padding: '0.15rem 0.4rem', borderRadius: '4px', fontFamily: 'var(--font-mono)' }}>
-                  IRC:82 / MoRTH SPEC
+                  Rule-of-thumb estimate
                 </div>
               </div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>
@@ -2505,28 +2462,28 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 >
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginBottom: '0.45rem', fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <span>DEPTH & CAVITY VOLUMETRICS</span>
+                      <span>Estimated depth (heuristic, not measured)</span>
                       <span style={{ fontSize: '0.65rem', color: 'var(--accent-cyan)' }}>↗</span>
                     </span>
                     <span style={{ fontSize: '0.62rem', color: 'var(--accent-cyan)', background: 'rgba(6,182,212,0.1)', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
-                      OPTICAL DEPTH ENGINE
+                      Rule-of-thumb estimate
                     </span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem', fontSize: '0.72rem' }}>
                     <div style={{ background: 'var(--bg-canvas)', padding: '0.4rem 0.5rem', borderRadius: '6px', border: '1px solid var(--border-subtle)', textAlign: 'center', transition: 'border-color 0.2s ease' }}>
-                      <div style={{ color: 'var(--text-tertiary)', fontSize: '0.58rem', fontFamily: 'var(--font-mono)' }}>MAX DEPTH</div>
+                      <div style={{ color: 'var(--text-tertiary)', fontSize: '0.58rem', fontFamily: 'var(--font-mono)' }}>MAX ESTIMATE</div>
                       <div style={{ fontWeight: 800, color: parseFloat(maxDepth) >= 5.0 ? '#f43f5e' : 'var(--accent-cyan)', fontSize: '0.82rem' }}>
                         {maxDepth} cm
                       </div>
                     </div>
                     <div style={{ background: 'var(--bg-canvas)', padding: '0.4rem 0.5rem', borderRadius: '6px', border: '1px solid var(--border-subtle)', textAlign: 'center', transition: 'border-color 0.2s ease' }}>
-                      <div style={{ color: 'var(--text-tertiary)', fontSize: '0.58rem', fontFamily: 'var(--font-mono)' }}>AVG DEPTH</div>
+                      <div style={{ color: 'var(--text-tertiary)', fontSize: '0.58rem', fontFamily: 'var(--font-mono)' }}>AVG ESTIMATE</div>
                       <div style={{ fontWeight: 800, color: 'var(--accent-cyan)', fontSize: '0.82rem' }}>
                         {avgDepth} cm
                       </div>
                     </div>
                     <div style={{ background: 'var(--bg-canvas)', padding: '0.4rem 0.5rem', borderRadius: '6px', border: '1px solid var(--border-subtle)', textAlign: 'center', transition: 'border-color 0.2s ease' }}>
-                      <div style={{ color: 'var(--text-tertiary)', fontSize: '0.58rem', fontFamily: 'var(--font-mono)' }}>EST. VOID VOL</div>
+                      <div style={{ color: 'var(--text-tertiary)', fontSize: '0.58rem', fontFamily: 'var(--font-mono)' }}>ESTIMATED VOLUME</div>
                       <div style={{ fontWeight: 800, color: 'var(--accent-cyan)', fontSize: '0.82rem' }}>
                         {totalVolL} L
                       </div>
@@ -2566,7 +2523,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
               return (
                 <div style={{ marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-subtle)' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginBottom: '0.45rem', fontWeight: 700 }}>
-                    TOTAL REPAIR MATERIAL MANIFEST (IRC:82)
+                    Estimated repair materials (rule of thumb)
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', fontSize: '0.72rem' }}>
                     {totalHotMix > 0 && (
@@ -2608,7 +2565,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <MapPin size={13} style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
                   <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', fontWeight: 700 }}>
-                    INCIDENT GPS LOCATION {activeInputTab === 'video' ? '• DASHCAM TELEMETRY' : ''}
+                    PHOTO / DEVICE LOCATION
                   </span>
                 </div>
                 {detectionGpsLocation?.source === 'exif' && (
@@ -2625,7 +2582,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                     alignItems: 'center',
                     gap: '4px'
                   }}>
-                    📷 EXTRACTED FROM IMAGE EXIF
+                    PHOTO GPS VERIFIED BY BACKEND
                   </span>
                 )}
                 {detectionGpsLocation?.source === 'device' && (
@@ -2641,37 +2598,22 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                     alignItems: 'center',
                     gap: '4px'
                   }}>
-                    🌐 LIVE BROWSER FALLBACK
-                  </span>
-                )}
-                {detectionGpsLocation?.source === 'sample' && (
-                  <span style={{
-                    fontSize: '0.62rem',
-                    padding: '2px 7px',
-                    borderRadius: '4px',
-                    background: '#0F172A',
-                    color: '#8B5CF6',
-                    border: '1px solid rgba(139,92,246,0.3)',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    📍 BENCHMARK CORRIDOR
+                    Device location (not from the photo)
                   </span>
                 )}
               </div>
               {detectionGpsLocation?.loading ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.73rem', color: 'var(--accent-cyan)' }}>
                   <span style={{ width: '10px', height: '10px', borderRadius: '50%', border: '2px solid var(--accent-cyan)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
-                  {detectionGpsLocation?.source === 'exif' ? 'Extracting image EXIF metadata & resolving coordinates…' : 'Acquiring GPS position…'}
+                  {detectionGpsLocation?.source === 'device' ? 'Getting device location…' : 'Checking photo GPS metadata…'}
                 </div>
               ) : (() => {
-                if (activeInputTab === 'image' && detectionGpsLocation?.source === 'none') {
+                if (detectionGpsLocation?.source === 'none') {
                   return (
                     <div style={{ fontSize: '0.78rem', color: '#F97316', lineHeight: 1.45 }}>
                       <div style={{ marginBottom: '0.5rem' }}>
-                        ⚠ No GPS metadata in this image (EXIF stripped or camera GPS was off).
+                        {activeInputTab === 'video' ? 'No GPS data in this media' : 'No GPS data in this photo'}
+                        {detectionGpsLocation?.error && ` — ${detectionGpsLocation.error}`}
                       </div>
                       <button
                         onClick={getGpsAndGeocode}
@@ -2689,39 +2631,34 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                           gap: '0.35rem'
                         }}
                       >
-                        <MapPin size={12} /> 📍 Geotag with My Current Location
+                        <MapPin size={12} /> Use my device location
                       </button>
-                      {(detectionGpsLocation?.dateTime || detectionGpsLocation?.cameraModel) && (
-                        <div style={{ marginTop: '0.4rem', fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
-                          {detectionGpsLocation?.dateTime && <>📅 {detectionGpsLocation.dateTime} </>}
-                          {(detectionGpsLocation?.cameraMake || detectionGpsLocation?.cameraModel) && <>📷 {[detectionGpsLocation.cameraMake, detectionGpsLocation.cameraModel].filter(Boolean).join(' ')}</>}
-                        </div>
-                      )}
                     </div>
                   );
                 }
-                const addr = detectionGpsLocation?.address || selectedSample?.location || (activeInputTab === 'video' ? 'NH-75 Highway Corridor, Km 114, Hassan - Bengaluru Highway' : 'M.G. Road Corridor, Bengaluru, Karnataka');
-                const lat = detectionGpsLocation?.coords?.lat ?? (selectedSample?.coordinates?.[0] ?? 12.9716);
-                const lng = detectionGpsLocation?.coords?.lng ?? (selectedSample?.coordinates?.[1] ?? 77.5946);
+                const addr = detectionGpsLocation?.address;
+                const coords = detectionGpsLocation?.coords;
 
                 return (
                   <>
                     <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.45, marginBottom: '0.45rem' }}>
                       {addr}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.3rem' }}>
-                      <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' }}>
-                        {lat.toFixed(6)}°N,&nbsp;{lng.toFixed(6)}°E
-                      </span>
-                      <a
-                        href={`https://www.google.com/maps?q=${lat},${lng}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{ fontSize: '0.68rem', color: 'var(--accent-cyan)', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-                      >
-                        <MapPin size={10} /> Open in Google Maps ↗
-                      </a>
-                    </div>
+                    {coords && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.3rem' }}>
+                        <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' }}>
+                          {coords.lat.toFixed(6)}°,&nbsp;{coords.lng.toFixed(6)}°
+                        </span>
+                        <a
+                          href={`https://www.google.com/maps?q=${coords.lat},${coords.lng}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ fontSize: '0.68rem', color: 'var(--accent-cyan)', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                        >
+                          <MapPin size={10} /> Open in Google Maps ↗
+                        </a>
+                      </div>
+                    )}
 
                     {/* Metadata details (Timestamp, Camera model, Elevation) */}
                     {(detectionGpsLocation?.dateTime || detectionGpsLocation?.cameraModel || detectionGpsLocation?.altitude != null) && (
@@ -2759,13 +2696,72 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
             </div>
           )}
 
-
+        </div>
+      </div>
 
           {/* Distress Classification Breakdown List */}
-          <div className="glass-panel" style={{ padding: '1.5rem' }}>
+          <div className="glass-panel distress-catalog-panel" style={{ padding: '1.5rem' }}>
             <div style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span>Detected Distress Catalog</span>
               <span className="mono-tag" style={{ color: 'var(--accent-cyan)' }}>{detectionResult.detections.length} ITEMS</span>
+            </div>
+
+            <div className="detection-result-actions">
+              <button
+                className="detection-result-action detection-result-action-analysis"
+                onClick={() => {
+                  sounds.playBeep(920, 0.04);
+                  setShowDeepDimensionModal(true);
+                }}
+              >
+                <Activity size={16} />
+                <span>Deep Dimensional Analysis</span>
+              </button>
+
+              <button
+                className="detection-result-action detection-result-action-map"
+                disabled={!detectionGpsLocation?.coords}
+                title={!detectionGpsLocation?.coords ? 'Photo or device location is required to sync an incident to the map.' : undefined}
+                onClick={() => {
+                  sounds.playBeep(900, 0.04);
+                  const isVideo = activeInputTab === 'video' || !!processedVideoUrl || !!videoPreviewUrl;
+                  const incident = {
+                    id: `gis-sync-${Date.now().toString().slice(-4)}`,
+                    coordinates: detectionGpsLocation?.coords
+                      ? [detectionGpsLocation.coords.lat, detectionGpsLocation.coords.lng]
+                      : null,
+                    street: detectionGpsLocation?.source === 'device'
+                      ? `Device location (not from the photo): ${detectionGpsLocation.address}`
+                      : detectionGpsLocation?.address || 'Location unavailable',
+                    type: detectionResult.detections?.[0]?.class_name || selectedSample?.title || 'Pothole (D40)',
+                    severity: detectionResult.severity || 'Unknown',
+                    confidence: detectionResult.detections?.[0]?.confidence
+                      ? `${Math.round(detectionResult.detections[0].confidence * 100)}%`
+                      : null,
+                    date: new Date().toISOString().replace('T', ' ').slice(0, 16),
+                    inspectorUnit: isVideo ? 'Surveyor Dashcam Telemetry Sync' : 'AI Live Telemetry Sync',
+                    status: 'Synced from Detection Studio',
+                    mediaType: isVideo ? 'video' : 'image',
+                    videoUrl: isVideo ? (processedVideoUrl || videoPreviewUrl) : null,
+                    image: displayImgSrc || selectedSample?.image || '/images/pothole_real.jpg',
+                    detections: detectionResult.detections || []
+                  };
+                  if (typeof onPushToMap === 'function') {
+                    onPushToMap(incident);
+                  }
+                }}
+              >
+                <MapPin size={15} />
+                <span>Sync to GIS Map</span>
+              </button>
+
+              <button
+                className="detection-result-action detection-result-action-export"
+                onClick={handleExportAudit}
+              >
+                <Download size={15} />
+                <span>Export Audit</span>
+              </button>
             </div>
 
             {detectionResult.detections.length === 0 ? (
@@ -2775,7 +2771,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>No defects detected within tolerance threshold.</div>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div className="distress-catalog-grid">
                 {detectionResult.detections.map((det, i) => {
                   const dims = det.dimensions || {};
                   const sevColor = det.severity === 'High'
@@ -2786,6 +2782,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                   return (
                     <div
                       key={i}
+                      className="distress-catalog-item"
                       style={{
                         padding: '0.85rem',
                         borderRadius: '10px',
@@ -2803,6 +2800,11 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                           <div style={{ fontSize: '0.68rem', color: sevColor, fontWeight: 600, marginTop: '0.1rem' }}>
                             {det.severity} Risk
                           </div>
+                          {det.severity === 'Low' && (
+                            <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', marginTop: '0.2rem', lineHeight: 1.35 }}>
+                              Based only on what the model detected. It can miss damage.
+                            </div>
+                          )}
                         </div>
                         <div style={{
                           background: sevColor + '20',
@@ -2859,7 +2861,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                           border: `1px solid ${dims.depth_cm >= 5.5 ? 'rgba(244,63,94,0.45)' : dims.depth_cm >= 3.0 ? 'rgba(245,158,11,0.45)' : 'var(--border-subtle)'}`
                         }}>
                           <div style={{ fontSize: '0.6rem', color: dims.depth_cm >= 5.5 ? '#f43f5e' : dims.depth_cm >= 3.0 ? '#f59e0b' : 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginBottom: '0.15rem', fontWeight: 800 }}>
-                            ↓ CAVITY DEPTH
+                            Estimated depth (heuristic, not measured)
                           </div>
                           <div style={{ fontSize: '0.85rem', fontWeight: 800, color: dims.depth_cm >= 5.5 ? '#f43f5e' : dims.depth_cm >= 3.0 ? '#f59e0b' : 'var(--accent-cyan)' }}>
                             {dims.depth_cm != null ? `${dims.depth_cm} cm` : '—'}
@@ -2905,7 +2907,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                           Surface Area: <strong style={{ color: 'var(--text-secondary)' }}>{dims.area_m2 != null ? `${dims.area_m2} m²` : '—'}</strong>
                         </span>
                         <span style={{ fontSize: '0.65rem', color: 'var(--accent-cyan)', fontWeight: 600 }}>
-                          ASTM D6433 Compliant
+                          Estimated dimensions
                         </span>
                       </div>
                     </div>
@@ -2913,87 +2915,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                 })}
               </div>
             )}
-
-            {/* Smart Action Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '1.25rem' }}>
-              <button
-                className="btn"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  background: '#1E293B',
-                  border: '1px solid var(--accent-cyan)',
-                  color: 'var(--accent-cyan)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  borderRadius: '8px',
-                  boxShadow: '0 0 15px rgba(6,182,212,0.15)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onClick={() => {
-                  sounds.playBeep(920, 0.04);
-                  setShowDeepDimensionModal(true);
-                }}
-              >
-                <Activity size={16} />
-                <span>📐 Deep Dimensional & Cavity Depth Analysis</span>
-              </button>
-
-              <div style={{ display: 'flex', gap: '0.65rem' }}>
-                <button
-                  className="btn btn-primary"
-                  style={{ flex: 1, padding: '0.65rem 1rem', fontSize: '0.85rem' }}
-                  onClick={() => {
-                    sounds.playBeep(900, 0.04);
-                    const isVideo = activeInputTab === 'video' || !!processedVideoUrl || !!videoPreviewUrl;
-                    const incident = {
-                      id: `gis-sync-${Date.now().toString().slice(-4)}`,
-                      coordinates: detectionGpsLocation?.coords
-                        ? [detectionGpsLocation.coords.lat, detectionGpsLocation.coords.lng]
-                        : (selectedSample?.coordinates || [12.9716, 77.5946]),
-                      street: detectionGpsLocation?.address || selectedSample?.location || selectedSample?.title || 'M.G. Road Corridor, Bengaluru (Live Sync)',
-                      type: detectionResult.detections?.[0]?.class_name || selectedSample?.title || 'Pothole (D40)',
-                      severity: (detectionResult.severity === 'Clear' || !detectionResult.severity) ? 'High' : detectionResult.severity,
-                      confidence: detectionResult.detections?.[0]?.confidence
-                        ? `${Math.round(detectionResult.detections[0].confidence * 100)}%`
-                        : '96.8%',
-                      date: new Date().toISOString().replace('T', ' ').slice(0, 16),
-                      inspectorUnit: isVideo ? 'Surveyor Dashcam Telemetry Sync' : 'AI Live Telemetry Sync',
-                      status: 'Synced from Detection Studio',
-                      mediaType: isVideo ? 'video' : 'image',
-                      videoUrl: isVideo ? (processedVideoUrl || videoPreviewUrl) : null,
-                      image: displayImgSrc || selectedSample?.image || '/images/pothole_real.jpg',
-                      detections: detectionResult.detections || []
-                    };
-                    if (typeof onPushToMap === 'function') {
-                      onPushToMap(incident);
-                    }
-                  }}
-                >
-                  <MapPin size={15} />
-                  <span>Sync to GIS Map</span>
-                </button>
-
-                <button
-                  className="btn btn-secondary"
-                  style={{ padding: '0.65rem 1rem', fontSize: '0.85rem' }}
-                  onClick={() => {
-                    handleExportAudit();
-                  }}
-                >
-                  <Download size={15} />
-                  <span>Export Audit</span>
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
-      </div>
 
       {/* ── Deep Dimensional & Cavity Depth Analysis Modal ────────────────────────────────────── */}
       {showDeepDimensionModal && (
@@ -3033,14 +2955,14 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
                   <span style={{ padding: '0.2rem 0.6rem', borderRadius: '4px', background: 'rgba(6,182,212,0.15)', color: 'var(--accent-cyan)', fontSize: '0.7rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
-                    IRC:82 & ASTM D6433 CERTIFIED
+                    Estimate only
                   </span>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-                    OPTICAL DEPTH & CAVITY GEOMETRY
+                    Illustrative dimensions
                   </span>
                 </div>
                 <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <span>Pavement Cavity Depth & Dimensional Profiling</span>
+                  <span>Estimated depth and dimensions</span>
                 </h2>
               </div>
               <button
@@ -3089,25 +3011,25 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
                     <div style={{ background: 'var(--bg-canvas)', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
                       <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginBottom: '0.25rem' }}>
-                        PEAK CAVITY DEPTH (D_MAX)
+                        Estimated depth (heuristic, not measured) · peak
                       </div>
                       <div style={{ fontSize: '1.4rem', fontWeight: 800, color: parseFloat(maxD) >= 5.5 ? '#f43f5e' : 'var(--accent-cyan)' }}>
                         {maxD} <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>cm</span>
                       </div>
                       <div style={{ fontSize: '0.65rem', color: parseFloat(maxD) >= 5.5 ? '#f43f5e' : 'var(--text-tertiary)', marginTop: '0.2rem' }}>
-                        {parseFloat(maxD) >= 5.5 ? '⚠️ Critical Base Layer Breach' : 'Standard Cavity Depression'}
+                        {parseFloat(maxD) >= 5.5 ? 'Higher estimated-depth range' : 'Estimated-depth range'}
                       </div>
                     </div>
 
                     <div style={{ background: 'var(--bg-canvas)', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
                       <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginBottom: '0.25rem' }}>
-                        AVERAGE DEFECT DEPTH
+                        Estimated depth (heuristic, not measured) · average
                       </div>
                       <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>
                         {avgD} <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>cm</span>
                       </div>
                       <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginTop: '0.2rem' }}>
-                        Photometric Shadow Gradient
+                        Illustrative estimate from the image
                       </div>
                     </div>
 
@@ -3125,7 +3047,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
 
                     <div style={{ background: 'var(--bg-canvas)', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
                       <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginBottom: '0.25rem' }}>
-                        TOTAL DISPLACEMENT VOID
+                        Estimated volume (heuristic)
                       </div>
                       <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>
                         {totalVolL} <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Liters</span>
@@ -3163,7 +3085,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                         >
                           <span>#{idx + 1} {d.class_name}</span>
                           <span style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: (d.dimensions?.depth_cm || 0) >= 5.0 ? '#f43f5e' : 'inherit' }}>
-                            ({d.dimensions?.depth_cm || 3.5} cm)
+                            (~{d.dimensions?.depth_cm || 3.5} cm)
                           </span>
                         </button>
                       ))}
@@ -3172,10 +3094,13 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
 
                   {/* Interactive 3D Cavity Topography Mesh Explorer */}
                   <div style={{ marginBottom: '1.5rem' }}>
+                    <div className="visualization-disclaimer">
+                      Illustrative visualization from detected boxes. Not a real depth measurement.
+                    </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
                       <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         <Box size={14} style={{ color: 'var(--accent-cyan)' }} />
-                        <span>INTERACTIVE 3D CAVITY TOPOGRAPHY & ELEVATION MESH</span>
+                        <span>ILLUSTRATIVE 3D DISTRESS VISUALIZATION</span>
                       </span>
                       <span style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--accent-cyan)' }}>
                         Three.js WebGL Real-Time Rendering
@@ -3244,7 +3169,7 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                                 <line x1="200" y1="40" x2="200" y2={40 + maxSvgDepth} stroke="#f43f5e" strokeWidth="2" strokeDasharray="2 2" />
                                 <polygon points={`196,${40 + maxSvgDepth - 2} 204,${40 + maxSvgDepth - 2} 200,${40 + maxSvgDepth + 6}`} fill="#f43f5e" />
                                 <text x="210" y={40 + maxSvgDepth * 0.55} fill="#f43f5e" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                                  ↓ Depth: {selDepth} cm
+                                  ↓ Estimated depth: {selDepth} cm
                                 </text>
                               </>
                             );
@@ -3267,9 +3192,9 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', fontSize: '0.78rem' }}>
                           <div>• Length (Along Corridor): <strong style={{ color: 'var(--text-primary)' }}>{selLength} cm</strong></div>
                           <div>• Width (Across Lane): <strong style={{ color: 'var(--text-primary)' }}>{selWidth} cm</strong></div>
-                          <div>• Measured Cavity Depth: <strong style={{ color: selDepth >= 5.5 ? '#f43f5e' : 'var(--accent-cyan)' }}>{selDepth} cm</strong></div>
+                          <div>• Estimated depth (heuristic, not measured): <strong style={{ color: selDepth >= 5.5 ? '#f43f5e' : 'var(--accent-cyan)' }}>{selDepth} cm</strong></div>
                           <div>• Surface Area Footprint: <strong style={{ color: 'var(--text-primary)' }}>{selArea} m² ({Math.round(selArea * 10000)} cm²)</strong></div>
-                          <div>• Cavity Void Displacement: <strong style={{ color: 'var(--accent-cyan)' }}>{selVol} Liters</strong></div>
+                          <div>• Estimated volume (heuristic): <strong style={{ color: 'var(--accent-cyan)' }}>{selVol} Liters</strong></div>
                           <div>• Severity Rating: <strong style={{ color: selDepth >= 5.5 ? '#f43f5e' : 'var(--accent-cyan)' }}>{selDims.depth_severity || (selDepth >= 5.5 ? 'Deep Cavity' : 'Moderate')}</strong></div>
                         </div>
                       </div>
@@ -3305,8 +3230,8 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
                             <th style={{ padding: '0.6rem 0.8rem', textAlign: 'center' }}>CONF</th>
                             <th style={{ padding: '0.6rem 0.8rem', textAlign: 'left' }}>DIMENSIONS (L×W)</th>
                             <th style={{ padding: '0.6rem 0.8rem', textAlign: 'left' }}>AREA (m²)</th>
-                            <th style={{ padding: '0.6rem 0.8rem', textAlign: 'left' }}>MEASURED DEPTH (cm)</th>
-                            <th style={{ padding: '0.6rem 0.8rem', textAlign: 'left' }}>VOID VOL</th>
+                            <th style={{ padding: '0.6rem 0.8rem', textAlign: 'left' }}>ESTIMATED DEPTH (HEURISTIC, NOT MEASURED) (cm)</th>
+                            <th style={{ padding: '0.6rem 0.8rem', textAlign: 'left' }}>ESTIMATED VOLUME (HEURISTIC)</th>
                             <th style={{ padding: '0.6rem 0.8rem', textAlign: 'right' }}>EST. COST</th>
                           </tr>
                         </thead>

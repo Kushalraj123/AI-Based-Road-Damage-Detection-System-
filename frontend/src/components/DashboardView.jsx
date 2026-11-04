@@ -411,11 +411,14 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
           </div>
         </div>
 
-        {/* Road Condition Score Index (Real Dynamic PCI Gauge) */}
+        {/* Heuristic road condition score */}
         <div className="glass-panel" style={{ padding: '1.5rem', background: 'var(--bg-glass-strong)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.25rem' }}>Overall Network Quality</h3>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Live Pavement Condition Index (PCI) Score</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Condition score (heuristic)</p>
+            <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: '0.2rem' }}>
+              Simple score from detections; not a standardized pavement rating.
+            </p>
           </div>
 
           {/* Circular Gauge */}
@@ -449,7 +452,7 @@ export default function DashboardView({ onNavigateToDetection, onNavigateToMap }
           </div>
 
           <div style={{ padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            <strong>Live AI Assessment:</strong> Computed from {totalScansBase} real inspections ({totalDamageBase} anomalies detected).
+            <strong>Estimate from detections:</strong> Based only on what the model detected. It can miss damage.
           </div>
         </div>
       </div>
