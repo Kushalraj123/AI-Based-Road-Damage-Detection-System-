@@ -1,5 +1,51 @@
 [
     {
+        "id": "cc9e215f-99f0-470c-be8d-fe686506c228",
+        "type": "image",
+        "timestamp": "2026-11-04 16:46:28",
+        "model_id": "damage-ensemble",
+        "filename": "cf3f715ae04c8eb4ea5df34703f0ae81.jpg",
+        "original_url": "/uploads/cc9e215f-99f0-470c-be8d-fe686506c228.jpg",
+        "processed_url": "/processed/processed_cc9e215f-99f0-470c-be8d-fe686506c228.jpg",
+        "total_damage": 0,
+        "severity": "Clear",
+        "classes_detected": [],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
+        "id": "1c6d2dd6-caee-4fe8-abdd-852b3fe64fe0",
+        "type": "image",
+        "timestamp": "2026-10-24 22:40:10",
+        "model_id": "damage-ensemble",
+        "filename": "Screenshot 2026-10-24 195658.png",
+        "original_url": "/uploads/1c6d2dd6-caee-4fe8-abdd-852b3fe64fe0.png",
+        "processed_url": "/processed/processed_1c6d2dd6-caee-4fe8-abdd-852b3fe64fe0.png",
+        "total_damage": 2,
+        "severity": "Medium",
+        "classes_detected": [
+            "Transverse Crack"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
         "id": "cd838431-1318-4ae5-83a4-1e64de71e400",
         "type": "image",
         "timestamp": "2026-10-13 12:56:42",
