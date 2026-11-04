@@ -184,10 +184,10 @@ export default function FeatureGrid({ onNavigate }) {
     },
     {
       title: 'Smart Analytics',
-      description: 'Comprehensive telemetry dashboards and Pavement Condition Index (PCI) calculations to optimize maintenance capital.',
+      description: 'Telemetry dashboards and heuristic condition scores from detected road distress to support maintenance planning.',
       icon: BarChart3,
       glowColor: '#8b5cf6',
-      metric: 'DOT STANDARD PCI METRICS',
+      metric: 'HEURISTIC CONDITION SCORES',
       targetTab: 'dashboard'
     },
     {

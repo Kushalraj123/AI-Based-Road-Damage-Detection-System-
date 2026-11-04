@@ -89,7 +89,7 @@ const LiveTrackMap = forwardRef(function LiveTrackMap({ isTracking, detections }
 
       const marker = L.marker(pinPos, { icon: pinIcon });
       const dims = det.dimensions || {};
-      const dimText = dims.length_cm ? `${dims.length_cm} × ${dims.width_cm} cm (depth ${dims.depth_cm}cm)` : 'Survey metric';
+      const dimText = dims.length_cm ? `${dims.length_cm} × ${dims.width_cm} cm (estimated depth, heuristic and not measured: ${dims.depth_cm} cm)` : 'Survey metric';
 
       marker.bindPopup(`
         <div style="font-family:monospace;font-size:12px;min-width:190px;color:#0f172a;padding:4px;">

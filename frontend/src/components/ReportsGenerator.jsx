@@ -28,7 +28,7 @@ import {
 import { sounds } from './SoundEffects';
 import { BACKEND_URL, API_ENDPOINTS, apiFetch } from '../config';
 
-// Precise ASTM D6433 & IRC:82 Spec material & cost engine based on distress type and physical geometry
+// Rule-of-thumb material and cost estimates based on detected distress and dimensions.
 export const calculatePavementMaterials = (className, dimensions = null) => {
   const name = (className || 'Pothole').toLowerCase();
   
@@ -48,7 +48,7 @@ export const calculatePavementMaterials = (className, dimensions = null) => {
   let matDisplay = {};
 
   if (name.includes('pothole') || name.includes('d40') || name.includes('void')) {
-    category = 'Pothole Cavity Patching (IRC:82 Spec)';
+    category = 'Pothole Cavity Patching Estimate';
     hotMixKg = parseFloat(Math.max(2.5, Math.min(7.0, 2.2 + area * 5.5)).toFixed(1));
     tackLiters = parseFloat(Math.max(0.10, Math.min(0.35, 0.08 + area * 0.25)).toFixed(2));
     gravelKg = parseFloat(Math.max(1.5, Math.min(4.5, 1.2 + area * 3.5)).toFixed(1));
@@ -60,7 +60,7 @@ export const calculatePavementMaterials = (className, dimensions = null) => {
     };
     procedure = 'Square-cut cavity edges, blow dry substrate, spray RS-1 tack coat, compact hot-mix in 40mm lifts.';
   } else if (name.includes('alligator') || name.includes('d20') || name.includes('fatigue')) {
-    category = 'Fatigue Inlay & Resurfacing (MoRTH 500)';
+    category = 'Fatigue Inlay & Resurfacing Estimate';
     hotMixKg = parseFloat(Math.max(3.0, Math.min(8.5, 2.8 + area * 6.5)).toFixed(1));
     tackLiters = parseFloat(Math.max(0.15, Math.min(0.45, 0.12 + area * 0.35)).toFixed(2));
     gravelKg = parseFloat(Math.max(1.2, Math.min(3.8, area * 2.5 + 1.0)).toFixed(1));
@@ -72,7 +72,7 @@ export const calculatePavementMaterials = (className, dimensions = null) => {
     };
     procedure = 'Cold-mill 40mm degraded surface, spray polymer tack coat, lay wearing course, compact with roller.';
   } else if (name.includes('long') || name.includes('trans') || name.includes('d00') || name.includes('d10') || name.includes('crack')) {
-    category = 'Crack Routing & Polymer Seal (ASTM D6690)';
+    category = 'Crack Routing & Polymer Seal Estimate';
     sealantKg = parseFloat(Math.max(0.4, Math.min(1.5, 0.35 + len_m * 0.25)).toFixed(2));
     tackLiters = parseFloat(Math.max(0.06, Math.min(0.25, 0.05 + len_m * 0.04)).toFixed(2));
     costInr = Math.round(sealantKg * 350.0 + tackLiters * 220.0 + 1250);
@@ -80,10 +80,10 @@ export const calculatePavementMaterials = (className, dimensions = null) => {
       sealant: `${sealantKg} kg Hot-Poured Rubberized Polymer Sealant`,
       tack_coat: `${tackLiters} L Joint Penetration Primer`
     };
-    procedure = 'Route reservoir 12x12mm, clean with hot-air lance, apply primer, pressure-inject ASTM D6690 sealant.';
+    procedure = 'Route reservoir, clean with hot-air lance, apply primer, and fill with sealant.';
   } else {
     // Surface Distortion / Ravelling / Micro-Surfacing
-    category = 'Micro-Surfacing & Slurry Seal (IRC:SP:81)';
+    category = 'Micro-Surfacing & Slurry Seal Estimate';
     hotMixKg = parseFloat(Math.max(1.8, Math.min(5.0, 1.5 + area * 3.8)).toFixed(1));
     tackLiters = parseFloat(Math.max(0.12, Math.min(0.40, 0.10 + area * 0.30)).toFixed(2));
     sealantKg = parseFloat(Math.max(0.3, Math.min(1.2, area * 0.8 + 0.25)).toFixed(2));
@@ -110,7 +110,7 @@ export const calculatePavementMaterials = (className, dimensions = null) => {
 };
 
 // Dynamic helper to create a fresh on-demand report with exact calculated materials & cost
-const generateFreshLiveReport = (locationName = 'Hassan Urban Corridor Grid, Karnataka, India', coords = [13.016830, 76.127376]) => {
+const generateFreshLiveReport = (locationName = 'Location unavailable', coords = null) => {
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) +
     ' at ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -390,7 +390,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
     const totalMedia = photoCount + videoCount;
     const totalDefects = photoDefects + videoDefects;
 
-    // Derived Cumulative Materials (calculated per IRC:82 standards directly from actual detected distress)
+    // Aggregate the rule-of-thumb material estimates for detected distress.
     const cumulativeAsphaltKg = totalDefects > 0 ? (totalDefects * 3.5).toFixed(1) : '0.0';
     const cumulativeTackLiters = totalDefects > 0 ? (totalDefects * 0.18).toFixed(2) : '0.00';
     const cumulativeGravelKg = totalDefects > 0 ? (totalDefects * 2.2).toFixed(1) : '0.0';
@@ -545,8 +545,12 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
     const inspectionReport = {
       reportRef: `RVD-AUDIT-2026-${(item.id || Date.now().toString()).slice(-6).toUpperCase()}`,
       date: item.timestamp ? `${item.timestamp}` : new Date().toLocaleString(),
-      address: item.filename ? `Inspection Site: ${item.filename}` : 'Hassan Corridor Sector 4, Karnataka',
-      coordinates: [13.016830, 76.127376],
+      address: item.exif_metadata?.has_gps === true
+        ? (item.location || 'Photo GPS location')
+        : 'No GPS data in this photo',
+      coordinates: item.exif_metadata?.has_gps === true && Array.isArray(item.coordinates)
+        ? item.coordinates
+        : null,
       pciScore: itemSeverity === 'High' ? 38 : (itemSeverity === 'Medium' ? 62 : 85),
       severity: `${itemSeverity} Severity`,
       distressCount: defectsCount,
@@ -576,7 +580,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
       severity: `${activeTimeframeLabel} Assessment`,
       distressCount: periodMetrics.totalDefects,
       estimatedCost: periodMetrics.materials.costFormatted,
-      repairPriority: 'Multi-Corridor Priority Remediation (IRC:82)',
+      repairPriority: 'Multi-Corridor Priority Remediation Estimate',
       materialsManifest: {
         hotMixAsphalt: periodMetrics.materials.asphalt,
         tackCoat: periodMetrics.materials.tackCoat,
@@ -585,8 +589,10 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
       }
     };
 
-    const lat = rep.coordinates?.[0] ?? 13.016830;
-    const lng = rep.coordinates?.[1] ?? 76.127376;
+    const coordinates = Array.isArray(rep.coordinates) && rep.coordinates.length === 2 &&
+      rep.coordinates.every(Number.isFinite)
+      ? rep.coordinates
+      : null;
 
     let tableSectionHtml = '';
 
@@ -650,7 +656,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
             <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-family: monospace; text-align: center;">${idx + 1}</td>
             <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-weight: 700; color: #0f172a;">${det.class_name || det.type}</td>
             <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; color: #0284c7; font-weight: 700; font-family: monospace; text-align: center;">${Math.round((det.confidence || 0.9) * 100)}%</td>
-            <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-family: monospace;">${dims.length_cm ? `${dims.length_cm} × ${dims.width_cm} cm <br/><span style="color:#e11d48; font-weight:700;">Depth: ${dims.depth_cm} cm</span>` : '35 × 30 cm (Depth: 4.0 cm)'}</td>
+            <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-family: monospace;">${dims.length_cm ? `${dims.length_cm} × ${dims.width_cm} cm <br/><span style="color:#e11d48; font-weight:700;">Estimated depth (heuristic, not measured): ${dims.depth_cm} cm</span>` : '35 × 30 cm (estimated depth, heuristic and not measured: 4.0 cm)'}</td>
             <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-family: monospace;">${dims.area_m2 ? `${dims.area_m2} m²` : '0.10 m²'}</td>
             <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-size: 10.5px; line-height: 1.35; color: #334155;">${matList || 'Micro-spot patch'}</td>
             <td style="padding: 6px 8px; border-bottom: 1px solid #cbd5e1; font-weight: 700; color: #0f172a; font-family: monospace; text-align: right;">${det.estimated_cost || '₹2,450 INR'}</td>
@@ -804,7 +810,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
         <div class="header">
           <div>
             <span class="badge">Official Infrastructure Audit</span>
-            <span class="badge" style="background: #fef3c7; color: #b45309;">IRC:82 & ASTM D6433</span>
+            <span class="badge" style="background: #fef3c7; color: #b45309;">Rule-of-thumb estimates</span>
             <span class="badge" style="background: #e0e7ff; color: #4338ca;">PERIOD: ${activeTimeframeLabel.toUpperCase()}</span>
             <div class="title">Road Distress Inspection & Material Manifest</div>
             <div style="font-size: 10px; color: #64748b; font-family: monospace;">AUDIT REF: <strong>${rep.reportRef}</strong> • DATE: ${rep.date}</div>
@@ -820,11 +826,12 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
           <div class="card">
             <div class="card-label">Corridor Location / Coverage</div>
             <div style="font-weight: 700; font-size: 11.5px; margin-top: 2px; color: #0f172a;">${rep.address}</div>
-            <div style="font-size: 9.5px; color: #64748b; font-family: monospace; margin-top: 2px;">GPS: ${lat.toFixed(6)}°N, ${lng.toFixed(6)}°E</div>
+            ${coordinates ? `<div style="font-size: 9.5px; color: #64748b; font-family: monospace; margin-top: 2px;">GPS: ${coordinates[0].toFixed(6)}°, ${coordinates[1].toFixed(6)}°</div>` : ''}
           </div>
           <div class="card">
-            <div class="card-label">Pavement Condition & Risk</div>
-            <div class="card-value">${rep.pciScore} <span style="font-size: 10px; color: #64748b; font-weight: normal;">/ 100 PCI</span></div>
+            <div class="card-label">Condition score (heuristic)</div>
+            <div style="font-size: 9.5px; color: #64748b;">Simple score from detections; not a standardized pavement rating.</div>
+            <div class="card-value">${rep.pciScore} <span style="font-size: 10px; color: #64748b; font-weight: normal;">/ 100</span></div>
             <div style="font-size: 9.5px; color: #475569; margin-top: 1px;">${rep.distressCount} Defect(s) Logged • ${rep.severity}</div>
           </div>
           <div class="card">
@@ -836,7 +843,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
 
         <div class="materials-box">
           <div style="font-size: 10px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.5px;">
-            Cumulative Material Requisition Manifest (IRC:82 Specification) — ${activeTimeframeLabel}
+            Estimated repair materials (rule of thumb) — ${activeTimeframeLabel}
           </div>
           <div class="mat-grid">
             <div class="mat-item">
@@ -862,7 +869,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
 
         <div class="footer">
           <div>Generated by RoadVision AI Infrastructure Intelligence Platform</div>
-          <div>Official PWD / NHAI Compliance Verified • IRC:82 Standard Adherence</div>
+          <div>Planning estimate only; verify quantities and costs on site.</div>
         </div>
       </body>
       </html>
@@ -895,7 +902,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
 
   const handleExportCSV = () => {
     sounds.playBeep(900, 0.05);
-    let csv = `ROADVISION AI - ${activeTimeframeLabel.toUpperCase()} MANIFEST\n`;
+    let csv = `ROADVISION AI - ${activeTimeframeLabel.toUpperCase()} ESTIMATED REPAIR MATERIALS\n`;
     csv += `Report Scope,"${activeTimeframeLabel}"\n`;
     csv += `Days Window,${activeDays === 0 ? 'All-Time' : `${activeDays} Days`}\n`;
     csv += `Total Scans Processed,${periodMetrics.totalMedia}\n`;
@@ -903,7 +910,8 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
     csv += `Video Scans,${periodMetrics.videoCount}\n`;
     csv += `Total Distress Count,${periodMetrics.totalDefects}\n`;
     csv += `Estimated Remediation Budget,"${periodMetrics.materials.costFormatted}"\n`;
-    csv += `Pavement Condition Index (PCI),${periodMetrics.periodPci}/100\n\n`;
+    csv += `Condition score (heuristic),${periodMetrics.periodPci}/100\n`;
+    csv += 'Simple score from detections; not a standardized pavement rating.\n\n';
 
     csv += `ID,Type,Timestamp,Filename,Defects Detected,Severity,Class Summary\n`;
     finalDisplayList.forEach((item, idx) => {
@@ -922,8 +930,10 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
     document.body.removeChild(link);
   };
 
-  const lat = activeReport?.coordinates?.[0] ?? 13.016830;
-  const lng = activeReport?.coordinates?.[1] ?? 76.127376;
+  const coordinates = Array.isArray(activeReport?.coordinates) && activeReport.coordinates.length === 2 &&
+    activeReport.coordinates.every(Number.isFinite)
+    ? activeReport.coordinates
+    : null;
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto 5rem auto', padding: '0 1rem' }}>
@@ -955,7 +965,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
             Infrastructure Audit <span className="text-gradient">& Media Reports</span>
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.2rem' }}>
-            Comprehensive IRC:82 analytics with custom daily, weekly, monthly, and yearly road audit scopes.
+            Detection-based condition and rule-of-thumb repair estimates for custom daily, weekly, monthly, and yearly scopes.
           </p>
         </div>
 
@@ -1128,7 +1138,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
             </div>
 
             <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', textAlign: 'right' }}>
-              <div>IRC:82 & ASTM D6433 Certified</div>
+              <div>Rule-of-thumb estimates</div>
               <div style={{ color: 'var(--accent-cyan)', fontWeight: 700, marginTop: '2px' }}>
                 {finalDisplayList.length} Record(s) Filtered
               </div>
@@ -1263,12 +1273,15 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                 </div>
               </div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
-                Scope PCI: <strong style={{ color: 'var(--severity-clear)' }}>{periodMetrics.periodPci} / 100</strong>
+                Condition score (heuristic): <strong style={{ color: 'var(--severity-clear)' }}>{periodMetrics.periodPci} / 100</strong>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: '0.2rem' }}>
+                  Simple score from detections; not a standardized pavement rating.
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Cumulative Material Requisition Manifest (IRC:82) */}
+          {/* Estimated repair materials */}
           <div
             className="glass-panel"
             style={{
@@ -1280,7 +1293,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span className="badge badge-cyan">IRC:82 SPECIFICATION</span>
+                <span className="badge badge-cyan">RULE-OF-THUMB ESTIMATE</span>
                 <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                   Material Requisition Manifest ({activeTimeframeLabel})
                 </span>
@@ -1320,7 +1333,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                 <div style={{ fontWeight: 800, fontSize: '1.35rem', color: 'var(--accent-cyan)', marginTop: '0.25rem' }}>
                   {periodMetrics.materials.sealant}
                 </div>
-                <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: '0.2rem' }}>ASTM D6690 Type II Hot-Pour</div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: '0.2rem' }}>Estimated quantity; verify material specifications on site.</div>
               </div>
             </div>
           </div>
@@ -1342,7 +1355,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                   {activeTimeframeLabel} Detection History Log
                 </h3>
                 <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: '0.2rem 0 0 0' }}>
-                  Select any scan in this period to view its certified individual material manifest and defect dimensions.
+                  Select any scan in this period to view its estimated materials and defect dimensions.
                 </p>
               </div>
 
@@ -1553,7 +1566,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                     <FileText size={12} /> OFFICIAL INFRASTRUCTURE AUDIT
                   </span>
                   <span className="badge badge-cyan">
-                    IRC:82 & ASTM D6433
+                    Rule-of-thumb estimates
                   </span>
                 </div>
                 <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
@@ -1582,32 +1595,37 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
               <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.4, marginBottom: '0.45rem' }}>
                 {activeReport.address}
               </div>
-              <div style={{ fontSize: '0.74rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>{lat.toFixed(6)}°N, {lng.toFixed(6)}°E</span>
-                <a
-                  href={`https://www.google.com/maps?q=${lat},${lng}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ color: 'var(--accent-cyan)', fontWeight: 700, textDecoration: 'none', fontSize: '0.72rem' }}
-                >
-                  Maps ↗
-                </a>
-              </div>
+              {coordinates && (
+                <div style={{ fontSize: '0.74rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{coordinates[0].toFixed(6)}°, {coordinates[1].toFixed(6)}°</span>
+                  <a
+                    href={`https://www.google.com/maps?q=${coordinates[0]},${coordinates[1]}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: 'var(--accent-cyan)', fontWeight: 700, textDecoration: 'none', fontSize: '0.72rem' }}
+                  >
+                    Maps ↗
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* Condition Card */}
             <div style={{ padding: '1.1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginBottom: '0.35rem' }}>
-                PAVEMENT CONDITION & RISK
+                Condition score (heuristic)
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.35rem' }}>
                 <span style={{ fontSize: '1.75rem', fontWeight: 800, color: activeReport.pciScore < 60 ? 'var(--severity-critical)' : 'var(--severity-clear)' }}>
                   {activeReport.pciScore}
                 </span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>/ 100 PCI Score</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>/ 100</span>
               </div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                 {activeReport.distressCount} Defect(s) Detected • <span style={{ color: 'var(--accent-blue)' }}>{activeReport.severity}</span>
+              </div>
+              <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: '0.25rem' }}>
+                Simple score from detections; not a standardized pavement rating.
               </div>
             </div>
 
@@ -1625,11 +1643,11 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
             </div>
           </div>
 
-          {/* Total Material Requisition Summary Block */}
+          {/* Estimated repair materials summary */}
           <div style={{ padding: '1.35rem', borderRadius: '12px', background: 'rgba(6, 182, 212, 0.06)', border: '1px solid rgba(6, 182, 212, 0.25)', marginBottom: '1.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem' }}>
               <span style={{ fontSize: '0.8rem', fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--accent-cyan)' }}>
-                CUMULATIVE MATERIAL REQUISITION MANIFEST (IRC:82 SPECIFICATION)
+                ESTIMATED REPAIR MATERIALS (RULE OF THUMB)
               </span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.85rem' }}>
@@ -1662,7 +1680,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                 <div style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--accent-cyan)', marginTop: '0.25rem' }}>
                   {activeReport.materialsManifest?.sealant || '0.15 kg'}
                 </div>
-                <div style={{ fontSize: '0.66rem', color: 'var(--text-tertiary)', marginTop: '0.15rem' }}>ASTM D6690 Type II Hot-Pour</div>
+                <div style={{ fontSize: '0.66rem', color: 'var(--text-tertiary)', marginTop: '0.15rem' }}>Estimated quantity; verify material specifications on site.</div>
               </div>
             </div>
           </div>
@@ -1703,7 +1721,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                             <div>
                               <span>{dims.length_cm}×{dims.width_cm} cm</span>
                               <div style={{ fontSize: '0.7rem', color: dims.depth_cm >= 5.0 ? '#f43f5e' : 'var(--accent-cyan)', fontWeight: 700 }}>
-                                ↓ Depth: {dims.depth_cm} cm
+                                Estimated depth (heuristic, not measured): {dims.depth_cm} cm
                               </div>
                             </div>
                           ) : '35×30×4.0 cm'}

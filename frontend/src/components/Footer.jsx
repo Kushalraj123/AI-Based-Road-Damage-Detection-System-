@@ -159,7 +159,7 @@ export default function Footer({ onNavigate }) {
           </p>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--severity-clear)', fontSize: '0.78rem', fontWeight: 600 }}>
             <ShieldCheck size={16} />
-            <span>DOT Federal Highway Compliant</span>
+            <span>Designed for road-inspection workflows</span>
           </div>
         </div>
       </div>
