@@ -1,5 +1,29 @@
 [
     {
+        "id": "402358e4-f727-4534-aa87-8a589ca15d60",
+        "type": "image",
+        "timestamp": "2026-11-05 12:38:57",
+        "model_id": "damage-ensemble",
+        "filename": "road damage7.jpeg",
+        "original_url": "/uploads/402358e4-f727-4534-aa87-8a589ca15d60.jpeg",
+        "processed_url": "/processed/processed_402358e4-f727-4534-aa87-8a589ca15d60.jpeg",
+        "total_damage": 3,
+        "severity": "High",
+        "classes_detected": [
+            "Pothole"
+        ],
+        "exif_metadata": {
+            "has_gps": false,
+            "latitude": null,
+            "longitude": null,
+            "altitude": null,
+            "datetime": null,
+            "camera_make": null,
+            "camera_model": null
+        },
+        "gps_coords": null
+    },
+    {
         "id": "cd838431-1318-4ae5-83a4-1e64de71e400",
         "type": "image",
         "timestamp": "2026-10-13 12:56:42",
