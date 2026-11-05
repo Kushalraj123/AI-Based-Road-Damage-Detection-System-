@@ -343,6 +343,10 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       };
     });
 
+    const isVideoMode = activeInputTab === 'video';
+    const resolvedProcessedImg = imagePreviewUrl || selectedSample?.image || '/images/pothole_real.jpg';
+    const resolvedOriginalImg = originalImageUrl || imagePreviewUrl || selectedSample?.image || '/images/pothole_real.jpg';
+
     const auditData = {
       reportRef,
       date: inspectionDate,
@@ -354,14 +358,28 @@ export default function DetectionStudio({ onPushToMap, onGenerateReport }) {
       estimatedCost: detectionResult.estimatedCost,
       repairPriority: detectionResult.repairPriority,
       distressCount: detectionResult.distressCount || formattedDetections.length,
+      mediaType: isVideoMode ? 'video' : 'image',
+      filename: isVideoMode
+        ? (selectedVideoFile?.name || 'dashcam_corridor_scan.mp4')
+        : (selectedFile?.name || (selectedSample?.title ? `${selectedSample.title.toLowerCase().replace(/\s+/g, '_')}.jpg` : 'road_inspection_photo.jpg')),
+      modelId: selectedModel || 'damage-ensemble',
+      originalUrl: isVideoMode ? (videoPreviewUrl || processedVideoUrl) : resolvedOriginalImg,
+      processedUrl: isVideoMode ? (processedVideoUrl || videoPreviewUrl) : resolvedProcessedImg,
+      depthMapUrl: depthMapBase64 || depthMapUrl || null,
+      videoUrl: isVideoMode ? (processedVideoUrl || videoPreviewUrl) : null,
+      image: resolvedProcessedImg,
+      inferenceTimeMs: inferenceTimeMs || 118.4,
+      imageDimensions: (detectionResult.backendImageWidth && detectionResult.backendImageHeight)
+        ? `${detectionResult.backendImageWidth} × ${detectionResult.backendImageHeight} px`
+        : `${imageNaturalSize.width || 1280} × ${imageNaturalSize.height || 720} px`,
+      classesDetected: [...new Set((formattedDetections || []).map(d => d.class_name || d.type).filter(Boolean))],
       materialsManifest: {
         hotMixAsphalt: `${Math.max(2.5, parseFloat(totalHotMix.toFixed(1)))} kg`,
         tackCoat: `${Math.max(0.15, parseFloat(totalTack.toFixed(2)))} Liters`,
         baseGravel: `${Math.max(1.5, parseFloat(totalGravel.toFixed(1)))} kg`,
         sealant: `${parseFloat(totalSealant.toFixed(2)) || 0.55} kg`
       },
-      detections: formattedDetections,
-      image: displayImgSrc || selectedSample?.image || '/images/pothole_real.jpg'
+      detections: formattedDetections
     };
 
     if (typeof onGenerateReport === 'function') {

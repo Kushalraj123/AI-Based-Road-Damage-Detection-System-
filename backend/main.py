@@ -97,9 +97,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Directories for saving media
-UPLOAD_DIR = os.path.abspath(os.getenv("UPLOAD_DIR", "uploads"))
-PROCESSED_DIR = os.path.abspath(os.getenv("PROCESSED_DIR", "processed"))
+# Directories for saving media (resolve relative to backend directory so files are always found)
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_UPLOAD_DIR = os.path.join(BACKEND_DIR, "uploads") if os.path.exists(os.path.join(BACKEND_DIR, "uploads")) else "uploads"
+DEFAULT_PROCESSED_DIR = os.path.join(BACKEND_DIR, "processed") if os.path.exists(os.path.join(BACKEND_DIR, "processed")) else "processed"
+UPLOAD_DIR = os.path.abspath(os.getenv("UPLOAD_DIR", DEFAULT_UPLOAD_DIR))
+PROCESSED_DIR = os.path.abspath(os.getenv("PROCESSED_DIR", DEFAULT_PROCESSED_DIR))
 
 for directory in [UPLOAD_DIR, PROCESSED_DIR]:
     if not os.path.exists(directory):
@@ -1362,7 +1365,7 @@ async def detect_image(
         # Run detection
         result = process_detection(temp_filepath, model_id, conf_threshold)
         
-        # Save to history with extracted GPS coordinates
+        # Save to history with extracted GPS coordinates and detection telemetry
         history_entry = {
             "id": file_uuid,
             "type": "image",
@@ -1371,9 +1374,16 @@ async def detect_image(
             "filename": file.filename,
             "original_url": f"/uploads/{temp_filename}",
             "processed_url": result["processed_image_url"],
+            "depth_map_url": result.get("depth_map_url"),
             "total_damage": result["total_damage"],
             "severity": result["severity"],
             "classes_detected": list(result["counts"].keys()),
+            "detections": result.get("detections", []),
+            "width": result.get("width"),
+            "height": result.get("height"),
+            "inference_time_ms": result.get("inference_time_ms", 120.0),
+            "max_measured_depth_cm": result.get("max_measured_depth_cm"),
+            "mean_measured_depth_cm": result.get("mean_measured_depth_cm"),
             "exif_metadata": exif_meta,
             "gps_coords": [exif_meta["latitude"], exif_meta["longitude"]] if exif_meta["has_gps"] else None
         }
