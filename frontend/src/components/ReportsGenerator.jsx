@@ -864,7 +864,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
             <div style="font-size: 9.5px; font-weight: 800; color: #0369a1; text-transform: uppercase; margin-bottom: 6px;">
               Captured ${rep.mediaType === 'video' ? 'Dashcam Video Frame' : 'Road Inspection Photo'} — ${rep.filename || 'Scan Media'}
             </div>
-            <img src="${printImgSrc}" style="width: 100%; max-height: 210px; object-fit: cover; border-radius: 6px; border: 1px solid #94a3b8;" onerror="this.src='/images/pothole_real.jpg'" />
+            <img src="${printImgSrc}" style="width: 100%; max-height: 240px; object-fit: contain; background: #070b14; border-radius: 6px; border: 1px solid #94a3b8;" onerror="this.src='/images/pothole_real.jpg'" />
           </div>
           <div style="display: flex; flex-direction: column; justify-content: space-between; font-size: 10px; color: #334155;">
             <div>
@@ -1733,7 +1733,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                                   e.currentTarget.onerror = null;
                                   e.currentTarget.src = isVid ? '/images/pothole_survey.jpg' : '/images/pothole_real.jpg';
                                 }}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                               />
                               {isVid && (
                                 <div
@@ -2008,7 +2008,6 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                       position: 'relative',
                       width: '100%',
                       minHeight: '300px',
-                      maxHeight: '420px',
                       borderRadius: '12px',
                       overflow: 'hidden',
                       background: '#070b14',
@@ -2049,7 +2048,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                         }}
                         style={{
                           width: '100%',
-                          maxHeight: '410px',
+                          maxHeight: '540px',
                           objectFit: 'contain',
                           display: 'block'
                         }}
@@ -2057,7 +2056,7 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                     ) : (
                       <div
                         onClick={() => setShowLightbox(true)}
-                        style={{ position: 'relative', width: '100%', height: '100%', cursor: 'zoom-in', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ position: 'relative', width: '100%', cursor: 'zoom-in', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         <img
                           src={currentImgSrc}
@@ -2073,8 +2072,9 @@ export default function ReportsGenerator({ syncedAuditReport, onNavigateToDetect
                           }}
                           style={{
                             width: '100%',
-                            maxHeight: '410px',
-                            objectFit: 'cover',
+                            height: 'auto',
+                            maxHeight: '540px',
+                            objectFit: 'contain',
                             display: 'block',
                             filter: mediaViewTab === 'depth' && mediaLoadError.depth ? 'hue-rotate(190deg) saturate(2.2) contrast(1.25)' : 'none'
                           }}
